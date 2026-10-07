@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/MainMenu.cs" id="1_2n3h4"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2n3h4")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "The RPG Game"
+horizontal_alignment = 1
+
+[node name="CreateGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Создать игру"
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 0)
+
+[node name="JoinGameButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Подключиться к localhost"
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 0)

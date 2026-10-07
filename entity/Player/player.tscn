@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://htqvsyysi2k4"]
+
+[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="1_23bt8"]
+[ext_resource type="Script" uid="uid://cni4iujhpbe8u" path="res://entity/Player/Player.cs" id="2_s5jwf"]
+[ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="3_omsen"]
+[ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1y8k7"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[node name="Player" unique_id=1924824913 instance=ExtResource("1_23bt8")]
+script = ExtResource("2_s5jwf")
+Speed = 5.0
+JumpVelocity = 4.5
+MouseSensitivity = 0.003
+MinPitch = -80.0
+MaxPitch = 60.0
+
+[node name="HealthComponent" parent="." index="0" unique_id=1182051469 instance=ExtResource("3_omsen")]
+
+[node name="PlayerInputComponent" parent="." index="2" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." index="3" unique_id=1148735305]
+
+[node name="CameraPivot" type="Node3D" parent="." index="4" unique_id=1929924156]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6096302, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot" index="0" unique_id=64500905]
+spring_length = 3.0
+margin = 0.2
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D" index="0" unique_id=82150786]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="5" unique_id=1718092406]
+replication_config = SubResource("SceneReplicationConfig_1y8k7")

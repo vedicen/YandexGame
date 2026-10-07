@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cfc0li2q20cr0"]
+
+[ext_resource type="Script" uid="uid://dkvqiultvubmi" path="res://entity/components/PlayerInputComponent.cs" id="1_gbank"]
+
+[node name="PlayerInputComponent" type="Node3D" unique_id=1285831222]
+script = ExtResource("1_gbank")

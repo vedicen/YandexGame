@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bq7iql7r6fjci"]
+
+[ext_resource type="Script" uid="uid://ccgqimgaf1w8j" path="res://entity/Entity.cs" id="1_bclhr"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_bclhr"]
+
+[node name="entity" type="CharacterBody3D" unique_id=1924824913]
+script = ExtResource("1_bclhr")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=772218702]
+shape = SubResource("CapsuleShape3D_bclhr")
