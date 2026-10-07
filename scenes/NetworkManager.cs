@@ -3,7 +3,9 @@ using Godot;
 public partial class NetworkManager : Node3D
 {
 	[Export] public PackedScene PlayerScene;
+	[Export] public PackedScene EnemyScene;
 	[Export] public Node3D PlayersContainer;
+	[Export] public Node3D EnemiesContainer;
 	[Export] public Node3D SpawnPointsContainer;
 
 	private const int Port = 7000;
@@ -18,6 +20,9 @@ public partial class NetworkManager : Node3D
 
 		if (PlayersContainer == null)
 			PlayersContainer = GetNodeOrNull<Node3D>("Players");
+
+		if (EnemiesContainer == null)
+			EnemiesContainer = GetNodeOrNull<Node3D>("Enemies");
 
 		if (SpawnPointsContainer == null)
 			SpawnPointsContainer = GetNodeOrNull<Node3D>("SpawnPoints");
@@ -132,7 +137,7 @@ public partial class NetworkManager : Node3D
 
 		var player = PlayerScene.Instantiate<CharacterBody3D>();
 		player.Name = id.ToString();
-		player.SetMultiplayerAuthority((int)id);
+		player.SetMultiplayerAuthority((int)id, true);
 
 		Vector3 spawnPosition = Vector3.Zero;
 		if (SpawnPointsContainer != null && SpawnPointsContainer.GetChildCount() > 0)
@@ -145,5 +150,26 @@ public partial class NetworkManager : Node3D
 
 		player.GlobalPosition = spawnPosition;
 		PlayersContainer.AddChild(player, true);
+	}
+
+	public void SpawnEnemy(Vector3 position)
+	{
+		if (!Multiplayer.IsServer())
+		{
+			GD.PrintErr("Enemies can only be spawned by the server.");
+			return;
+		}
+
+		if (EnemyScene == null || EnemiesContainer == null)
+		{
+			GD.PrintErr("EnemyScene or EnemiesContainer is not assigned.");
+			return;
+		}
+
+		var enemy = EnemyScene.Instantiate<Node3D>();
+		enemy.Name = $"Enemy_{EnemiesContainer.GetChildCount()}";
+		enemy.SetMultiplayerAuthority(1);
+		enemy.Position = position;
+		EnemiesContainer.AddChild(enemy, true);
 	}
 }

@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://b3qj4v0jgak45"]
+
+[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="0_entity"]
+[ext_resource type="Script" uid="uid://bvtumo44k0d3w" path="res://entity/AnimatedEnemy/AnimatedEnemy.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://dvhvrdxvhrl7v" path="res://animations/idle.fbx" id="3_idle"]
+[ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://animations/enemy models/GolemIdle.fbx" id="3_imrdp"]
+[ext_resource type="PackedScene" uid="uid://ctxb3c0v2fdlo" path="res://animations/run.fbx" id="5_run"]
+[ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="6_hit"]
+[ext_resource type="PackedScene" uid="uid://5sbpc5opkfm6" path="res://animations/runwithsword.fbx" id="7_run_sword"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_enemy"]
+properties/0/path = NodePath(".:ReplicatedAnimation")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+
+[node name="AnimatedEnemy" unique_id=757652966 instance=ExtResource("0_entity")]
+script = ExtResource("1_script")
+ModelScene = ExtResource("3_imrdp")
+IdleAnimationScene = ExtResource("3_idle")
+WalkAnimationScene = ExtResource("5_run")
+RunAnimationScene = ExtResource("5_run")
+RunWithSwordAnimationScene = ExtResource("7_run_sword")
+HitAnimationScene = ExtResource("6_hit")
+BlendDuration = 0.2
+ReplicatedAnimation = "Idle"
+
+[node name="Model" type="Node3D" parent="." index="1" unique_id=1883841536]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="2" unique_id=1673579761]
+replication_config = SubResource("SceneReplicationConfig_enemy")

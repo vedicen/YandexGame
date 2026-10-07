@@ -1,6 +1,6 @@
 using Godot;
 
-public partial class Player : Entity
+public partial class Player : AnimatedEntity
 {
     [ExportGroup("Movement")]
     [Export] public float Speed { get; set; } = 5.0f;
@@ -103,5 +103,10 @@ public partial class Player : Entity
 
         Velocity = velocity;
         MoveAndSlide();
+
+        if (direction == Vector3.Zero)
+            PlayIdle();
+        else
+            PlayWalk();
     }
 }
