@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://5sbpc5opkfm6"
-path="res://.godot/imported/runwithsword.fbx-5a3a073a26d723806c54ffa62c12701c.scn"
+uid="uid://ihix5qbmp1lc"
+path="res://.godot/imported/Crouched Walking.fbx-075221cc74c9194dd4569702143de143.scn"
 
 [deps]
 
-source_file="res://animations/runwithsword.fbx"
-dest_files=["res://.godot/imported/runwithsword.fbx-5a3a073a26d723806c54ffa62c12701c.scn"]
+source_file="res://animations/Crouched Walking.fbx"
+dest_files=["res://.godot/imported/Crouched Walking.fbx-075221cc74c9194dd4569702143de143.scn"]
 
 [params]
 

@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bhxhwscrx2okw"]
+
+[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="1_entity"]
+[ext_resource type="Script" uid="uid://bgrc6u7xkvxq0" path="res://entity/AnimatedEntity.cs" id="2_uiq6r"]
+[ext_resource type="PackedScene" uid="uid://dvhvrdxvhrl7v" path="res://animations/idle.fbx" id="3_osnle"]
+[ext_resource type="PackedScene" uid="uid://b5jgrupjbuj2p" path="res://animations/Walking.fbx" id="4_yrrmq"]
+[ext_resource type="PackedScene" uid="uid://ctxb3c0v2fdlo" path="res://animations/run.fbx" id="5_ian1y"]
+[ext_resource type="PackedScene" uid="uid://5sbpc5opkfm6" path="res://animations/runwithsword.fbx" id="6_2dmw2"]
+[ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="7_m785b"]
+[ext_resource type="PackedScene" uid="uid://bqlht5i28pma4" path="res://animations/Crouch Idle.fbx" id="8_oxu6r"]
+[ext_resource type="PackedScene" uid="uid://ihix5qbmp1lc" path="res://animations/Crouched Walking.fbx" id="9_vqaqr"]
+
+[node name="AnimatedEntity" unique_id=1252529603 instance=ExtResource("1_entity")]
+script = ExtResource("2_uiq6r")
+ModelScene = null
+IdleAnimationScene = ExtResource("3_osnle")
+WalkAnimationScene = ExtResource("4_yrrmq")
+RunAnimationScene = ExtResource("5_ian1y")
+RunWithSwordAnimationScene = ExtResource("6_2dmw2")
+Attack1AnimationScene = ExtResource("7_m785b")
+Attack2AnimationScene = ExtResource("7_m785b")
+CrouchedIdleAnimationScene = ExtResource("8_oxu6r")
+CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
+BlendDuration = 0.2
+ReplicatedAnimation = "Idle"
+ReplicatedAttack = ""

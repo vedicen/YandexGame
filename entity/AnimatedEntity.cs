@@ -13,7 +13,6 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene WalkAnimationScene { get; set; }
 	[Export] public PackedScene RunAnimationScene { get; set; }
 	[Export] public PackedScene RunWithSwordAnimationScene { get; set; }
-	[Export] public PackedScene HitAnimationScene { get; set; }
 	[Export] public PackedScene Attack1AnimationScene { get; set; }
 	[Export] public PackedScene Attack2AnimationScene { get; set; }
 	[Export] public PackedScene CrouchedIdleAnimationScene { get; set; }
@@ -63,6 +62,7 @@ public partial class AnimatedEntity : Entity
 				return;
 			}
 
+			attackAnimation.LoopMode = Animation.LoopModeEnum.None;
 			bool hasUpperBodyTrack = false;
 			for (int track = 0; track < attackAnimation.GetTrackCount(); track++)
 			{
@@ -85,6 +85,93 @@ public partial class AnimatedEntity : Entity
 
 		GD.PushWarning($"Animation source for '{targetName}' has no playable animation.");
 		sourceRoot.Free();
+	}
+
+	private void BuildAnimationTree()
+	{
+		var blendTree = new AnimationNodeBlendTree();
+		var locomotion = new AnimationNodeTransition
+		{
+			XfadeTime = (float)BlendDuration
+		};
+		blendTree.AddNode("Locomotion", locomotion);
+		var animationNames = new[]
+		{
+			"Idle", "Walk", "Run", "RunWithSword", "CrouchedIdle", "CrouchedWalk"
+		};
+		var availableAnimations = new System.Collections.Generic.List<string>();
+
+		foreach (string animationName in animationNames)
+		{
+			StringName qualifiedName = RuntimeLibraryPrefix + animationName;
+			if (!_animationPlayer.HasAnimation(qualifiedName))
+				continue;
+
+			int transitionIndex = availableAnimations.Count;
+			availableAnimations.Add(animationName);
+			locomotion.AddInput(animationName);
+
+			string nodeName = $"Animation_{animationName}";
+			blendTree.AddNode(nodeName, new AnimationNodeAnimation
+			{
+				Animation = qualifiedName
+			});
+			blendTree.ConnectNode("Locomotion", transitionIndex, nodeName);
+		}
+
+		if (availableAnimations.Count == 0)
+		{
+			GD.PushError("No usable locomotion animations were assigned to AnimatedEntity.");
+			return;
+		}
+		_availableAnimationNames = availableAnimations.ToArray();
+
+		var attackClip = new AnimationNodeAnimation();
+		if (_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "Attack1"))
+			attackClip.Animation = RuntimeLibraryPrefix + "Attack1";
+		else if (_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "Attack2"))
+			attackClip.Animation = RuntimeLibraryPrefix + "Attack2";
+
+		blendTree.AddNode("AttackClip", attackClip);
+
+		var attack = new AnimationNodeOneShot
+		{
+			FadeInTime = (float)BlendDuration,
+			FadeOutTime = (float)BlendDuration,
+			BreakLoopAtEnd = true,
+			FilterEnabled = true
+		};
+		blendTree.AddNode("Attack", attack);
+		blendTree.ConnectNode("Attack", 0, "Locomotion");
+		blendTree.ConnectNode("Attack", 1, "AttackClip");
+		blendTree.ConnectNode("output", 0, "Attack");
+
+		AddUpperBodyFilter(attack, "Attack1");
+		AddUpperBodyFilter(attack, "Attack2");
+
+		_animationTree = new AnimationTree
+		{
+			Name = "AnimationTree",
+			TreeRoot = blendTree
+		};
+		_modelRoot.AddChild(_animationTree);
+		_animationTree.AnimPlayer = _animationTree.GetPathTo(_animationPlayer);
+		_animationPlayer.Stop();
+		_animationTree.Active = true;
+	}
+
+	private void AddUpperBodyFilter(AnimationNodeOneShot attackNode, string animationName)
+	{
+		StringName animationPath = RuntimeLibraryPrefix + animationName;
+		if (!_animationPlayer.HasAnimation(animationPath))
+			return;
+
+		Animation animation = _animationPlayer.GetAnimation(animationPath);
+		for (int track = 0; track < animation.GetTrackCount(); track++)
+		{
+			if (IsUpperBodyTrack(animation.TrackGetPath(track).ToString()))
+				attackNode.SetFilterPath(animation.TrackGetPath(track), true);
+		}
 	}
 
 	private static bool IsUpperBodyTrack(string trackPath)
@@ -113,8 +200,10 @@ public partial class AnimatedEntity : Entity
 	private string _replicatedAnimation = "Idle";
 	private string _replicatedAttack = "";
 	private AnimationPlayer _animationPlayer;
-	private AnimationPlayer _attackAnimationPlayer;
+	private AnimationTree _animationTree;
 	private Node3D _modelRoot;
+	private string[] _availableAnimationNames = System.Array.Empty<string>();
+	private bool _attackWasActive;
 
 	[Export]
 	public string ReplicatedAttack
@@ -153,42 +242,43 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, WalkAnimationScene, "Walk");
 		AddAnimation(runtimeLibrary, RunAnimationScene, "Run");
 		AddAnimation(runtimeLibrary, RunWithSwordAnimationScene, "RunWithSword");
-		AddAnimation(runtimeLibrary, HitAnimationScene, "Hit");
 		AddAnimation(runtimeLibrary, CrouchedIdleAnimationScene, "CrouchedIdle");
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
+		AddUpperBodyAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1");
+		AddUpperBodyAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2");
 
-		_attackAnimationPlayer = new AnimationPlayer
-		{
-			Name = "AttackAnimationPlayer"
-		};
-		_modelRoot.AddChild(_attackAnimationPlayer);
-		Node animationRoot = _animationPlayer.GetNodeOrNull(_animationPlayer.RootNode);
-		if (animationRoot == null)
-		{
-			GD.PushError("The model AnimationPlayer has an invalid root node.");
-			_attackAnimationPlayer.QueueFree();
-			_attackAnimationPlayer = null;
-			ApplyAnimation(_replicatedAnimation);
-			return;
-		}
-
-		_attackAnimationPlayer.RootNode = _attackAnimationPlayer.GetPathTo(animationRoot);
-		_attackAnimationPlayer.AnimationFinished += OnAttackAnimationFinished;
-
-		var attackLibrary = new AnimationLibrary();
-		_attackAnimationPlayer.AddAnimationLibrary(RuntimeLibraryName, attackLibrary);
-		AddUpperBodyAnimation(attackLibrary, Attack1AnimationScene, "Attack1");
-		AddUpperBodyAnimation(attackLibrary, Attack2AnimationScene, "Attack2");
+		BuildAnimationTree();
 
 		ApplyAnimation(_replicatedAnimation);
 		ApplyAttack(_replicatedAttack);
+	}
+
+	public override void _Process(double delta)
+	{
+		if (_animationTree == null)
+			return;
+
+		bool attackActive = _animationTree.Get("parameters/Attack/active").AsBool();
+		if (attackActive)
+		{
+			_attackWasActive = true;
+			return;
+		}
+
+		if (!_attackWasActive)
+			return;
+
+		_attackWasActive = false;
+		if (!Multiplayer.HasMultiplayerPeer() || GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
+			ReplicatedAttack = "";
+		else
+			_replicatedAttack = "";
 	}
 
 	public void PlayIdle() => SetAnimationState("Idle");
 	public void PlayWalk() => SetAnimationState("Walk");
 	public void PlayRun() => SetAnimationState("Run");
 	public void PlayRunWithSword() => SetAnimationState("RunWithSword");
-	public void PlayHit() => SetAnimationState("Hit");
 	public void PlayCrouchedIdle() => SetAnimationState(
 		_animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "CrouchedIdle") == true
 			? "CrouchedIdle"
@@ -213,8 +303,8 @@ public partial class AnimatedEntity : Entity
 		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
 			return;
 
-		if (_attackAnimationPlayer == null ||
-			!_attackAnimationPlayer.HasAnimation(RuntimeLibraryPrefix + animationName))
+		if (_animationPlayer == null ||
+			!_animationPlayer.HasAnimation(RuntimeLibraryPrefix + animationName))
 		{
 			GD.PushWarning($"No animation source is assigned for '{animationName}'.");
 			return;
@@ -268,33 +358,25 @@ public partial class AnimatedEntity : Entity
 
 	private void ApplyAnimation(string animationName)
 	{
-		if (_animationPlayer == null || string.IsNullOrWhiteSpace(animationName))
+		if (_animationTree == null || string.IsNullOrWhiteSpace(animationName))
 			return;
 
-		StringName qualifiedName = RuntimeLibraryPrefix + animationName;
-		if (_animationPlayer.HasAnimation(qualifiedName))
-			_animationPlayer.Play(qualifiedName, BlendDuration);
+		string targetAnimation = System.Array.IndexOf(_availableAnimationNames, animationName) >= 0
+			? animationName
+			: _availableAnimationNames[0];
+		_animationTree.Set("parameters/Locomotion/transition_request", targetAnimation);
 	}
 
 	private void ApplyAttack(string animationName)
 	{
-		if (_attackAnimationPlayer == null || string.IsNullOrWhiteSpace(animationName))
+		if (_animationTree == null || string.IsNullOrWhiteSpace(animationName))
 			return;
 
 		StringName qualifiedName = RuntimeLibraryPrefix + animationName;
-		if (_attackAnimationPlayer.HasAnimation(qualifiedName))
-			_attackAnimationPlayer.Play(qualifiedName, BlendDuration);
-	}
-
-	private void OnAttackAnimationFinished(StringName animationName)
-	{
-		if (animationName != RuntimeLibraryPrefix + "Attack1" &&
-			animationName != RuntimeLibraryPrefix + "Attack2")
+		if (!_animationPlayer.HasAnimation(qualifiedName))
 			return;
 
-		if (!Multiplayer.HasMultiplayerPeer() || GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
-			ReplicatedAttack = "";
-		else
-			_replicatedAttack = "";
+		_animationTree.Set("parameters/AttackClip/animation", qualifiedName);
+		_animationTree.Set("parameters/Attack/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
 	}
 }

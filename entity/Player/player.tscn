@@ -1,14 +1,10 @@
 [gd_scene format=3 uid="uid://htqvsyysi2k4"]
 
-[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="1_23bt8"]
+[ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="1_23bt8"]
 [ext_resource type="Script" uid="uid://cni4iujhpbe8u" path="res://entity/Player/Player.cs" id="2_s5jwf"]
 [ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="3_omsen"]
 [ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="3_xqki4"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
-[ext_resource type="PackedScene" uid="uid://dvhvrdxvhrl7v" path="res://animations/idle.fbx" id="5_idle"]
-[ext_resource type="PackedScene" uid="uid://ctxb3c0v2fdlo" path="res://animations/run.fbx" id="7_run"]
-[ext_resource type="PackedScene" uid="uid://5sbpc5opkfm6" path="res://animations/runwithsword.fbx" id="8_run_sword"]
-[ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="9_hit"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1y8k7"]
 properties/0/path = NodePath(".:position")
@@ -29,18 +25,11 @@ script = ExtResource("2_s5jwf")
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
 JumpVelocity = 4.5
+CrouchSpeedMultiplier = 0.5
 MouseSensitivity = 0.003
 MinPitch = -80.0
 MaxPitch = 60.0
 ModelScene = ExtResource("3_xqki4")
-IdleAnimationScene = ExtResource("5_idle")
-WalkAnimationScene = ExtResource("7_run")
-RunAnimationScene = ExtResource("7_run")
-RunWithSwordAnimationScene = ExtResource("8_run_sword")
-HitAnimationScene = ExtResource("9_hit")
-Attack1AnimationScene = ExtResource("9_hit")
-BlendDuration = 0.2
-ReplicatedAnimation = "Idle"
 
 [node name="HealthComponent" parent="." index="0" unique_id=1182051469 instance=ExtResource("3_omsen")]
 

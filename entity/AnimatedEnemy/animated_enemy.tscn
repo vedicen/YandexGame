@@ -1,12 +1,8 @@
 [gd_scene format=3 uid="uid://b3qj4v0jgak45"]
 
-[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="0_entity"]
+[ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="0_entity"]
 [ext_resource type="Script" uid="uid://bvtumo44k0d3w" path="res://entity/AnimatedEnemy/AnimatedEnemy.cs" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://dvhvrdxvhrl7v" path="res://animations/idle.fbx" id="3_idle"]
 [ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://animations/enemy models/GolemIdle.fbx" id="3_imrdp"]
-[ext_resource type="PackedScene" uid="uid://ctxb3c0v2fdlo" path="res://animations/run.fbx" id="5_run"]
-[ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="6_hit"]
-[ext_resource type="PackedScene" uid="uid://5sbpc5opkfm6" path="res://animations/runwithsword.fbx" id="7_run_sword"]
 [ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_enemy"]
@@ -26,18 +22,6 @@ properties/3/replication_mode = 2
 [node name="AnimatedEnemy" unique_id=757652966 instance=ExtResource("0_entity")]
 script = ExtResource("1_script")
 ModelScene = ExtResource("3_imrdp")
-IdleAnimationScene = ExtResource("3_idle")
-WalkAnimationScene = ExtResource("5_run")
-RunAnimationScene = ExtResource("5_run")
-RunWithSwordAnimationScene = ExtResource("7_run_sword")
-HitAnimationScene = ExtResource("6_hit")
-Attack1AnimationScene = ExtResource("6_hit")
-Attack2AnimationScene = null
-CrouchedIdleAnimationScene = null
-CrouchedWalkAnimationScene = null
-BlendDuration = 0.2
-ReplicatedAnimation = "Idle"
-ReplicatedAttack = ""
 
 [node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324]
 script = ExtResource("8_ai")
