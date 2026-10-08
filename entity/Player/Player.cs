@@ -3,6 +3,8 @@ using Godot;
 public partial class Player : AnimatedEntity
 {
     [ExportGroup("Movement")]
+
+    [Export] public PlayerInputComponent playerInputComponent;
     [Export] public float Speed { get; set; } = 5.0f;
     [Export] public float JumpVelocity { get; set; } = 4.5f;
 
@@ -81,11 +83,11 @@ public partial class Player : AnimatedEntity
         if (!IsOnFloor())
             velocity += GetGravity() * (float)delta;
 
-        if (Input.IsActionJustPressed("ui_accept") && IsOnFloor())
+        if (playerInputComponent.IsJumpPressed() && IsOnFloor())
             velocity.Y = JumpVelocity;
 
         // Вектор ввода движения
-        Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+        Vector2 inputDir = playerInputComponent.GetMovementInput();
 
         // Движение относительно направления персонажа/камеры
         Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();

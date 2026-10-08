@@ -21,8 +21,9 @@ properties/2/path = NodePath(".:rotation")
 properties/2/spawn = true
 properties/2/replication_mode = 1
 
-[node name="Player" unique_id=1924824913 instance=ExtResource("1_23bt8")]
+[node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
+playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
 JumpVelocity = 4.5
 MouseSensitivity = 0.003
