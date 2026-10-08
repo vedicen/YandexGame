@@ -7,11 +7,21 @@
 [ext_resource type="PackedScene" uid="uid://ctxb3c0v2fdlo" path="res://animations/run.fbx" id="5_run"]
 [ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="6_hit"]
 [ext_resource type="PackedScene" uid="uid://5sbpc5opkfm6" path="res://animations/runwithsword.fbx" id="7_run_sword"]
+[ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_enemy"]
 properties/0/path = NodePath(".:ReplicatedAnimation")
 properties/0/spawn = true
 properties/0/replication_mode = 2
+properties/1/path = NodePath(".:position")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:rotation")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:ReplicatedAttack")
+properties/3/spawn = true
+properties/3/replication_mode = 2
 
 [node name="AnimatedEnemy" unique_id=757652966 instance=ExtResource("0_entity")]
 script = ExtResource("1_script")
@@ -21,10 +31,19 @@ WalkAnimationScene = ExtResource("5_run")
 RunAnimationScene = ExtResource("5_run")
 RunWithSwordAnimationScene = ExtResource("7_run_sword")
 HitAnimationScene = ExtResource("6_hit")
+Attack1AnimationScene = ExtResource("6_hit")
+Attack2AnimationScene = null
+CrouchedIdleAnimationScene = null
+CrouchedWalkAnimationScene = null
 BlendDuration = 0.2
 ReplicatedAnimation = "Idle"
+ReplicatedAttack = ""
 
-[node name="Model" type="Node3D" parent="." index="1" unique_id=1883841536]
+[node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324]
+script = ExtResource("8_ai")
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="2" unique_id=1673579761]
+[node name="Model" type="Node3D" parent="." index="2" unique_id=1883841536]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99512684, 0)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="3" unique_id=1673579761]
 replication_config = SubResource("SceneReplicationConfig_enemy")

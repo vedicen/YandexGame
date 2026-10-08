@@ -2,26 +2,65 @@ using Godot;
 
 public partial class PlayerInputComponent : Node
 {
-    public Vector2 GetMovementInput()
+    private Vector2 _lookMotion;
+
+    public bool HasInputAuthority
     {
-        return Input.GetVector("left", "right", "forward", "backward");
+        get
+        {
+            Node parent = GetParent();
+            return parent != null &&
+                (!Multiplayer.HasMultiplayerPeer() ||
+                parent.GetMultiplayerAuthority() == Multiplayer.GetUniqueId());
+        }
     }
 
-    public bool IsJumpPressed()
+    public Vector2 Movement =>
+        HasInputAuthority ? Input.GetVector("left", "right", "forward", "backward") : Vector2.Zero;
+
+    public bool JumpPressed =>
+        HasInputAuthority && Input.IsActionJustPressed("jump");
+
+    public bool Crouching =>
+        HasInputAuthority && Input.IsActionPressed("crouch");
+
+    public bool Attack1Pressed =>
+        HasInputAuthority && Input.IsActionJustPressed("attack1");
+
+    public bool Attack2Pressed =>
+        HasInputAuthority && Input.IsActionJustPressed("attack2");
+
+    public bool IsMouseCaptured =>
+        Input.MouseMode == Input.MouseModeEnum.Captured;
+
+    public override void _Ready()
     {
-        return Input.IsActionJustPressed("jump");
+        if (HasInputAuthority)
+            Input.MouseMode = Input.MouseModeEnum.Captured;
     }
 
-     public bool IsCrouchPressed()
+    public override void _UnhandledInput(InputEvent @event)
     {
-        return Input.IsActionPressed("crouch");
+        if (!HasInputAuthority)
+            return;
+
+        if (@event.IsActionPressed("ui_cancel"))
+        {
+            Input.MouseMode = IsMouseCaptured
+                ? Input.MouseModeEnum.Visible
+                : Input.MouseModeEnum.Captured;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (IsMouseCaptured && @event is InputEventMouseMotion mouseMotion)
+            _lookMotion += mouseMotion.Relative;
     }
-     public bool IsAttack1Pressed()
+
+    public Vector2 ConsumeLookMotion()
     {
-        return Input.IsActionJustPressed("attack1");
-    }
-     public bool IsAttack2Pressed()
-    {
-        return Input.IsActionJustPressed("attack2");
+        Vector2 lookMotion = _lookMotion;
+        _lookMotion = Vector2.Zero;
+        return lookMotion;
     }
 }

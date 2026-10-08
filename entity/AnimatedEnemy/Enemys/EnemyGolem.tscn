@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bd7into56gyn0"]
+
+[ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="1_iqr1x"]
+[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="2_ct6y0"]
+
+[node name="EnemyGolem" unique_id=757652966 instance=ExtResource("1_iqr1x")]
+ModelScene = ExtResource("2_ct6y0")
+Attack2AnimationScene = null
+CrouchedIdleAnimationScene = null
+CrouchedWalkAnimationScene = null
+ReplicatedAttack = ""
