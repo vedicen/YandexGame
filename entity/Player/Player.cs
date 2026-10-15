@@ -14,16 +14,23 @@ public partial class Player : AnimatedEntity
     [Export] public float MinPitch { get; set; } = -80.0f; // Ограничение взгляда вниз (в градусах)
     [Export] public float MaxPitch { get; set; } = 60.0f;  // Ограничение взгляда вверх (в градусах)
 
+
     private Node3D _cameraPivot;
     private Camera3D _camera;
 
+    private Button interact_key;
+    private interact_obj current_interact_obj;
     private float _cameraRotationX = 0f;
+    
 
     public override void _Ready()
     {
         base._Ready();
-
+        
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
+        interact_key ??= GetNodeOrNull<Button>("UI/Ineract_Key");
+
+        interact_key.Pressed += pressed_interact_key;
         if (playerInputComponent == null)
         {
             GD.PushError("Player requires a PlayerInputComponent child.");
@@ -120,4 +127,25 @@ public partial class Player : AnimatedEntity
         else if (playerInputComponent.Attack2Pressed)
             PlayAttack2();
     }
+    public void interact_show(interact_obj _interact_obj)
+    {
+
+        current_interact_obj = _interact_obj;
+        GD.Print("Показал кнопку");
+        interact_key.Show();
+    }
+    public void interact_hide()
+    {
+
+        GD.Print("Убрал  кнопку");
+        interact_key.Hide();
+    }
+    private void pressed_interact_key()
+    {
+
+        current_interact_obj.interact(this);
+        interact_key.Hide();
+    }
+
+
 }

@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://dpd70frbgid51"]
+
+[ext_resource type="PackedScene" uid="uid://dlbkq3q66tapy" path="res://entity/interact/Interact_Obj.tscn" id="1_aoqqk"]
+[ext_resource type="Script" uid="uid://cdvje7vmo1mhj" path="res://entity/interact/PickUpObj.cs" id="2_416cs"]
+
+[node name="entity" unique_id=1924824913 instance=ExtResource("1_aoqqk")]
+script = ExtResource("2_416cs")

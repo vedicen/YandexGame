@@ -24,6 +24,10 @@ window/stretch/aspect="expand"
 
 project/assembly_name="TheRPGGame"
 
+[filesystem]
+
+import/blender/enabled=false
+
 [input]
 
 jump={
