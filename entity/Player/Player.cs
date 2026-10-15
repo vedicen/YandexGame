@@ -2,6 +2,14 @@ using Godot;
 
 public partial class Player : AnimatedEntity
 {
+    public InventoryComponent Inventory { get; private set; }
+    public PlayerStateMachine States { get; private set; }
+    public InventoryUI InventoryUI { get; private set; }
+    private Chest _openChest;
+    public override void _EnterTree()
+    {
+        if (int.TryParse(Name, out int peer)) SetMultiplayerAuthority(peer, true);
+    }
     [ExportGroup("Movement")]
 
     [Export] public PlayerInputComponent playerInputComponent;
@@ -28,9 +36,13 @@ public partial class Player : AnimatedEntity
         base._Ready();
         
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
+        Inventory = GetNode<InventoryComponent>("InventoryComponent");
+        States = new PlayerStateMachine { Name = "States" };
+        AddChild(States);
         interact_key ??= GetNodeOrNull<Button>("UI/Ineract_Key");
 
         interact_key.Pressed += pressed_interact_key;
+        interact_key.Hide();
         if (playerInputComponent == null)
         {
             GD.PushError("Player requires a PlayerInputComponent child.");
@@ -46,12 +58,16 @@ public partial class Player : AnimatedEntity
         if (playerInputComponent.HasInputAuthority)
         {
             _camera.Current = true;
+            InventoryUI = new InventoryUI { Player = this };
+            AddChild(InventoryUI);
+            Callable.From(() => InventoryService.Instance?.RequestSnapshot()).CallDeferred();
         }
         else
         {
             _camera.Current = false;
             SetPhysicsProcess(false);
             SetProcess(false);
+            GetNode<Control>("UI").Hide();
         }
     }
 
@@ -61,6 +77,7 @@ public partial class Player : AnimatedEntity
             return;
 
         Vector2 mouseMotion = playerInputComponent.ConsumeLookMotion();
+        if (!States.CanLook) return;
         if (playerInputComponent.IsMouseCaptured && mouseMotion != Vector2.Zero)
         {
             RotateY(-mouseMotion.X * MouseSensitivity);
@@ -80,6 +97,12 @@ public partial class Player : AnimatedEntity
             return;
 
         Vector3 velocity = Velocity;
+        if (!States.CanMove)
+        {
+            Velocity = new Vector3(0, IsOnFloor() ? 0 : velocity.Y + GetGravity().Y * (float)delta, 0);
+            MoveAndSlide();
+            return;
+        }
 
         if (!IsOnFloor())
             velocity += GetGravity() * (float)delta;
@@ -106,6 +129,8 @@ public partial class Player : AnimatedEntity
         Velocity = velocity;
         MoveAndSlide();
 
+        States.UpdateMotion(IsOnFloor(), direction != Vector3.Zero, crouching);
+
         if (crouching)
         {
             if (direction == Vector3.Zero)
@@ -122,29 +147,70 @@ public partial class Player : AnimatedEntity
             PlayWalk();
         }
 
-        if (playerInputComponent.Attack1Pressed)
+        if (States.CanAttack && playerInputComponent.Attack1Pressed)
             PlayAttack1();
-        else if (playerInputComponent.Attack2Pressed)
+        else if (States.CanAttack && playerInputComponent.Attack2Pressed)
             PlayAttack2();
     }
     public void interact_show(interact_obj _interact_obj)
     {
 
+        if (playerInputComponent?.HasInputAuthority != true) return;
         current_interact_obj = _interact_obj;
         GD.Print("Показал кнопку");
         interact_key.Show();
     }
-    public void interact_hide()
+    public void interact_hide(interact_obj source = null)
     {
-
+        if (source != null && current_interact_obj != source) return;
+        current_interact_obj = null;
         GD.Print("Убрал  кнопку");
         interact_key.Hide();
     }
     private void pressed_interact_key()
     {
 
+        if (!States.CanMove || !GodotObject.IsInstanceValid(current_interact_obj)) return;
         current_interact_obj.interact(this);
         interact_key.Hide();
+    }
+
+    public override void _Input(InputEvent ev)
+    {
+        if (playerInputComponent?.HasInputAuthority != true || ev is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (key.PhysicalKeycode == Key.Tab || key.Keycode == Key.Escape && !States.CanMove)
+        {
+            if (States.CanMove) { States.Transition(PlayerStateMachine.State.Inventory); InventoryUI.Open(null); }
+            else CloseInventory();
+            GetViewport().SetInputAsHandled();
+        }
+        else if (key.PhysicalKeycode == Key.E && States.CanMove)
+        {
+            pressed_interact_key();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+    public void SetChest(Chest chest)
+    {
+        if (_openChest == chest) return;
+        _openChest = chest;
+        if (chest != null)
+        {
+            States.Transition(PlayerStateMachine.State.Chest);
+            InventoryUI?.Open(chest);
+        }
+        else if (States.Current == PlayerStateMachine.State.Chest)
+        {
+            States.Transition(PlayerStateMachine.State.Locomotion);
+            InventoryUI?.Close();
+        }
+    }
+    public void CloseInventory()
+    {
+        InventoryService.Instance?.Send("close", this);
+        _openChest = null;
+        States.Transition(PlayerStateMachine.State.Locomotion);
+        InventoryUI?.Close();
     }
 
 

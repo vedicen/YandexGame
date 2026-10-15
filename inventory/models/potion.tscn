@@ -1,0 +1,22 @@
+[gd_scene load_steps=5 format=3]
+[sub_resource type="StandardMaterial3D" id="Material"]
+albedo_color = Color(0.8, 0.12, 0.2, 1)
+metallic = 0.2
+roughness = 0.25
+[sub_resource type="SphereMesh" id="Mesh"]
+material = SubResource("Material")
+radius = 0.25
+height = 0.5
+[sub_resource type="StandardMaterial3D" id="Cork"]
+albedo_color = Color(0.5, 0.3, 0.12, 1)
+[sub_resource type="CylinderMesh" id="Neck"]
+material = SubResource("Cork")
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.2
+[node name="Potion" type="Node3D"]
+[node name="Bottle" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh")
+[node name="Cork" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.28, 0)
+mesh = SubResource("Neck")

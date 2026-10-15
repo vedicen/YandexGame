@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+[sub_resource type="StandardMaterial3D" id="Material"]
+albedo_color = Color(0.15, 0.65, 0.9, 1)
+metallic = 0.65
+roughness = 0.22
+[sub_resource type="PrismMesh" id="Mesh"]
+material = SubResource("Material")
+size = Vector3(0.45, 0.7, 0.45)
+[node name="Crystal" type="Node3D"]
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh")

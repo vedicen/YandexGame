@@ -3,16 +3,40 @@
   "WorkspaceRootPath": "E:\\YandexGame\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\YandexGame\\entity\\interact\\PickUpObj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:entity\\interact\\PickUpObj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\entity\\player\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:entity\\player\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\inventory\\usableitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:inventory\\usableitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\entity\\interact\\interact_obj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:entity\\interact\\interact_obj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\entity\\player\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:entity\\player\\player.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|E:\\YandexGame\\entity\\interact\\PickUpObj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:entity\\interact\\PickUpObj.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\entity\\interact\\chest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:entity\\interact\\chest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\inventory\\inventorycomponent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:inventory\\inventorycomponent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\inventory\\inventoryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:inventory\\inventoryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\inventory\\item.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:inventory\\item.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|e:\\yandexgame\\inventory\\stack.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{755202A3-01A3-4324-81FE-821CCF79D732}|TheRPGGame.csproj|solutionrelative:inventory\\stack.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,17 +46,17 @@
       "DocumentGroups": [
         {
           "DockedHeight": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "Player.cs",
               "DocumentMoniker": "E:\\YandexGame\\entity\\Player\\Player.cs",
               "RelativeDocumentMoniker": "entity\\Player\\Player.cs",
               "ToolTip": "E:\\YandexGame\\entity\\Player\\Player.cs",
               "RelativeToolTip": "entity\\Player\\Player.cs",
-              "ViewState": "AgIAAIMAAAAAAAAAAAAAAJEAAAAqAAAAAAAAAA==",
+              "ViewState": "AgIAAIwAAAAAAAAAAAAAAKUAAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-15T10:32:06.399Z",
               "IsPinned": true,
@@ -40,26 +64,104 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
+              "Title": "UsableItem.cs",
+              "DocumentMoniker": "E:\\YandexGame\\inventory\\UsableItem.cs",
+              "RelativeDocumentMoniker": "inventory\\UsableItem.cs",
+              "ToolTip": "E:\\YandexGame\\inventory\\UsableItem.cs",
+              "RelativeToolTip": "inventory\\UsableItem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:41:47.686Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Stack.cs",
+              "DocumentMoniker": "E:\\YandexGame\\inventory\\Stack.cs",
+              "RelativeDocumentMoniker": "inventory\\Stack.cs",
+              "ToolTip": "E:\\YandexGame\\inventory\\Stack.cs",
+              "RelativeToolTip": "inventory\\Stack.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:41:46.411Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Item.cs",
+              "DocumentMoniker": "E:\\YandexGame\\inventory\\Item.cs",
+              "RelativeDocumentMoniker": "inventory\\Item.cs",
+              "ToolTip": "E:\\YandexGame\\inventory\\Item.cs",
+              "RelativeToolTip": "inventory\\Item.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:41:44.585Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "InventoryService.cs",
+              "DocumentMoniker": "E:\\YandexGame\\inventory\\InventoryService.cs",
+              "RelativeDocumentMoniker": "inventory\\InventoryService.cs",
+              "ToolTip": "E:\\YandexGame\\inventory\\InventoryService.cs",
+              "RelativeToolTip": "inventory\\InventoryService.cs",
+              "ViewState": "AgIAAKQAAAAAAAAAAAAiwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:41:43.224Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "InventoryComponent.cs",
+              "DocumentMoniker": "E:\\YandexGame\\inventory\\InventoryComponent.cs",
+              "RelativeDocumentMoniker": "inventory\\InventoryComponent.cs",
+              "ToolTip": "E:\\YandexGame\\inventory\\InventoryComponent.cs",
+              "RelativeToolTip": "inventory\\InventoryComponent.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:41:42.061Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Chest.cs",
+              "DocumentMoniker": "E:\\YandexGame\\entity\\interact\\Chest.cs",
+              "RelativeDocumentMoniker": "entity\\interact\\Chest.cs",
+              "ToolTip": "E:\\YandexGame\\entity\\interact\\Chest.cs",
+              "RelativeToolTip": "entity\\interact\\Chest.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-15T12:40:55.541Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "PickUpObj.cs",
               "DocumentMoniker": "E:\\YandexGame\\entity\\interact\\PickUpObj.cs",
               "RelativeDocumentMoniker": "entity\\interact\\PickUpObj.cs",
               "ToolTip": "E:\\YandexGame\\entity\\interact\\PickUpObj.cs",
               "RelativeToolTip": "entity\\interact\\PickUpObj.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-15T11:34:18.175Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "interact_obj.cs",
               "DocumentMoniker": "E:\\YandexGame\\entity\\interact\\interact_obj.cs",
               "RelativeDocumentMoniker": "entity\\interact\\interact_obj.cs",
               "ToolTip": "E:\\YandexGame\\entity\\interact\\interact_obj.cs",
               "RelativeToolTip": "entity\\interact\\interact_obj.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAACAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-09T13:59:10.16Z",
               "EditorCaption": ""

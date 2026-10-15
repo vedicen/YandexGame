@@ -31,4 +31,9 @@ public partial class HealthComponent : Node
         CurrentHealth = Mathf.Min(CurrentHealth + amount, MaxHealth);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }
+    public void SetReplicatedHealth(float amount)
+    {
+        CurrentHealth = Mathf.Clamp(amount, 0, MaxHealth);
+        EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+    }
 }

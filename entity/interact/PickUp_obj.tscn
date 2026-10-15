@@ -3,5 +3,15 @@
 [ext_resource type="PackedScene" uid="uid://dlbkq3q66tapy" path="res://entity/interact/Interact_Obj.tscn" id="1_aoqqk"]
 [ext_resource type="Script" uid="uid://cdvje7vmo1mhj" path="res://entity/interact/PickUpObj.cs" id="2_416cs"]
 
+[ext_resource type="Script" path="res://inventory/Stack.cs" id="3_stack"]
+[ext_resource type="Resource" path="res://inventory/items/crystal.tres" id="4_item"]
+
+[sub_resource type="Resource" id="Stack"]
+script = ExtResource("3_stack")
+Item = ExtResource("4_item")
+ItemCount = 4
+
 [node name="entity" unique_id=1924824913 instance=ExtResource("1_aoqqk")]
 script = ExtResource("2_416cs")
+
+Slot = SubResource("Stack")

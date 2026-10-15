@@ -14,5 +14,3 @@ zone_using = NodePath("zone_using")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="zone_using" index="0" unique_id=1123178704]
 shape = SubResource("SphereShape3D_5htkn")
-
-[connection signal="body_entered" from="zone_using" to="." method="_on_zone_using_body_entered"]

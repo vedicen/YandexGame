@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="3_xqki4"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
 
+[ext_resource type="PackedScene" path="res://inventory/player_inventory.tscn" id="9_inventory"]
+
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1y8k7"]
 properties/0/path = NodePath(".:position")
 properties/0/spawn = true
@@ -73,3 +75,5 @@ offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
 text = "Нажми E"
+
+[node name="InventoryComponent" parent="." instance=ExtResource("9_inventory")]

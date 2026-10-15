@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="UsableItem" load_steps=3 format=3]
+[ext_resource type="Script" path="res://inventory/UsableItem.cs" id="1"]
+[ext_resource type="PackedScene" path="res://inventory/models/potion.tscn" id="2"]
+[resource]
+script = ExtResource("1")
+DisplayName = "Зелье"
+Model = ExtResource("2")
+MaxStackSize = 5
+Rarity = 2
+Healing = 25.0

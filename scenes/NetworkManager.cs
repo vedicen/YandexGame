@@ -13,6 +13,7 @@ public partial class NetworkManager : Node3D
 
 	public override void _Ready()
 	{
+		AddChild(new InventoryService { Name = "InventoryService" });
 		Multiplayer.PeerConnected += OnPeerConnected;
 		Multiplayer.PeerDisconnected += OnPeerDisconnected;
 		Multiplayer.ConnectedToServer += OnConnectedToServer;
@@ -107,13 +108,17 @@ public partial class NetworkManager : Node3D
 			return;
 
 		var playerNode = PlayersContainer.GetNodeOrNull(id.ToString());
-		playerNode?.QueueFree();
+		if (playerNode != null)
+		{
+			PlayersContainer.RemoveChild(playerNode);
+			playerNode.QueueFree();
+		}
 	}
 
 	private void OnConnectedToServer()
 	{
-		GD.Print("Подключение к серверу установлено. Создаём локального игрока...");
-		SpawnPlayer(Multiplayer.GetUniqueId());
+		GD.Print("Подключение к серверу установлено. Ожидаем репликацию игрока...");
+		// MultiplayerSpawner replicates the server-created player, including late joins.
 	}
 
 	private void OnConnectionFailed()
@@ -123,6 +128,7 @@ public partial class NetworkManager : Node3D
 
 	private void SpawnPlayer(long id)
 	{
+		if (PlayersContainer?.GetNodeOrNull(id.ToString()) != null) return;
 		if (PlayerScene == null)
 		{
 			GD.PrintErr("PlayerScene не назначена в Инспекторе!");
@@ -148,7 +154,7 @@ public partial class NetworkManager : Node3D
 				spawnPosition = randomPoint.GlobalPosition;
 		}
 
-		player.GlobalPosition = spawnPosition;
+		player.Position = PlayersContainer.ToLocal(spawnPosition);
 		PlayersContainer.AddChild(player, true);
 	}
 

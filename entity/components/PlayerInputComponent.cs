@@ -43,6 +43,7 @@ public partial class PlayerInputComponent : Node
     {
         if (!HasInputAuthority)
             return;
+        if (GetParent() is Player player && player.States?.CanMove == false) return;
 
         if (@event.IsActionPressed("ui_cancel"))
         {

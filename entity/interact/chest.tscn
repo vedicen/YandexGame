@@ -1,0 +1,23 @@
+[gd_scene load_steps=9 format=3]
+[ext_resource type="PackedScene" path="res://entity/interact/Interact_Obj.tscn" id="1"]
+[ext_resource type="Script" path="res://entity/interact/Chest.cs" id="2"]
+[ext_resource type="Script" path="res://inventory/InventoryComponent.cs" id="3"]
+[ext_resource type="Script" path="res://inventory/Stack.cs" id="4"]
+[ext_resource type="Resource" path="res://inventory/items/crystal.tres" id="5"]
+[sub_resource type="Resource" id="Stack"]
+script = ExtResource("4")
+Item = ExtResource("5")
+ItemCount = 12
+[sub_resource type="StandardMaterial3D" id="Material"]
+albedo_color = Color(0.38, 0.22, 0.08, 1)
+[sub_resource type="BoxMesh" id="Mesh"]
+material = SubResource("Material")
+size = Vector3(1.2, 0.7, 0.7)
+[node name="Chest" instance=ExtResource("1")]
+script = ExtResource("2")
+[node name="InventoryComponent" type="Node" parent="."]
+script = ExtResource("3")
+MaxSlots = 16
+Slots = Array[ExtResource("4")]([SubResource("Stack")])
+[node name="Model" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh")

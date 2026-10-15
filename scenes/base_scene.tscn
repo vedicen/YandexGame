@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="4_osw8o"]
 [ext_resource type="PackedScene" uid="uid://dlbkq3q66tapy" path="res://entity/interact/Interact_Obj.tscn" id="5_pmxr0"]
 
+[ext_resource type="PackedScene" path="res://entity/interact/chest.tscn" id="6_chest"]
+[ext_resource type="PackedScene" path="res://entity/interact/PickUp_obj.tscn" id="7_pickup"]
+
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_qcxwf"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
 ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -66,5 +69,8 @@ spawn_path = NodePath("../Enemies")
 [node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("4_osw8o")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6664872, 1.3076003, 2.3353438)
 
-[node name="entity" parent="." unique_id=1924824913 instance=ExtResource("5_pmxr0")]
+[node name="entity" parent="." unique_id=1924824913 instance=ExtResource("7_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.29363656, 0.2711612, 0.48576897)
+
+[node name="Chest" parent="." instance=ExtResource("6_chest")]
+position = Vector3(5.5, 0.4, -6.2)
