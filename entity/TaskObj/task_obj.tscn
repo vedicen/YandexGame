@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bk0k0stf68xy6"]
+
+[ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="1_3o18f"]
+[ext_resource type="Script" uid="uid://bu4tkfayiw58e" path="res://entity/TaskObj/task_obj.gd" id="2_lgcbr"]
+
+[node name="TaskObj" unique_id=1924824913 instance=ExtResource("1_3o18f")]
+script = ExtResource("2_lgcbr")

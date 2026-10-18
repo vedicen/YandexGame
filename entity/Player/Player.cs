@@ -93,19 +93,13 @@ public partial class Player : AnimatedEntity
 
     public override void _PhysicsProcess(double delta)
     {
+        base._PhysicsProcess(delta);
+
         if (playerInputComponent == null || !playerInputComponent.HasInputAuthority)
             return;
 
         Vector3 velocity = Velocity;
-        if (!States.CanMove)
-        {
-            Velocity = new Vector3(0, IsOnFloor() ? 0 : velocity.Y + GetGravity().Y * (float)delta, 0);
-            MoveAndSlide();
-            return;
-        }
 
-        if (!IsOnFloor())
-            velocity += GetGravity() * (float)delta;
 
         if (playerInputComponent.JumpPressed && IsOnFloor())
             velocity.Y = JumpVelocity;

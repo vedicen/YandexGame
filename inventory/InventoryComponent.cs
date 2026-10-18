@@ -10,16 +10,17 @@ public partial class InventoryComponent : Node
     public override void _Ready()
     {
         AddToGroup("inventories");
-        var originals = Slots;
+        var originals = Slots ?? new();
         Slots = new();
         for (int i = 0; i < MaxSlots; i++)
             Slots.Add(i < originals.Count ? originals[i]?.Copy() : null);
     }
-    public bool Valid(int index) => index >= 0 && index < Slots.Count;
+    public bool Valid(int index) => Slots != null && index >= 0 && index < Slots.Count;
     public void NotifyChanged() => Changed?.Invoke();
     public int Add(Item item, int count)
     {
         if (item == null || count <= 0) return count;
+        Slots ??= new();
         for (int pass = 0; pass < 2; pass++)
             for (int i = 0; i < Slots.Count && count > 0; i++)
             {
@@ -36,7 +37,7 @@ public partial class InventoryComponent : Node
     }
     public bool Transfer(int from, InventoryComponent target, int to)
     {
-        if (!Valid(from) || !target.Valid(to) || this == target && from == to || Slots[from] == null) return false;
+        if (target == null || !Valid(from) || !target.Valid(to) || this == target && from == to || Slots[from] == null) return false;
         var source = Slots[from];
         var dest = target.Slots[to];
         if (dest?.Item == source.Item)
