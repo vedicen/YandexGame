@@ -4,6 +4,7 @@ public partial class interact_obj : Entity
 {
     [Export] public Area3D zone_using;
     [Export] public bool disable_input_on_interact { get; set; } = false;
+    [Export] public string interaction_name { get; set; } = "Взаимодействовать";
 
     public override void _Ready()
     {

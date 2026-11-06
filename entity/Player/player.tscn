@@ -5,7 +5,11 @@
 [ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="3_omsen"]
 [ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="3_xqki4"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
-[ext_resource type="PackedScene" path="res://inventory/player_inventory.tscn" id="9_inventory"]
+[ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="7_swhyu"]
+[ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
+[ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="9_inventory"]
+[ext_resource type="Resource" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
+[ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="10_equipment_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1y8k7"]
 properties/0/path = NodePath(".:position")
@@ -24,8 +28,19 @@ properties/4/path = NodePath(".:ReplicatedModelFacing")
 properties/4/spawn = true
 properties/4/replication_mode = 1
 
+[sub_resource type="Resource" id="PotionStack"]
+script = ExtResource("7_swhyu")
+ItemCount = 3
+Item = ExtResource("8_xqki4")
+
+[sub_resource type="Resource" id="Resource_vjnli"]
+script = ExtResource("7_swhyu")
+Item = ExtResource("9_rt8ta")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
+StartingMoney = 500
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
 JumpVelocity = 4.5
@@ -34,6 +49,8 @@ MouseSensitivity = 0.003
 MinPitch = -80.0
 MaxPitch = 60.0
 ModelScene = ExtResource("3_xqki4")
+ModelTurnSpeed = 10.0
+ReplicatedModelFacing = 0.0
 
 [node name="HealthComponent" parent="." index="0" unique_id=1182051469 instance=ExtResource("3_omsen")]
 
@@ -58,21 +75,25 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+mouse_filter = 1
 
-[node name="Ineract_Key" type="Button" parent="UI" index="0" unique_id=1659253577]
+[node name="InteractKeys" type="VBoxContainer" parent="UI" index="0" unique_id=1659253577]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
+offset_left = -135.0
+offset_top = 24.0
+offset_right = 135.0
+offset_bottom = 84.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Нажми E"
+theme_override_constants/separation = 4
+alignment = 1
 
 [node name="InventoryComponent" parent="." index="6" unique_id=1158324123 instance=ExtResource("9_inventory")]
+Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_vjnli")])
+
+[node name="EquipmentInventory" parent="." index="7" instance=ExtResource("10_equipment_inventory")]

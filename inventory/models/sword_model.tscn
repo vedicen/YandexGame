@@ -1,0 +1,50 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="StandardMaterial3D" id="BladeMaterial"]
+albedo_color = Color(0.72, 0.82, 0.9, 1)
+metallic = 0.75
+roughness = 0.24
+
+[sub_resource type="StandardMaterial3D" id="GuardMaterial"]
+albedo_color = Color(0.65, 0.42, 0.12, 1)
+metallic = 0.65
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="GripMaterial"]
+albedo_color = Color(0.16, 0.07, 0.035, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BladeMesh"]
+material = SubResource("BladeMaterial")
+size = Vector3(0.075, 0.78, 0.035)
+
+[sub_resource type="BoxMesh" id="GuardMesh"]
+material = SubResource("GuardMaterial")
+size = Vector3(0.34, 0.07, 0.09)
+
+[sub_resource type="BoxMesh" id="GripMesh"]
+material = SubResource("GripMaterial")
+size = Vector3(0.075, 0.28, 0.075)
+
+[sub_resource type="SphereMesh" id="PommelMesh"]
+material = SubResource("GuardMaterial")
+radius = 0.065
+height = 0.13
+
+[node name="SwordModel" type="Node3D"]
+
+[node name="Blade" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.46, 0)
+mesh = SubResource("BladeMesh")
+
+[node name="Guard" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.06, 0)
+mesh = SubResource("GuardMesh")
+
+[node name="Grip" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.12, 0)
+mesh = SubResource("GripMesh")
+
+[node name="Pommel" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.29, 0)
+mesh = SubResource("PommelMesh")

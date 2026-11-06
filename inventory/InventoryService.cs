@@ -305,6 +305,7 @@ public partial class InventoryService : Node
     private InventoryComponent Resolve(Player player, string path)
     {
         if (path == player.Inventory.GetPath().ToString()) return player.Inventory;
+        if (path == player.EquipmentInventory.GetPath().ToString()) return player.EquipmentInventory;
         if (_sessions.TryGetValue(player.GetMultiplayerAuthority(), out var chestPath))
         {
             var chest = GetNodeOrNull<Chest>(chestPath);
@@ -340,7 +341,16 @@ public partial class InventoryService : Node
         {
             case "move":
                 var destination = Resolve(player, target);
-                if (destination == null || !inventory.Transfer(from, destination, to)) return;
+                if (destination == null || !destination.Valid(to)) return;
+                bool sourceIsWeaponSlot = inventory == player.EquipmentInventory;
+                bool targetIsWeaponSlot = destination == player.EquipmentInventory;
+                Item movingItem = slot.Item;
+                Item targetItem = destination.Slots[to]?.Item;
+                if (sourceIsWeaponSlot && movingItem is not Weapon ||
+                    targetIsWeaponSlot && movingItem is not Weapon ||
+                    sourceIsWeaponSlot && targetItem != null && targetItem is not Weapon)
+                    return;
+                if (!inventory.Transfer(from, destination, to)) return;
                 break;
             case "use":
                 if (inventory != player.Inventory || slot.Item is not UsableItem usable || !usable.Use(player)) return;
@@ -348,7 +358,7 @@ public partial class InventoryService : Node
                 inventory.NotifyChanged();
                 break;
             case "drop":
-                if (inventory != player.Inventory) return;
+                if (inventory != player.Inventory && inventory != player.EquipmentInventory) return;
                 var pickup = GD.Load<PackedScene>("res://entity/interact/PickUp_obj.tscn").Instantiate<PickUpObj>();
                 pickup.Name = $"Drop_{++_nextDrop}";
                 pickup.Slot = slot.Copy();
@@ -367,7 +377,11 @@ public partial class InventoryService : Node
     {
         if (!IsServer) return;
         if (increment) Revision++;
-        var snapshot = new Snapshot { Revision = Revision, Sessions = new(_sessions) };
+        var snapshot = new Snapshot
+        {
+            Revision = Revision,
+            Sessions = new(_sessions)
+        };
         foreach (var node in GetTree().GetNodesInGroup("inventories"))
         {
             var inventory = (InventoryComponent)node;

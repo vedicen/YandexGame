@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://htqvsyysi2k4" path="res://entity/Player/player.tscn" id="2_ha2ph"]
 [ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="3_enemy"]
 [ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="4_osw8o"]
-[ext_resource type="PackedScene" path="res://entity/interact/chest.tscn" id="6_chest"]
+[ext_resource type="PackedScene" uid="uid://cbelhyrwa5v86" path="res://entity/interact/chest.tscn" id="6_chest"]
 [ext_resource type="PackedScene" uid="uid://c67t3hjqpmc6a" path="res://entity/interact/trading_stand.tscn" id="7_e5sna"]
 [ext_resource type="PackedScene" uid="uid://dpd70frbgid51" path="res://entity/interact/PickUp_obj.tscn" id="7_pickup"]
 [ext_resource type="PackedScene" uid="uid://b4ndwt36f464f" path="res://entity/AnimatedEnemy/npc.tscn" id="8_vjnli"]
@@ -68,12 +68,14 @@ spawn_path = NodePath("../Enemies")
 
 [node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("4_osw8o")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6664872, 1.3076003, 2.3353438)
+ModelTurnSpeed = 10.0
+ReplicatedModelFacing = 0.0
 
 [node name="entity" parent="." unique_id=1924824913 instance=ExtResource("7_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.29363656, 0.2711612, 0.48576897)
 
 [node name="Chest" parent="." unique_id=1261187228 instance=ExtResource("6_chest")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 0.4, -6.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9688804, 0.4, 5.77059)
 
 [node name="TradingStand" parent="." unique_id=1939630646 node_paths=PackedStringArray("npc_owner") instance=ExtResource("7_e5sna")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.169874, 0.33131945, 4.4213257)
@@ -81,3 +83,4 @@ npc_owner = NodePath("../NPC")
 
 [node name="NPC" parent="." unique_id=1263873876 instance=ExtResource("8_vjnli")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6723518, 0.34442204, 4.4474826)
+TradeItemIds = Array[int]([1])

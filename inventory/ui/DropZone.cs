@@ -4,7 +4,8 @@ public partial class DropZone : Label
 {
     public Player Player;
     public override bool _CanDropData(Vector2 position, Variant data) => ItemUI.IsStackDrag(data) &&
-        data.AsGodotDictionary()["source"].AsString() == Player.Inventory.GetPath().ToString();
+        (data.AsGodotDictionary()["source"].AsString() == Player.Inventory.GetPath().ToString() ||
+         data.AsGodotDictionary()["source"].AsString() == Player.EquipmentInventory.GetPath().ToString());
     public override void _DropData(Vector2 position, Variant data)
     {
         var drag = data.AsGodotDictionary();

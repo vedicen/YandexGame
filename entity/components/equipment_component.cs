@@ -9,7 +9,8 @@ public partial class EquipmentComponent : Node
         Chest,
         Legs,
         Feet,
-        Hands
+        Hands,
+        Weapon
     }
 
     private Node3D _modelRoot;
@@ -41,6 +42,9 @@ public partial class EquipmentComponent : Node
         {
             Node3D slotNode;
             string footBone = _skeleton == null ? string.Empty : FindFootBone();
+            string handBone = slot == Slot.Weapon && _skeleton != null
+                ? FindRightHandBone()
+                : string.Empty;
             if (_skeleton != null && slot == Slot.Feet && !string.IsNullOrEmpty(footBone))
             {
                 var attachment = new BoneAttachment3D
@@ -51,6 +55,22 @@ public partial class EquipmentComponent : Node
                 _skeleton.AddChild(attachment);
                 slotNode = attachment;
                 GD.Print($"EquipmentComponent: Feet slot attached to skeleton bone '{footBone}'.");
+            }
+            else if (_skeleton != null && slot == Slot.Weapon && !string.IsNullOrEmpty(handBone))
+            {
+                var attachment = new BoneAttachment3D
+                {
+                    Name = $"{slot}Slot",
+                    BoneName = handBone
+                };
+                _skeleton.AddChild(attachment);
+                slotNode = attachment;
+                GD.Print($"EquipmentComponent: Weapon slot attached to right-hand bone '{handBone}'.");
+            }
+            else if (slot == Slot.Weapon)
+            {
+                GD.PushError("EquipmentComponent: Could not find a right-hand bone; weapon slot is unavailable.");
+                continue;
             }
             else
             {
@@ -89,6 +109,24 @@ public partial class EquipmentComponent : Node
         return fallback;
     }
 
+    private string FindRightHandBone()
+    {
+        for (int i = 0; i < _skeleton.GetBoneCount(); i++)
+        {
+            string boneName = _skeleton.GetBoneName(i).ToString();
+            string normalized = boneName.Replace("_", "").Replace(".", "")
+                .Replace("-", "").Replace(" ", "").Replace(":", "");
+            if ((normalized.Contains("right", System.StringComparison.OrdinalIgnoreCase) &&
+                 normalized.Contains("hand", System.StringComparison.OrdinalIgnoreCase)) ||
+                normalized.Contains("righthand", System.StringComparison.OrdinalIgnoreCase) ||
+                normalized.Contains("handr", System.StringComparison.OrdinalIgnoreCase) ||
+                normalized.Contains("rhand", System.StringComparison.OrdinalIgnoreCase))
+                return boneName;
+        }
+
+        return string.Empty;
+    }
+
     private void InitializePendingEquipment()
     {
         if (!Initialize())
@@ -108,7 +146,15 @@ public partial class EquipmentComponent : Node
         foreach (var entry in _pendingEquipment)
             EquipNow(entry.Key, entry.Value);
         _pendingEquipment.Clear();
+        if (_pendingWeapon != null)
+        {
+            Weapon weapon = _pendingWeapon;
+            _pendingWeapon = null;
+            EquipWeaponNow(weapon);
+        }
     }
+
+    private Weapon _pendingWeapon;
 
     public void Equip(Slot slot, PackedScene clothingScene)
     {
@@ -161,6 +207,58 @@ public partial class EquipmentComponent : Node
 
         clothing.QueueFree();
         _equipped.Remove(slot);
+    }
+
+    public void EquipWeapon(Weapon weapon)
+    {
+        if (weapon == null)
+        {
+            Unequip(Slot.Weapon);
+            _pendingWeapon = null;
+            return;
+        }
+
+        if (weapon.WeaponModel == null)
+        {
+            GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no WeaponModel.");
+            return;
+        }
+
+        if (!Initialize())
+        {
+            _pendingWeapon = weapon;
+            Callable.From(InitializePendingEquipment).CallDeferred();
+            return;
+        }
+
+        ApplyPendingEquipment();
+        EquipWeaponNow(weapon);
+    }
+
+    private void EquipWeaponNow(Weapon weapon)
+    {
+        if (!_slots.TryGetValue(Slot.Weapon, out Node3D slotNode) || slotNode == null)
+        {
+            GD.PushError("EquipmentComponent: Weapon slot is unavailable; check the character's right-hand bone.");
+            return;
+        }
+
+        PackedScene weaponScene = GD.Load<PackedScene>("res://inventory/weapon_scene.tscn");
+        if (weaponScene == null)
+        {
+            GD.PushError("EquipmentComponent: Could not load res://inventory/weapon_scene.tscn.");
+            return;
+        }
+
+        WeaponScene instance = weaponScene.Instantiate<WeaponScene>();
+        instance.ModelScene = weapon.WeaponModel;
+        instance.Position = weapon.EquipPosition;
+        instance.RotationDegrees = weapon.EquipRotationDegrees;
+        instance.Scale = weapon.EquipScale;
+        Unequip(Slot.Weapon);
+        slotNode.AddChild(instance);
+        _equipped[Slot.Weapon] = instance;
+        GD.Print($"EquipmentComponent: Equipped weapon '{weapon.DisplayName}' on the right hand.");
     }
 
     private void BindMeshes(Node node)

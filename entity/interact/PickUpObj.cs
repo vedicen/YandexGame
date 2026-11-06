@@ -8,6 +8,9 @@ public partial class PickUpObj : interact_obj
         base._Ready();
         AddToGroup("pickups");
         Slot = Slot?.Copy();
+        if (Slot?.Item != null)
+            interaction_name = Slot.Item.DisplayName;
+
         if (Slot?.Item?.Model != null)
         {
             AddChild(Slot.Item.Model.Instantiate<Node3D>());

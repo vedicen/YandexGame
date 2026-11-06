@@ -11,6 +11,7 @@ albedo_color = Color(0, 1, 1, 1)
 script = ExtResource("2_trading_stand")
 DialogueScene = ExtResource("3_dialogue")
 disable_input_on_interact = true
+interaction_name = "Торговля"
 
 [node name="CSGBox3D" type="CSGBox3D" parent="." index="2" unique_id=331899362]
 material_override = SubResource("StandardMaterial3D_eg6r0")

@@ -36,6 +36,7 @@ public partial class InventoryUI : CanvasLayer
         close.Pressed += Player.CloseInventory;
         box.AddChild(close);
         Player.Inventory.Changed += MarkDirty;
+        Player.EquipmentInventory.Changed += MarkDirty;
         _root.Hide();
     }
     private void MarkDirty() => _dirty = true;
@@ -57,6 +58,7 @@ public partial class InventoryUI : CanvasLayer
     public override void _ExitTree()
     {
         Player.Inventory.Changed -= MarkDirty;
+        Player.EquipmentInventory.Changed -= MarkDirty;
         Player.MoneyChanged -= UpdateMoney;
         if (GodotObject.IsInstanceValid(_chest)) _chest.Inventory.Changed -= MarkDirty;
     }
@@ -66,11 +68,8 @@ public partial class InventoryUI : CanvasLayer
         _dirty = false;
         foreach (var child in _grids.GetChildren()) { _grids.RemoveChild(child); child.QueueFree(); }
         AddGrid("Рюкзак", Player.Inventory);
+        AddGrid("Оружие", Player.EquipmentInventory);
         if (_chest != null) AddGrid("Сундук", _chest.Inventory);
-        var equipment = new VBoxContainer();
-        equipment.AddChild(new Label { Text = "Экипировка\n(заготовка)" });
-        equipment.AddChild(new ItemUI());
-        _grids.AddChild(equipment);
     }
     private void AddGrid(string title, InventoryComponent inventory)
     {

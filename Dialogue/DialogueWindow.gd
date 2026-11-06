@@ -98,6 +98,24 @@ price:100
 
 	return context
 
+
+func remove_smileys(text: String) -> String:
+	var result := ""
+	for index in range(text.length()):
+		var codepoint := text.unicode_at(index)
+		if codepoint >= 0x1F000 and codepoint <= 0x1FAFF:
+			continue
+		if codepoint >= 0x2600 and codepoint <= 0x27BF:
+			continue
+		if codepoint == 0xFE0F or codepoint == 0x200D or codepoint >= 0x1F3FB and codepoint <= 0x1F3FF:
+			continue
+		result += char(codepoint)
+
+	var emoticon_regex := RegEx.new()
+	emoticon_regex.compile("(?i)(?:[:;=8][-^']?[)(/DPp]|<3)")
+	return emoticon_regex.sub(result, "", true)
+
+
 func _process(delta: float) -> void:
 	if is_generating:
 		$Button.disabled = true
@@ -127,6 +145,7 @@ func talk_to_merchant(player_message: String) -> void:
 
 	var index = answer.find("</think>")
 	var final = answer.substr(index + len("</think>")) if index >= 0 else answer
+	final = remove_smileys(final)
 	var request_regex := RegEx.new()
 	request_regex.compile("(?is)<request>\\s*id\\s*:\\s*(\\d+)\\s*price\\s*:\\s*(\\d+)\\s*</request>")
 	var request_match := request_regex.search(final)

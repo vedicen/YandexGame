@@ -9,6 +9,8 @@ radius = 2.0
 [node name="InteractObj" unique_id=1924824913 node_paths=PackedStringArray("zone_using") instance=ExtResource("1_mrvl3")]
 script = ExtResource("2_dw4fg")
 zone_using = NodePath("zone_using")
+disable_input_on_interact = false
+interaction_name = "Взаимодействовать"
 
 [node name="zone_using" type="Area3D" parent="." index="1" unique_id=1613733364]
 

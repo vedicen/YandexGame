@@ -1,10 +1,13 @@
-[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="Sword" format=3 uid="uid://qbp55nhqb2ln"]
 
-[ext_resource type="Script" path="res://inventory/Item.cs" id="1_item"]
+[ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="1_sword"]
+[ext_resource type="PackedScene" path="res://inventory/models/sword_model.tscn" id="2_model"]
 
 [resource]
-script = ExtResource("1_item")
+script = ExtResource("1_sword")
+WeaponModel = ExtResource("2_model")
 DisplayName = "Стальной меч"
 Description = "Качественный меч из стали с хорошим балансом."
+Model = ExtResource("2_model")
 MaxStackSize = 1
 Rarity = 1

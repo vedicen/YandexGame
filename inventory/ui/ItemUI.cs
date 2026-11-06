@@ -60,10 +60,27 @@ public partial class ItemUI : PanelContainer
     {
         if (Inventory?.Slots[Index] == null) return default;
         SetDragPreview(new Label { Text = Inventory.Slots[Index].Item.DisplayName });
-        return new Godot.Collections.Dictionary { ["source"] = Inventory.GetPath().ToString(), ["index"] = Index,
-            ["revision"] = InventoryService.Instance.Revision };
+        return new Godot.Collections.Dictionary
+        {
+            ["source"] = Inventory.GetPath().ToString(),
+            ["index"] = Index,
+            ["revision"] = InventoryService.Instance.Revision,
+            ["is_weapon"] = Inventory.Slots[Index].Item is Weapon
+        };
     }
-    public override bool _CanDropData(Vector2 position, Variant data) => Inventory != null && IsStackDrag(data);
+    public override bool _CanDropData(Vector2 position, Variant data)
+    {
+        if (Inventory == null || !IsStackDrag(data))
+            return false;
+
+        if (Inventory == Player?.EquipmentInventory)
+        {
+            var drag = data.AsGodotDictionary();
+            return drag.ContainsKey("is_weapon") && drag["is_weapon"].AsBool();
+        }
+
+        return true;
+    }
     public static bool IsStackDrag(Variant data) => data.VariantType == Variant.Type.Dictionary &&
         data.AsGodotDictionary().ContainsKey("source") && data.AsGodotDictionary().ContainsKey("index") && data.AsGodotDictionary().ContainsKey("revision");
     public override void _DropData(Vector2 position, Variant data)
