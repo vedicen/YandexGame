@@ -244,6 +244,9 @@ public partial class AnimatedEntity : Entity
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
 		_combatStats = GetNodeOrNull<CombatStatsComponent>("CombatStatsComponent");
+		AddToGroup("animated_entities");
+		if (Health != null)
+			Health.HealthChanged += ReplicateHealth;
 		CreateHealthBar();
 		_modelRoot = GetNodeOrNull<Node3D>("Model");
 		if (_modelRoot == null)
@@ -360,7 +363,47 @@ public partial class AnimatedEntity : Entity
 	public override void _ExitTree()
 	{
 		if (Health != null)
+		{
 			Health.HealthChanged -= UpdateHealthBar;
+			Health.HealthChanged -= ReplicateHealth;
+		}
+	}
+
+	private void ReplicateHealth(float currentHealth, float maxHealth)
+	{
+		if (Multiplayer.HasMultiplayerPeer() && Multiplayer.IsServer())
+			Rpc(nameof(ReceiveReplicatedHealth), currentHealth);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void ReceiveReplicatedHealth(float currentHealth)
+	{
+		if (Multiplayer.IsServer() || Multiplayer.GetRemoteSenderId() != 1)
+		{
+			GD.PushWarning($"[Combat] Rejected health update from peer {Multiplayer.GetRemoteSenderId()} for {GetPath()}.");
+			return;
+		}
+
+		Health?.SetReplicatedHealth(currentHealth);
+	}
+
+	public void RequestHealthSync()
+	{
+		if (!Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer())
+			return;
+
+		RpcId(1, nameof(RequestReplicatedHealth));
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void RequestReplicatedHealth()
+	{
+		if (!Multiplayer.IsServer() || Health == null)
+			return;
+
+		long peerId = Multiplayer.GetRemoteSenderId();
+		if (peerId > 1)
+			RpcId(peerId, nameof(ReceiveReplicatedHealth), Health.CurrentHealth);
 	}
 
 	private void GenerateBoneHitboxes()

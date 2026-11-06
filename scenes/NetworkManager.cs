@@ -119,6 +119,9 @@ public partial class NetworkManager : Node3D
 	{
 		GD.Print("Подключение к серверу установлено. Ожидаем репликацию игрока...");
 		// MultiplayerSpawner replicates the server-created player, including late joins.
+		foreach (Node node in GetTree().GetNodesInGroup("animated_entities"))
+			if (node is AnimatedEntity entity)
+				entity.RequestHealthSync();
 	}
 
 	private void OnConnectionFailed()

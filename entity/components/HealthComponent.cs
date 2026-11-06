@@ -33,7 +33,11 @@ public partial class HealthComponent : Node
     }
     public void SetReplicatedHealth(float amount)
     {
+        float previousHealth = CurrentHealth;
         CurrentHealth = Mathf.Clamp(amount, 0, MaxHealth);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
+
+        if (previousHealth > 0 && CurrentHealth <= 0)
+            EmitSignal(SignalName.Died);
     }
 }
