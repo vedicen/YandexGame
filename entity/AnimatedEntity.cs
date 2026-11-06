@@ -19,7 +19,10 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene CrouchedWalkAnimationScene { get; set; }
 	[Export] public double BlendDuration { get; set; } = 0.2;
 
+	private EquipmentComponent _equipmentComponent;
+
 	[Export]
+	
 	public string ReplicatedAnimation
 	{
 		get => _replicatedAnimation;
@@ -223,12 +226,13 @@ public partial class AnimatedEntity : Entity
 	public override void _Ready()
 	{
 		base._Ready();
-
+		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
 		_modelRoot = GetNodeOrNull<Node3D>("Model");
 		if (_modelRoot == null || ModelScene == null)
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
+		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);
 		if (_animationPlayer == null)
 		{
@@ -251,6 +255,25 @@ public partial class AnimatedEntity : Entity
 
 		ApplyAnimation(_replicatedAnimation);
 		ApplyAttack(_replicatedAttack);
+	}
+
+	private void EquipDefaultFootwear()
+	{
+		if (_equipmentComponent == null)
+		{
+			GD.PushWarning("AnimatedEntity: EquipmentComponent child not found; default footwear was not equipped.");
+			return;
+		}
+
+		PackedScene footwearScene = GD.Load<PackedScene>("res://s.tscn");
+		if (footwearScene == null)
+		{
+			GD.PushError("AnimatedEntity: Could not load footwear scene at res://s.tscn.");
+			return;
+		}
+
+		GD.Print($"AnimatedEntity: Requesting default footwear for {Name}.");
+		_equipmentComponent.Equip(EquipmentComponent.Slot.Feet, footwearScene);
 	}
 
 	public override void _Process(double delta)

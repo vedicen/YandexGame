@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://cmh1d1lnsqkok"]
+
+[ext_resource type="Script" uid="uid://dyq7lhbcpxyml" path="res://Dialogue/DialogueWindow.gd" id="1_h1as6"]
+
+[node name="DialogueWindow" type="Control" unique_id=371062581]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_h1as6")
+
+[node name="TextEdit" type="TextEdit" parent="." unique_id=511264978]
+offset_left = 102.0
+offset_top = 209.0
+offset_right = 531.0
+offset_bottom = 265.0
+
+[node name="Button" type="Button" parent="." unique_id=265188820]
+offset_left = 104.0
+offset_top = 273.0
+offset_right = 303.0
+offset_bottom = 313.0
+text = "Отправить"
+
+[node name="ExitButton" type="Button" parent="." unique_id=376400215]
+offset_left = 318.0
+offset_top = 273.0
+offset_right = 429.0
+offset_bottom = 313.0
+text = "Выйти"
+
+[node name="Label" type="RichTextLabel" parent="." unique_id=553816177]
+offset_left = 580.0
+offset_top = 177.0
+offset_right = 1097.0
+offset_bottom = 566.0
+text = "<Dialog>"
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
+[connection signal="pressed" from="ExitButton" to="." method="interact_end"]

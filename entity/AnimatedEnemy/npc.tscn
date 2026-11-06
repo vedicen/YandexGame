@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://b4ndwt36f464f"]
+
+[ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="1_enemy"]
+[ext_resource type="Script" uid="uid://dp4b0nedahwn3" path="res://entity/AnimatedEnemy/NPC.cs" id="2_npc"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eg6r0"]
+albedo_color = Color(1, 1, 0, 1)
+
+[node name="NPC" unique_id=158455418 instance=ExtResource("1_enemy")]
+script = ExtResource("2_npc")
+
+[node name="EnemyAIComponent" parent="." index="2" unique_id=1704726324]
+TargetGroup = ""
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." index="5" unique_id=1332501817]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21948242, 0)
+size = Vector3(1, 1.4389648, 1)
+material = SubResource("StandardMaterial3D_eg6r0")

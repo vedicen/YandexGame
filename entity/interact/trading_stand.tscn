@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://c67t3hjqpmc6a"]
+
+[ext_resource type="PackedScene" uid="uid://dlbkq3q66tapy" path="res://entity/interact/Interact_Obj.tscn" id="1_interact"]
+[ext_resource type="Script" uid="uid://g2tlbf64l7g4" path="res://entity/interact/TradingStand.cs" id="2_trading_stand"]
+[ext_resource type="PackedScene" uid="uid://cmh1d1lnsqkok" path="res://Dialogue/DialogueWindow.tscn" id="3_dialogue"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eg6r0"]
+albedo_color = Color(0, 1, 1, 1)
+
+[node name="TradingStand" unique_id=1533664349 instance=ExtResource("1_interact")]
+script = ExtResource("2_trading_stand")
+DialogueScene = ExtResource("3_dialogue")
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." index="2" unique_id=331899362]
+material_override = SubResource("StandardMaterial3D_eg6r0")

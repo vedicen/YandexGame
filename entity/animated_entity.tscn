@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="7_m785b"]
 [ext_resource type="PackedScene" uid="uid://bqlht5i28pma4" path="res://animations/Crouch Idle.fbx" id="8_oxu6r"]
 [ext_resource type="PackedScene" uid="uid://ihix5qbmp1lc" path="res://animations/Crouched Walking.fbx" id="9_vqaqr"]
+[ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/equipment_component.cs" id="10_yrrmq"]
 
 [node name="AnimatedEntity" unique_id=1252529603 instance=ExtResource("1_entity")]
 script = ExtResource("2_uiq6r")
@@ -24,3 +25,9 @@ CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
 BlendDuration = 0.2
 ReplicatedAnimation = "Idle"
 ReplicatedAttack = ""
+
+[node name="EquipmentComponent" type="Node" parent="." index="1" unique_id=2078828129]
+script = ExtResource("10_yrrmq")
+
+[node name="Model" type="Node3D" parent="." index="2" unique_id=1872647054]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99512684, 0)

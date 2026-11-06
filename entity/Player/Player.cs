@@ -5,7 +5,9 @@ public partial class Player : AnimatedEntity
     public InventoryComponent Inventory { get; private set; }
     public PlayerStateMachine States { get; private set; }
     public InventoryUI InventoryUI { get; private set; }
+    
     private Chest _openChest;
+    private TradingStand _tradingStand;
     public override void _EnterTree()
     {
         if (int.TryParse(Name, out int peer)) SetMultiplayerAuthority(peer, true);
@@ -172,6 +174,7 @@ public partial class Player : AnimatedEntity
     public override void _Input(InputEvent ev)
     {
         if (playerInputComponent?.HasInputAuthority != true || ev is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (States.Current == PlayerStateMachine.State.Trading) return;
         if (key.PhysicalKeycode == Key.Tab || key.Keycode == Key.Escape && !States.CanMove)
         {
             if (States.CanMove) { States.Transition(PlayerStateMachine.State.Inventory); InventoryUI.Open(null); }
@@ -199,6 +202,30 @@ public partial class Player : AnimatedEntity
             InventoryUI?.Close();
         }
     }
+
+    public bool BeginTrading(TradingStand stand)
+    {
+        if (stand == null || !States.CanMove || _tradingStand != null)
+            return false;
+
+        _tradingStand = stand;
+        if (States.Transition(PlayerStateMachine.State.Trading))
+            return true;
+
+        _tradingStand = null;
+        return false;
+    }
+
+    public void EndTrading(TradingStand stand)
+    {
+        if (_tradingStand != stand)
+            return;
+
+        _tradingStand = null;
+        if (States.Current == PlayerStateMachine.State.Trading)
+            States.Transition(PlayerStateMachine.State.Locomotion);
+    }
+
     public void CloseInventory()
     {
         InventoryService.Instance?.Send("close", this);

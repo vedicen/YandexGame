@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="TheRPGGame"
-run/main_scene="res://scenes/MainMenu.tscn"
+run/main_scene="uid://rsc5onvbim31"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 

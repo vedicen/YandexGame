@@ -3,7 +3,7 @@ using System;
 
 public partial class PlayerStateMachine : Node
 {
-    public enum State { Locomotion, Inventory, Chest, Disabled }
+    public enum State { Locomotion, Inventory, Chest, Trading, Disabled }
     public enum Motion { Idle, Walking, Crouching, CrouchWalking, Airborne }
     public State Current { get; private set; }
     public State Previous { get; private set; }

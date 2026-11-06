@@ -48,10 +48,7 @@ margin = 0.2
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="4" unique_id=1718092406]
 replication_config = SubResource("SceneReplicationConfig_1y8k7")
 
-[node name="Model" type="Node3D" parent="." index="5" unique_id=1856624287]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99397576, 0)
-
-[node name="UI" type="Control" parent="." index="6" unique_id=430184332]
+[node name="UI" type="Control" parent="." index="5" unique_id=430184332]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -75,4 +72,4 @@ grow_horizontal = 2
 grow_vertical = 2
 text = "Нажми E"
 
-[node name="InventoryComponent" parent="." index="7" unique_id=1158324123 instance=ExtResource("9_inventory")]
+[node name="InventoryComponent" parent="." index="6" unique_id=1158324123 instance=ExtResource("9_inventory")]

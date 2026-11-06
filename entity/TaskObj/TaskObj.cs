@@ -11,11 +11,6 @@ public partial class TaskObj : Entity
 	}
 	public TaskStates TaskState = TaskStates.Idle;
 
-	public override void _Ready()
-	{
-	}
-
-
 	public void ProgressCancel(){
 		if(TaskState == TaskStates.InProgress){
 			TaskState = TaskStates.Required;

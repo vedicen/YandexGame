@@ -6,7 +6,7 @@
 [sub_resource type="SphereShape3D" id="SphereShape3D_5htkn"]
 radius = 2.0
 
-[node name="entity" unique_id=1924824913 node_paths=PackedStringArray("zone_using") instance=ExtResource("1_mrvl3")]
+[node name="InteractObj" unique_id=1924824913 node_paths=PackedStringArray("zone_using") instance=ExtResource("1_mrvl3")]
 script = ExtResource("2_dw4fg")
 zone_using = NodePath("zone_using")
 

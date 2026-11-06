@@ -1,12 +1,14 @@
-[gd_scene load_steps=5 format=3]
-[ext_resource type="Script" path="res://inventory/InventoryComponent.cs" id="1"]
-[ext_resource type="Script" path="res://inventory/Stack.cs" id="2"]
+[gd_scene format=3 uid="uid://di4wu1q577jni"]
+
+[ext_resource type="Script" uid="uid://dphinbxpjrjsy" path="res://inventory/InventoryComponent.cs" id="1"]
+[ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="2"]
 [ext_resource type="Resource" path="res://inventory/items/potion.tres" id="3"]
+
 [sub_resource type="Resource" id="PotionStack"]
 script = ExtResource("2")
-Item = ExtResource("3")
 ItemCount = 3
-[node name="InventoryComponent" type="Node"]
+Item = ExtResource("3")
+
+[node name="InventoryComponent" type="Node" unique_id=114966894]
 script = ExtResource("1")
-MaxSlots = 20
 Slots = Array[ExtResource("2")]([SubResource("PotionStack")])
