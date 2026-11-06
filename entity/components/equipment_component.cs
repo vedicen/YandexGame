@@ -213,11 +213,14 @@ public partial class EquipmentComponent : Node
     {
         if (weapon == null)
         {
+            GD.Print($"[Combat] Unequipping weapon: entity={GetParent()?.Name ?? "<missing>"}.");
             Unequip(Slot.Weapon);
             _pendingWeapon = null;
             return;
         }
 
+        GD.Print($"[Combat] EquipWeapon requested: entity={GetParent()?.Name ?? "<missing>"}, " +
+            $"weapon={weapon.DisplayName}, model={(weapon.WeaponModel?.ResourcePath ?? "<missing>")}.");
         if (weapon.WeaponModel == null)
         {
             GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no WeaponModel.");
@@ -255,10 +258,37 @@ public partial class EquipmentComponent : Node
         instance.Position = weapon.EquipPosition;
         instance.RotationDegrees = weapon.EquipRotationDegrees;
         instance.Scale = weapon.EquipScale;
+        instance.ConfigureCombat(GetParent() as AnimatedEntity, weapon);
         Unequip(Slot.Weapon);
         slotNode.AddChild(instance);
         _equipped[Slot.Weapon] = instance;
-        GD.Print($"EquipmentComponent: Equipped weapon '{weapon.DisplayName}' on the right hand.");
+        GD.Print($"[Combat] Weapon equipped: entity={GetParent()?.Name ?? "<missing>"}, " +
+            $"weapon={weapon.DisplayName}, node={instance.GetPath()}.");
+    }
+
+    public WeaponScene GetEquippedWeaponScene()
+    {
+        if (_equipped.TryGetValue(Slot.Weapon, out Node equipped) &&
+            GodotObject.IsInstanceValid(equipped) &&
+            !equipped.IsQueuedForDeletion() &&
+            equipped is WeaponScene weaponScene)
+            return weaponScene;
+
+        if (_slots.TryGetValue(Slot.Weapon, out Node3D weaponSlot) &&
+            GodotObject.IsInstanceValid(weaponSlot))
+        {
+            foreach (Node child in weaponSlot.GetChildren())
+            {
+                if (child is WeaponScene attachedWeapon && !child.IsQueuedForDeletion())
+                {
+                    _equipped[Slot.Weapon] = attachedWeapon;
+                    GD.PushWarning($"[Combat] Recovered equipped weapon reference from slot: {attachedWeapon.GetPath()}.");
+                    return attachedWeapon;
+                }
+            }
+        }
+
+        return null;
     }
 
     private void BindMeshes(Node node)

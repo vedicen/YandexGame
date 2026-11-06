@@ -463,6 +463,8 @@ public partial class Player : AnimatedEntity
         Stack weaponStack = EquipmentInventory?.Valid(0) == true
             ? EquipmentInventory.Slots[0]
             : null;
+        GD.Print($"[Combat] Equipment slot changed: player={Name}, " +
+            $"item={weaponStack?.Item?.DisplayName ?? "<empty>"}, count={weaponStack?.ItemCount ?? 0}.");
         if (weaponStack == null)
         {
             EnsureEquipmentComponent().EquipWeapon(null);
@@ -475,6 +477,8 @@ public partial class Player : AnimatedEntity
             return;
         }
 
+        GD.Print($"[Combat] Equipping weapon from slot: player={Name}, weapon={weapon.DisplayName}, " +
+            $"model={(weapon.WeaponModel?.ResourcePath ?? "<missing>")}.");
         EnsureEquipmentComponent().EquipWeapon(weapon);
     }
 

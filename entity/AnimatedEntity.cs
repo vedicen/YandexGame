@@ -19,6 +19,7 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene CrouchedWalkAnimationScene { get; set; }
 	[Export] public double BlendDuration { get; set; } = 0.2;
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
+	[Export] public float HealthBarHeight { get; set; } = 2.2f;
 
 	private float _modelBaseRotationY;
 	private float _replicatedModelFacing;
@@ -31,6 +32,10 @@ public partial class AnimatedEntity : Entity
 	}
 
 	private EquipmentComponent _equipmentComponent;
+	private Skeleton3D _skeleton;
+	private CombatStatsComponent _combatStats;
+	public CombatStatsComponent CombatStats => _combatStats;
+	private ProgressBar _healthBar;
 
 	[Export]
 	
@@ -238,6 +243,8 @@ public partial class AnimatedEntity : Entity
 	{
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
+		_combatStats = GetNodeOrNull<CombatStatsComponent>("CombatStatsComponent");
+		CreateHealthBar();
 		_modelRoot = GetNodeOrNull<Node3D>("Model");
 		if (_modelRoot == null)
 			return;
@@ -247,6 +254,7 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
+		GenerateBoneHitboxes();
 		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);
 		if (_animationPlayer == null)
@@ -270,6 +278,131 @@ public partial class AnimatedEntity : Entity
 
 		ApplyAnimation(_replicatedAnimation);
 		ApplyAttack(_replicatedAttack);
+	}
+
+	private void CreateHealthBar()
+	{
+		if (Health == null)
+			return;
+
+		var viewport = new SubViewport
+		{
+			Name = "HealthBarViewport",
+			Size = new Vector2I(180, 22),
+			TransparentBg = true,
+			OwnWorld3D = false,
+			RenderTargetUpdateMode = SubViewport.UpdateMode.Always
+		};
+		AddChild(viewport);
+
+		var background = new ColorRect
+		{
+			Color = new Color(0.08f, 0.08f, 0.08f, 0.85f),
+			Position = Vector2.Zero,
+			Size = new Vector2(180, 22),
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		viewport.AddChild(background);
+
+		_healthBar = new ProgressBar
+		{
+			Position = new Vector2(2, 2),
+			Size = new Vector2(176, 18),
+			MinValue = 0,
+			MaxValue = Health.MaxHealth,
+			ShowPercentage = false,
+			MouseFilter = Control.MouseFilterEnum.Ignore
+		};
+		_healthBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
+		{
+			BgColor = new Color(0.2f, 0.12f, 0.12f),
+			ContentMarginLeft = 0,
+			ContentMarginRight = 0,
+			ContentMarginTop = 0,
+			ContentMarginBottom = 0
+		});
+		_healthBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
+		{
+			BgColor = new Color(0.82f, 0.12f, 0.14f),
+			ContentMarginLeft = 0,
+			ContentMarginRight = 0,
+			ContentMarginTop = 0,
+			ContentMarginBottom = 0
+		});
+		viewport.AddChild(_healthBar);
+
+		var sprite = new Sprite3D
+		{
+			Name = "HealthBar",
+			Texture = viewport.GetTexture(),
+			Position = new Vector3(0, HealthBarHeight, 0),
+			PixelSize = 0.01f,
+			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+			Shaded = false,
+			NoDepthTest = true,
+			AlphaCut = SpriteBase3D.AlphaCutMode.OpaquePrepass
+		};
+		AddChild(sprite);
+
+		Health.HealthChanged += UpdateHealthBar;
+		UpdateHealthBar(Health.CurrentHealth, Health.MaxHealth);
+	}
+
+	private void UpdateHealthBar(float currentHealth, float maxHealth)
+	{
+		if (_healthBar == null)
+			return;
+
+		_healthBar.MaxValue = maxHealth;
+		_healthBar.Value = currentHealth;
+	}
+
+	public override void _ExitTree()
+	{
+		if (Health != null)
+			Health.HealthChanged -= UpdateHealthBar;
+	}
+
+	private void GenerateBoneHitboxes()
+	{
+		_skeleton = FindSkeleton(_modelRoot);
+		if (_skeleton == null)
+		{
+			GD.PushWarning($"AnimatedEntity '{Name}' has no Skeleton3D; bone hitboxes were not created.");
+			return;
+		}
+
+		for (int i = 0; i < _skeleton.GetBoneCount(); i++)
+		{
+			string boneName = _skeleton.GetBoneName(i).ToString();
+			var attachment = new BoneAttachment3D
+			{
+				Name = $"HitboxAttachment_{i}",
+				BoneName = boneName
+			};
+			_skeleton.AddChild(attachment);
+			var hitbox = new BoneHitbox
+			{
+				Name = $"Hitbox_{i}"
+			};
+			hitbox.Initialize(this, boneName);
+			attachment.AddChild(hitbox);
+		}
+	}
+
+	private static Skeleton3D FindSkeleton(Node node)
+	{
+		if (node is Skeleton3D skeleton)
+			return skeleton;
+
+		foreach (Node child in node.GetChildren())
+		{
+			Skeleton3D result = FindSkeleton(child);
+			if (result != null)
+				return result;
+		}
+
+		return null;
 	}
 
 	private void EquipDefaultFootwear()
@@ -308,6 +441,8 @@ public partial class AnimatedEntity : Entity
 		bool attackActive = _animationTree.Get("parameters/Attack/active").AsBool();
 		if (attackActive)
 		{
+			if (!_attackWasActive)
+				GD.Print($"[Combat] Attack animation active: entity={Name}, attack={_replicatedAttack}.");
 			_attackWasActive = true;
 			return;
 		}
@@ -316,6 +451,8 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_attackWasActive = false;
+		GD.Print($"[Combat] Attack animation finished: entity={Name}, attack={_replicatedAttack}.");
+		GetWeaponDamageZone()?.EndSwing();
 		if (!Multiplayer.HasMultiplayerPeer() || GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
 			ReplicatedAttack = "";
 		else
@@ -357,6 +494,7 @@ public partial class AnimatedEntity : Entity
 
 	private void SetAttackState(string animationName)
 	{
+		GD.Print($"[Combat] Attack requested: entity={Name}, attack={animationName}.");
 		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
 			return;
 
@@ -433,7 +571,20 @@ public partial class AnimatedEntity : Entity
 		if (!_animationPlayer.HasAnimation(qualifiedName))
 			return;
 
+		WeaponDamageZone damageZone = GetWeaponDamageZone();
+		GD.Print($"[Combat] Applying attack: entity={Name}, attack={animationName}, " +
+			$"authority={GetMultiplayerAuthority()}, localPeer={(Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1)}, " +
+			$"damageZone={damageZone?.GetPath().ToString() ?? "<missing>"}, animationTreeReady=True.");
 		_animationTree.Set("parameters/AttackClip/animation", qualifiedName);
 		_animationTree.Set("parameters/Attack/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+		if (damageZone == null)
+			GD.PushWarning($"[Combat] Cannot start attack: entity '{GetPath()}' has no WeaponDamageZone under it.");
+		else
+			damageZone.BeginSwing();
+	}
+
+	private WeaponDamageZone GetWeaponDamageZone()
+	{
+		return FindChild("DamageZone", true, false) as WeaponDamageZone;
 	}
 }

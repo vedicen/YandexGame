@@ -2,14 +2,23 @@
 
 [ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="1_23bt8"]
 [ext_resource type="Script" uid="uid://cni4iujhpbe8u" path="res://entity/Player/Player.cs" id="2_s5jwf"]
-[ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="3_omsen"]
 [ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="3_xqki4"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="7_swhyu"]
 [ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="9_inventory"]
-[ext_resource type="Resource" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
+[ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="10_equipment_inventory"]
+
+[sub_resource type="Resource" id="PotionStack"]
+script = ExtResource("7_swhyu")
+ItemCount = 3
+Item = ExtResource("8_xqki4")
+
+[sub_resource type="Resource" id="Resource_vjnli"]
+script = ExtResource("7_swhyu")
+Item = ExtResource("9_rt8ta")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1y8k7"]
 properties/0/path = NodePath(".:position")
@@ -28,16 +37,6 @@ properties/4/path = NodePath(".:ReplicatedModelFacing")
 properties/4/spawn = true
 properties/4/replication_mode = 1
 
-[sub_resource type="Resource" id="PotionStack"]
-script = ExtResource("7_swhyu")
-ItemCount = 3
-Item = ExtResource("8_xqki4")
-
-[sub_resource type="Resource" id="Resource_vjnli"]
-script = ExtResource("7_swhyu")
-Item = ExtResource("9_rt8ta")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
 StartingMoney = 500
@@ -49,14 +48,10 @@ MouseSensitivity = 0.003
 MinPitch = -80.0
 MaxPitch = 60.0
 ModelScene = ExtResource("3_xqki4")
-ModelTurnSpeed = 10.0
-ReplicatedModelFacing = 0.0
 
-[node name="HealthComponent" parent="." index="0" unique_id=1182051469 instance=ExtResource("3_omsen")]
+[node name="PlayerInputComponent" parent="." index="1" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
 
-[node name="PlayerInputComponent" parent="." index="2" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
-
-[node name="CameraPivot" type="Node3D" parent="." index="3" unique_id=1929924156]
+[node name="CameraPivot" type="Node3D" parent="." index="2" unique_id=1929924156]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6096302, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot" index="0" unique_id=64500905]
@@ -65,10 +60,7 @@ margin = 0.2
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D" index="0" unique_id=82150786]
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="4" unique_id=1718092406]
-replication_config = SubResource("SceneReplicationConfig_1y8k7")
-
-[node name="UI" type="Control" parent="." index="5" unique_id=430184332]
+[node name="UI" type="Control" parent="." index="3" unique_id=430184332]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -93,7 +85,11 @@ grow_vertical = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="InventoryComponent" parent="." index="6" unique_id=1158324123 instance=ExtResource("9_inventory")]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_vjnli")])
+[node name="InventoryComponent" parent="." index="4" unique_id=1158324123 instance=ExtResource("9_inventory")]
+Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack")])
 
-[node name="EquipmentInventory" parent="." index="7" instance=ExtResource("10_equipment_inventory")]
+[node name="EquipmentInventory" parent="." index="5" unique_id=821787446 instance=ExtResource("10_equipment_inventory")]
+Slots = Array[ExtResource("7_swhyu")]([SubResource("Resource_vjnli")])
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="10" unique_id=91357478]
+replication_config = SubResource("SceneReplicationConfig_1y8k7")

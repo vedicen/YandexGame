@@ -10,8 +10,10 @@
 [ext_resource type="PackedScene" uid="uid://bqlht5i28pma4" path="res://animations/Crouch Idle.fbx" id="8_oxu6r"]
 [ext_resource type="PackedScene" uid="uid://ihix5qbmp1lc" path="res://animations/Crouched Walking.fbx" id="9_vqaqr"]
 [ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/equipment_component.cs" id="10_yrrmq"]
+[ext_resource type="Script" uid="uid://btyu6mcn5yv45" path="res://entity/components/CombatStatsComponent.cs" id="11_combat"]
+[ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="12_2dmw2"]
 
-[node name="AnimatedEntity" unique_id=1252529603 instance=ExtResource("1_entity")]
+[node name="AnimatedEntity" unique_id=1252529603 node_paths=PackedStringArray("Health") instance=ExtResource("1_entity")]
 script = ExtResource("2_uiq6r")
 ModelScene = null
 IdleAnimationScene = ExtResource("3_osnle")
@@ -23,11 +25,20 @@ Attack2AnimationScene = ExtResource("7_m785b")
 CrouchedIdleAnimationScene = ExtResource("8_oxu6r")
 CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
 BlendDuration = 0.2
+ModelTurnSpeed = 10.0
+HealthBarHeight = 2.2
+ReplicatedModelFacing = 0.0
 ReplicatedAnimation = "Idle"
 ReplicatedAttack = ""
+Health = NodePath("HealthComponent")
 
 [node name="EquipmentComponent" type="Node" parent="." index="1" unique_id=2078828129]
 script = ExtResource("10_yrrmq")
 
 [node name="Model" type="Node3D" parent="." index="2" unique_id=1872647054]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99512684, 0)
+
+[node name="CombatStatsComponent" type="Node" parent="." index="3" unique_id=850477259]
+script = ExtResource("11_combat")
+
+[node name="HealthComponent" parent="." index="4" unique_id=1182051469 instance=ExtResource("12_2dmw2")]

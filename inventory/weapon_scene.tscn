@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://dh24krq446n4g"]
 
-[ext_resource type="Script" path="res://inventory/WeaponScene.cs" id="1_weapon_scene"]
+[ext_resource type="Script" uid="uid://b0to83fkik07u" path="res://inventory/WeaponScene.cs" id="1_weapon_scene"]
+[ext_resource type="Script" uid="uid://bumcm1f37303y" path="res://inventory/WeaponDamageZone.cs" id="2_damage_zone"]
 
-[node name="WeaponScene" type="Node3D"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_blade"]
+size = Vector3(0.18, 0.5630859, 0.14)
+
+[node name="WeaponScene" type="Node3D" unique_id=169345995]
 script = ExtResource("1_weapon_scene")
+
+[node name="DamageZone" type="Area3D" parent="." unique_id=30249733]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.46, 0)
+script = ExtResource("2_damage_zone")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DamageZone" unique_id=1720090740]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11845705, 0)
+shape = SubResource("BoxShape3D_blade")
