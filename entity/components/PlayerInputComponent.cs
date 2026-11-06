@@ -3,6 +3,7 @@ using Godot;
 public partial class PlayerInputComponent : Node
 {
     private Vector2 _lookMotion;
+    public bool IsInputEnabled { get; private set; } = true;
 
     public bool HasInputAuthority
     {
@@ -16,22 +17,31 @@ public partial class PlayerInputComponent : Node
     }
 
     public Vector2 Movement =>
-        HasInputAuthority ? Input.GetVector("left", "right", "forward", "backward") : Vector2.Zero;
+        HasInputAuthority && IsInputEnabled ? Input.GetVector("left", "right", "forward", "backward") : Vector2.Zero;
 
     public bool JumpPressed =>
-        HasInputAuthority && Input.IsActionJustPressed("jump");
+        HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("jump");
 
     public bool Crouching =>
-        HasInputAuthority && Input.IsActionPressed("crouch");
+        HasInputAuthority && IsInputEnabled && Input.IsActionPressed("crouch");
 
     public bool Attack1Pressed =>
-        HasInputAuthority && Input.IsActionJustPressed("attack1");
+        HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("attack1");
 
     public bool Attack2Pressed =>
-        HasInputAuthority && Input.IsActionJustPressed("attack2");
+        HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("attack2");
 
     public bool IsMouseCaptured =>
-        Input.MouseMode == Input.MouseModeEnum.Captured;
+        IsInputEnabled && Input.MouseMode == Input.MouseModeEnum.Captured;
+
+    public void SetInputEnabled(bool enabled)
+    {
+        if (IsInputEnabled == enabled) return;
+        IsInputEnabled = enabled;
+        _lookMotion = Vector2.Zero;
+        if (HasInputAuthority)
+            Input.MouseMode = enabled ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+    }
 
     public override void _Ready()
     {
@@ -41,7 +51,7 @@ public partial class PlayerInputComponent : Node
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!HasInputAuthority)
+        if (!HasInputAuthority || !IsInputEnabled)
             return;
         if (GetParent() is Player player && player.States?.CanMove == false) return;
 

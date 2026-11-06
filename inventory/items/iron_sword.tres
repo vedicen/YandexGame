@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inventory/Item.cs" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+DisplayName = "Железный меч"
+Description = "Простой одноручный меч из железа. Надёжный и недорогой."
+MaxStackSize = 1
+Rarity = 0

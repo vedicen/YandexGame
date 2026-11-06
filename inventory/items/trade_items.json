@@ -1,0 +1,17 @@
+[
+  {
+    "Id": 1,
+    "ItemPath": "res://inventory/items/iron_sword.tres",
+    "Price": 100
+  },
+  {
+    "Id": 2,
+    "ItemPath": "res://inventory/items/steel_sword.tres",
+    "Price": 250
+  },
+  {
+    "Id": 3,
+    "ItemPath": "res://inventory/items/wooden_staff.tres",
+    "Price": 80
+  }
+]

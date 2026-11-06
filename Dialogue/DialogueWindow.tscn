@@ -12,12 +12,14 @@ grow_vertical = 2
 script = ExtResource("1_h1as6")
 
 [node name="TextEdit" type="TextEdit" parent="." unique_id=511264978]
+layout_mode = 0
 offset_left = 102.0
 offset_top = 209.0
 offset_right = 531.0
 offset_bottom = 265.0
 
 [node name="Button" type="Button" parent="." unique_id=265188820]
+layout_mode = 0
 offset_left = 104.0
 offset_top = 273.0
 offset_right = 303.0
@@ -25,6 +27,7 @@ offset_bottom = 313.0
 text = "Отправить"
 
 [node name="ExitButton" type="Button" parent="." unique_id=376400215]
+layout_mode = 0
 offset_left = 318.0
 offset_top = 273.0
 offset_right = 429.0
@@ -32,11 +35,44 @@ offset_bottom = 313.0
 text = "Выйти"
 
 [node name="Label" type="RichTextLabel" parent="." unique_id=553816177]
+layout_mode = 0
 offset_left = 580.0
 offset_top = 177.0
 offset_right = 1097.0
 offset_bottom = 566.0
 text = "<Dialog>"
 
+[node name="MoneyLabel" type="Label" parent="." unique_id=789302161]
+layout_mode = 0
+offset_left = 104.0
+offset_top = 150.0
+offset_right = 357.0
+offset_bottom = 178.0
+text = "Деньги: 0 золотых"
+
+[node name="OfferPanel" type="PanelContainer" parent="." unique_id=1990187181]
+layout_mode = 0
+offset_left = 353.0
+offset_top = 338.0
+offset_right = 747.0
+offset_bottom = 478.0
+
+[node name="OfferVBox" type="VBoxContainer" parent="OfferPanel" unique_id=1145820118]
+layout_mode = 2
+
+[node name="OfferLabel" type="Label" parent="OfferPanel/OfferVBox" unique_id=105577205]
+layout_mode = 2
+text = "Купить предмет?"
+
+[node name="AcceptButton" type="Button" parent="OfferPanel/OfferVBox" unique_id=1382204512]
+layout_mode = 2
+text = "Купить"
+
+[node name="DeclineButton" type="Button" parent="OfferPanel/OfferVBox" unique_id=1808581502]
+layout_mode = 2
+text = "Отказаться"
+
 [connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
 [connection signal="pressed" from="ExitButton" to="." method="interact_end"]
+[connection signal="pressed" from="OfferPanel/OfferVBox/AcceptButton" to="." method="_on_accept_button_pressed"]
+[connection signal="pressed" from="OfferPanel/OfferVBox/DeclineButton" to="." method="_on_decline_button_pressed"]

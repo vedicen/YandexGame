@@ -17,6 +17,17 @@ public partial class InventoryComponent : Node
     }
     public bool Valid(int index) => Slots != null && index >= 0 && index < Slots.Count;
     public void NotifyChanged() => Changed?.Invoke();
+    public bool CanAdd(Item item, int count)
+    {
+        if (item == null || count <= 0) return false;
+        int capacity = 0;
+        foreach (var slot in Slots)
+            capacity += slot == null
+                ? Math.Max(1, item.MaxStackSize)
+                : slot.Item == item ? Math.Max(0, item.MaxStackSize - slot.ItemCount) : 0;
+        return capacity >= count;
+    }
+
     public int Add(Item item, int count)
     {
         if (item == null || count <= 0) return count;

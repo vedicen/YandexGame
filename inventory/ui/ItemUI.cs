@@ -17,7 +17,7 @@ public partial class ItemUI : PanelContainer
             CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6, CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6 };
         AddThemeStyleboxOverride("panel", style);
         if (item == null) return;
-        TooltipText = $"{item.DisplayName}\n{RarityName(item.Rarity)} • {slot.ItemCount}/{item.MaxStackSize}" +
+        TooltipText = $"{item.DisplayName}\n{item.Description}\n{RarityName(item.Rarity)} • {slot.ItemCount}/{item.MaxStackSize}" +
             (item is UsableItem ? "\nПКМ — использовать" : "");
         var box = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         AddChild(box);

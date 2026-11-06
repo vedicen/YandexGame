@@ -7,6 +7,7 @@ public partial class InventoryUI : CanvasLayer
     private HBoxContainer _grids;
     private Chest _chest;
     private bool _dirty;
+    private Label _moneyLabel;
     public override void _Ready()
     {
         Layer = 10;
@@ -20,6 +21,9 @@ public partial class InventoryUI : CanvasLayer
         var box = new VBoxContainer();
         margin.AddChild(box);
         box.AddChild(new Label { Text = "ИНВЕНТАРЬ    •    ЛКМ: перенос    •    ПКМ: использовать    •    Tab / Esc: закрыть" });
+        _moneyLabel = new Label { Text = $"Деньги: {Player.Money}" };
+        box.AddChild(_moneyLabel);
+        Player.MoneyChanged += UpdateMoney;
         var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         box.AddChild(scroll);
         _grids = new HBoxContainer();
@@ -35,6 +39,7 @@ public partial class InventoryUI : CanvasLayer
         _root.Hide();
     }
     private void MarkDirty() => _dirty = true;
+    private void UpdateMoney(int amount) => _moneyLabel.Text = $"Деньги: {amount}";
     public void Open(Chest chest)
     {
         if (_chest != null) _chest.Inventory.Changed -= MarkDirty;
@@ -52,6 +57,7 @@ public partial class InventoryUI : CanvasLayer
     public override void _ExitTree()
     {
         Player.Inventory.Changed -= MarkDirty;
+        Player.MoneyChanged -= UpdateMoney;
         if (GodotObject.IsInstanceValid(_chest)) _chest.Inventory.Changed -= MarkDirty;
     }
     public override void _Process(double delta)

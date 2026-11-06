@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 public partial class Player : AnimatedEntity
 {
@@ -8,6 +9,12 @@ public partial class Player : AnimatedEntity
     
     private Chest _openChest;
     private TradingStand _tradingStand;
+    private interact_obj _inputLockSource;
+    private Node _tradeDialog;
+    [Export(PropertyHint.Range, "0,1000000")]
+    public int StartingMoney { get; set; } = 500;
+    public int Money { get; private set; }
+    public event Action<int> MoneyChanged;
     public override void _EnterTree()
     {
         if (int.TryParse(Name, out int peer)) SetMultiplayerAuthority(peer, true);
@@ -27,6 +34,7 @@ public partial class Player : AnimatedEntity
 
     private Node3D _cameraPivot;
     private Camera3D _camera;
+    private float _cameraRotationY;
 
     private Button interact_key;
     private interact_obj current_interact_obj;
@@ -39,6 +47,7 @@ public partial class Player : AnimatedEntity
         
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
         Inventory = GetNode<InventoryComponent>("InventoryComponent");
+        Money = StartingMoney;
         States = new PlayerStateMachine { Name = "States" };
         AddChild(States);
         interact_key ??= GetNodeOrNull<Button>("UI/Ineract_Key");
@@ -55,6 +64,7 @@ public partial class Player : AnimatedEntity
 
         AddToGroup("players");
         _cameraPivot = GetNode<Node3D>("CameraPivot");
+        _cameraRotationY = _cameraPivot.Rotation.Y;
         _camera = GetNode<Camera3D>("CameraPivot/SpringArm3D/Camera3D");
 
         if (playerInputComponent.HasInputAuthority)
@@ -75,6 +85,8 @@ public partial class Player : AnimatedEntity
 
     public override void _Process(double delta)
     {
+        base._Process(delta);
+
         if (playerInputComponent == null || !playerInputComponent.HasInputAuthority)
             return;
 
@@ -82,12 +94,16 @@ public partial class Player : AnimatedEntity
         if (!States.CanLook) return;
         if (playerInputComponent.IsMouseCaptured && mouseMotion != Vector2.Zero)
         {
-            RotateY(-mouseMotion.X * MouseSensitivity);
+            _cameraRotationY = Mathf.Wrap(
+                _cameraRotationY - mouseMotion.X * MouseSensitivity,
+                -Mathf.Pi,
+                Mathf.Pi);
 
             _cameraRotationX -= mouseMotion.Y * MouseSensitivity;
             _cameraRotationX = Mathf.Clamp(_cameraRotationX, Mathf.DegToRad(MinPitch), Mathf.DegToRad(MaxPitch));
 
             Vector3 pivotRotation = _cameraPivot.Rotation;
+            pivotRotation.Y = _cameraRotationY;
             pivotRotation.X = _cameraRotationX;
             _cameraPivot.Rotation = pivotRotation;
         }
@@ -107,7 +123,12 @@ public partial class Player : AnimatedEntity
             velocity.Y = JumpVelocity;
 
         Vector2 inputDir = playerInputComponent.Movement;
-        Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
+        Vector3 localDirection = new Basis(Vector3.Up, _cameraRotationY) * new Vector3(inputDir.X, 0, inputDir.Y);
+        localDirection.Y = 0;
+        localDirection = localDirection.Normalized();
+        Vector3 direction = (Transform.Basis * localDirection).Normalized();
+        if (localDirection != Vector3.Zero)
+            FaceMoveDirection(localDirection);
         bool crouching = playerInputComponent.Crouching;
         float movementSpeed = Speed * (crouching ? CrouchSpeedMultiplier : 1.0f);
 
@@ -167,13 +188,15 @@ public partial class Player : AnimatedEntity
     {
 
         if (!States.CanMove || !GodotObject.IsInstanceValid(current_interact_obj)) return;
+        if (current_interact_obj.disable_input_on_interact && !BeginInteraction(current_interact_obj)) return;
         current_interact_obj.interact(this);
         interact_key.Hide();
     }
 
     public override void _Input(InputEvent ev)
     {
-        if (playerInputComponent?.HasInputAuthority != true || ev is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (playerInputComponent?.HasInputAuthority != true || !playerInputComponent.IsInputEnabled ||
+            ev is not InputEventKey { Pressed: true, Echo: false } key) return;
         if (States.Current == PlayerStateMachine.State.Trading) return;
         if (key.PhysicalKeycode == Key.Tab || key.Keycode == Key.Escape && !States.CanMove)
         {
@@ -216,12 +239,57 @@ public partial class Player : AnimatedEntity
         return false;
     }
 
+    public bool BeginInteraction(interact_obj source)
+    {
+        if (source == null || !GodotObject.IsInstanceValid(source) ||
+            playerInputComponent?.HasInputAuthority != true || _inputLockSource != null)
+            return false;
+
+        _inputLockSource = source;
+        playerInputComponent.SetInputEnabled(false);
+        return true;
+    }
+
+    public void EndInteraction(interact_obj source)
+    {
+        if (_inputLockSource != source)
+            return;
+
+        _inputLockSource = null;
+        playerInputComponent?.SetInputEnabled(true);
+    }
+
+    public void SetTradeDialog(Node dialog)
+    {
+        _tradeDialog = dialog;
+    }
+
+    public void ShowTradeOffer(int id, int price, string itemName)
+    {
+        if (GodotObject.IsInstanceValid(_tradeDialog))
+            _tradeDialog.Call("show_trade_offer", id, price, itemName);
+    }
+
+    public void ShowTradeResult(string message, bool closeOffer)
+    {
+        if (GodotObject.IsInstanceValid(_tradeDialog))
+            _tradeDialog.Call("show_trade_result", message, closeOffer);
+    }
+
+    public void SetMoney(int amount)
+    {
+        if (Money == amount) return;
+        Money = amount;
+        MoneyChanged?.Invoke(Money);
+    }
+
     public void EndTrading(TradingStand stand)
     {
         if (_tradingStand != stand)
             return;
 
         _tradingStand = null;
+        _tradeDialog = null;
         if (States.Current == PlayerStateMachine.State.Trading)
             States.Transition(PlayerStateMachine.State.Locomotion);
     }

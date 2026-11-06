@@ -6,6 +6,7 @@ public enum Rarity { Common, Rare, Epic, Mythic, Legendary }
 public partial class Item : Resource
 {
     [Export] public string DisplayName { get; set; } = "Предмет";
+    [Export(PropertyHint.MultilineText)] public string Description { get; set; } = "";
     [Export] public PackedScene Model { get; set; }
     [Export(PropertyHint.Range, "1,999")] public int MaxStackSize { get; set; } = 20;
     [Export] public Rarity Rarity { get; set; }

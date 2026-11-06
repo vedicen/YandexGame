@@ -2,56 +2,32 @@
 extends Control
 
 signal dialog_closed
+signal request_action(id: int, price: int)
+signal purchase_decided(id: int, price: int, accepted: bool)
 
 const MODEL_PATH := "res://models/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
 @onready var text_edit: TextEdit = $TextEdit
+@onready var offer_panel: PanelContainer = $OfferPanel
+@onready var offer_label: Label = $OfferPanel/OfferVBox/OfferLabel
+@onready var money_label: Label = $MoneyLabel
 
 var chat = null
 var is_ready := false
 var is_generating := false
-
-var inventory: Array[Dictionary] = [
-	{
-		"name": "Железный меч",
-		"id": 0,
-		"description": "Простой одноручный меч из железа. Надёжный и недорогой.",
-		"price": 100,
-		"category": "weapon",
-		"stats": {
-			"damage": 12,
-			"weight": 3.5,
-			"durability": 100
-		}
-	},
-	{
-		"name": "Стальной меч",
-		"id": 1,
-		"description": "Качественный меч из стали с хорошим балансом.",
-		"price": 250,
-		"category": "weapon",
-		"stats": {
-			"damage": 22,
-			"weight": 4.0,
-			"durability": 180
-		}
-	},
-	{
-		"name": "Деревянный посох",
-		"id": 2,
-		"description": "Простой посох для начинающих магов.",
-		"price": 80,
-		"category": "weapon",
-		"stats": {
-			"magic_power": 8,
-			"weight": 2.0,
-			"durability": 70
-		}
-	}
-]
+var inventory: Array[Dictionary] = []
+var pending_offer_id := -1
+var pending_offer_price := -1
 
 
 func _ready() -> void:
-	print("Запуск ИИ-торговца...")
+	offer_panel.hide()
+
+
+func configure(catalog: Array, current_money: int) -> void:
+	inventory.clear()
+	for item in catalog:
+		inventory.append(item)
+	set_money(current_money)
 	await load_model()
 
 
@@ -82,10 +58,10 @@ func load_model() -> void:
 
 # Системный контекст модели.
 func get_system_prompt() -> String:
-	print("New version")
 	var context := """
-	
 Ты — торговец КэтИнЁб в фэнтезийном мире. Общайся на русском.
+
+НЕ ПИШИ ID ВНЕ request
 
 ТОВАРЫ:
 Используй только указанный ассортимент, (Название, БЕЗ ID) . Ничего не выдумывай.
@@ -98,6 +74,8 @@ func get_system_prompt() -> String:
 Если товар или цена не согласованы, блок не добавляй.
 Если товар неясен, задай уточняющий вопрос.
 
+НЕ ПИШИ ID ВНЕ request
+
 ФОРМАТ ПОДТВЕРЖДЁННОЙ ПОКУПКИ:
 
 <request>
@@ -105,26 +83,18 @@ id:1
 price:100
 </request>
 
-ID и price должны точно соответствовать согласованной сделке и допустимым данным ассортимента. Не утверждай, что предмет уже передан покупателю: сделку завершает игровая система.
-
+Не утверждай, что предмет уже передан покупателю: сделку завершает игровая система.
 НЕ ПИШИ ФОРМАТНЫЕ ЗВЕЗДОЧКИ И СМАЙЛ** пожалуйста **
+Ассортимент может быть пустым. В таком случае не предлагай покупку.
 
 АССОРТИМЕНТ:
 """
 
 	for item in inventory:
-		context += "\nПредмет: %s\n" % item["name"]
-		context += "\nid: %s\n" % item["id"]
-		context += "Описание: %s\n" % item["description"]
-		context += "Цена: %d золотых\n" % item["price"]
-		context += "Категория: %s\n" % item["category"]
-		context += "Характеристики:\n"
-
-		for stat in item["stats"]:
-			context += "- %s: %s\n" % [
-				stat,
-				str(item["stats"][stat])
-			]
+		context += "\nПредмет: %s\n" % item.get("name", "Неизвестный предмет")
+		context += "id: %d\n" % int(item.get("id", -1))
+		context += "Описание: %s\n" % item.get("description", "")
+		context += "Базовая цена: %d золотых\n" % int(item.get("price", 0))
 
 	return context
 
@@ -154,20 +124,69 @@ func talk_to_merchant(player_message: String) -> void:
 	var answer = await stream.completed()
 
 	print("Торговец: ", answer)
-	
-	var index = answer.find('</think>')
-	
-	var final = answer.substr(index+len('</think> '), len(answer)-1)
-	
-	$Label.text = final
+
+	var index = answer.find("</think>")
+	var final = answer.substr(index + len("</think>")) if index >= 0 else answer
+	var request_regex := RegEx.new()
+	request_regex.compile("(?is)<request>\\s*id\\s*:\\s*(\\d+)\\s*price\\s*:\\s*(\\d+)\\s*</request>")
+	var request_match := request_regex.search(final)
+	var request_id := -1
+	var request_price := -1
+	if request_match:
+		request_id = request_match.get_string(1).to_int()
+		request_price = request_match.get_string(2).to_int()
+		final = request_regex.sub(final, "", true)
+	$Label.text = final.strip_edges()
 	is_generating = false
+	if request_id >= 0:
+		request_action.emit(request_id, request_price)
+
+
+func show_trade_offer(id: int, price: int, item_name: String) -> void:
+	pending_offer_id = id
+	pending_offer_price = price
+	offer_label.text = "Купить %s за %d золотых?" % [item_name, price]
+	$OfferPanel/OfferVBox/AcceptButton.disabled = false
+	$OfferPanel/OfferVBox/DeclineButton.disabled = false
+	offer_panel.show()
+
+
+func set_money(amount: int) -> void:
+	money_label.text = "Деньги: %d золотых" % amount
+
+
+func show_trade_result(message: String, close_offer: bool) -> void:
+	$Label.text = message
+	if close_offer:
+		offer_panel.hide()
+		pending_offer_id = -1
+		pending_offer_price = -1
+	elif pending_offer_id >= 0:
+		$OfferPanel/OfferVBox/AcceptButton.disabled = false
+		$OfferPanel/OfferVBox/DeclineButton.disabled = false
 
 
 func _on_button_pressed() -> void:
-	await talk_to_merchant(
-				text_edit.text
-			) 
+	await talk_to_merchant(text_edit.text)
 
 
 func interact_end() -> void:
 	dialog_closed.emit()
+
+
+func _on_accept_button_pressed() -> void:
+	if pending_offer_id < 0:
+		return
+	$OfferPanel/OfferVBox/AcceptButton.disabled = true
+	$OfferPanel/OfferVBox/DeclineButton.disabled = true
+	purchase_decided.emit(pending_offer_id, pending_offer_price, true)
+
+
+func _on_decline_button_pressed() -> void:
+	if pending_offer_id < 0:
+		offer_panel.hide()
+		return
+	purchase_decided.emit(pending_offer_id, pending_offer_price, false)
+	offer_panel.hide()
+	pending_offer_id = -1
+	pending_offer_price = -1

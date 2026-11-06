@@ -8,6 +8,7 @@ albedo_color = Color(1, 1, 0, 1)
 
 [node name="NPC" unique_id=158455418 instance=ExtResource("1_enemy")]
 script = ExtResource("2_npc")
+TradeItemIds = Array[int]([1, 2, 3])
 
 [node name="EnemyAIComponent" parent="." index="2" unique_id=1704726324]
 TargetGroup = ""

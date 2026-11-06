@@ -11,7 +11,17 @@ public partial class InventoryService : Node
     private int _nextDrop;
     private Snapshot _pending;
     private readonly Dictionary<int, string> _sessions = new();
+    private readonly Dictionary<int, int> _money = new();
+    private readonly Dictionary<int, TradeOffer> _tradeOffers = new();
+    private readonly Dictionary<int, string> _tradeSessions = new();
     public bool IsServer => !Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer();
+    private sealed class TradeOffer
+    {
+        public string StandPath { get; set; }
+        public int ItemId { get; set; }
+        public int Price { get; set; }
+    }
+
     public class SlotData { public string Item { get; set; } public int Count { get; set; } }
     public class InventoryData { public string Path { get; set; } public List<SlotData> Slots { get; set; } = new(); }
     public class DropData { public string Path { get; set; } public SlotData Slot { get; set; } public float X { get; set; } public float Y { get; set; } public float Z { get; set; } }
@@ -22,6 +32,7 @@ public partial class InventoryService : Node
         public List<DropData> Drops { get; set; } = new();
         public Dictionary<int, string> Sessions { get; set; } = new();
         public Dictionary<int, float> Health { get; set; } = new();
+        public Dictionary<int, int> Money { get; set; } = new();
     }
     public override void _EnterTree() { Instance = this; SetMultiplayerAuthority(1); }
     public override void _ExitTree()
@@ -34,6 +45,9 @@ public partial class InventoryService : Node
     {
         if (!IsServer) return;
         _sessions.Remove((int)id);
+        _money.Remove((int)id);
+        _tradeOffers.Remove((int)id);
+        EndTradeForPeer((int)id);
         Callable.From(() => Publish()).CallDeferred();
     }
     public void Send(string action, Player player, string source = "", int from = -1, string target = "", int to = -1, int revision = -1)
@@ -45,6 +59,239 @@ public partial class InventoryService : Node
     public void RequestSnapshot()
     {
         if (IsServer) Publish(); else RpcId(1, nameof(Request), "sync", "", -1, "", -1, Revision);
+    }
+
+    public void RequestTradeOffer(Player player, TradingStand stand, int id, int price)
+    {
+        if (IsServer) ProcessTradeOffer(player, stand, id, price);
+        else RpcId(1, nameof(RequestTradeOfferRpc), stand.GetPath().ToString(), id, price);
+    }
+
+    public void BeginTradeSession(Player player, TradingStand stand)
+    {
+        if (IsServer) ProcessBeginTrade(player, stand);
+        else RpcId(1, nameof(BeginTradeSessionRpc), stand.GetPath().ToString());
+    }
+
+    public void EndTradeSession(Player player, TradingStand stand)
+    {
+        if (IsServer) ProcessEndTrade(player, stand);
+        else RpcId(1, nameof(EndTradeSessionRpc), stand.GetPath().ToString());
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void BeginTradeSessionRpc(string standPath)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        if (player != null) ProcessBeginTrade(player, GetNodeOrNull<TradingStand>(standPath));
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void EndTradeSessionRpc(string standPath)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        if (player != null) ProcessEndTrade(player, GetNodeOrNull<TradingStand>(standPath));
+    }
+
+    private void ProcessBeginTrade(Player player, TradingStand stand)
+    {
+        if (!GodotObject.IsInstanceValid(player) || !GodotObject.IsInstanceValid(stand) ||
+            !GodotObject.IsInstanceValid(stand.npc_owner) || !Near(player, stand))
+            return;
+
+        int peer = player.GetMultiplayerAuthority();
+        string standPath = stand.GetPath().ToString();
+        if (_tradeSessions.TryGetValue(peer, out string currentStand) && currentStand == standPath)
+            return;
+        if (stand.npc_owner.IsTrading)
+        {
+            if (stand.npc_owner.TradingPlayer == player && stand.npc_owner.ActiveTradingStand == stand)
+            {
+                _tradeSessions[peer] = standPath;
+                return;
+            }
+            if (stand.npc_owner.TradingPlayer != player)
+                DeliverTradeResult(peer, player, "Торговец уже занят.", true);
+            return;
+        }
+        if (stand.npc_owner.BeginTrading(stand, player))
+            _tradeSessions[peer] = standPath;
+    }
+
+    private void ProcessEndTrade(Player player, TradingStand stand)
+    {
+        if (!GodotObject.IsInstanceValid(player))
+            return;
+        int peer = player.GetMultiplayerAuthority();
+        if (_tradeSessions.TryGetValue(peer, out string standPath) &&
+            (stand == null || standPath == stand.GetPath().ToString()))
+        {
+            _tradeSessions.Remove(peer);
+            _tradeOffers.Remove(peer);
+            if (GodotObject.IsInstanceValid(stand) && GodotObject.IsInstanceValid(stand.npc_owner))
+                stand.npc_owner.EndTrading(stand, player);
+        }
+    }
+
+    private void EndTradeForPeer(int peer)
+    {
+        if (!_tradeSessions.TryGetValue(peer, out string standPath))
+            return;
+        _tradeSessions.Remove(peer);
+        var stand = GetNodeOrNull<TradingStand>(standPath);
+        var tradingPlayer = GodotObject.IsInstanceValid(stand?.npc_owner)
+            ? stand.npc_owner.TradingPlayer
+            : null;
+        if (tradingPlayer?.GetMultiplayerAuthority() == peer)
+            stand.npc_owner.EndTrading(stand, tradingPlayer);
+    }
+
+    public void RequestTradePurchase(Player player, TradingStand stand, int id, int price, bool accepted)
+    {
+        if (IsServer) ProcessTradePurchase(player, stand, id, price, accepted);
+        else RpcId(1, nameof(RequestTradePurchaseRpc), stand.GetPath().ToString(), id, price, accepted);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestTradeOfferRpc(string standPath, int id, int price)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        var stand = GetNodeOrNull<TradingStand>(standPath);
+        if (player != null) ProcessTradeOffer(player, stand, id, price);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestTradePurchaseRpc(string standPath, int id, int price, bool accepted)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        var stand = GetNodeOrNull<TradingStand>(standPath);
+        if (player != null) ProcessTradePurchase(player, stand, id, price, accepted);
+    }
+
+    private bool CanTrade(Player player, TradingStand stand)
+    {
+        return GodotObject.IsInstanceValid(player) &&
+            GodotObject.IsInstanceValid(stand) &&
+            GodotObject.IsInstanceValid(stand.npc_owner) &&
+            Near(player, stand) &&
+            _tradeSessions.TryGetValue(player.GetMultiplayerAuthority(), out string sessionPath) &&
+            sessionPath == stand.GetPath().ToString() &&
+            stand.npc_owner.IsTrading &&
+            stand.npc_owner.ActiveTradingStand == stand &&
+            stand.npc_owner.TradingPlayer == player;
+    }
+
+    private void ProcessTradeOffer(Player player, TradingStand stand, int id, int price)
+    {
+        int peer = player.GetMultiplayerAuthority();
+        if (!CanTrade(player, stand) || !stand.npc_owner.SellsItem(id) ||
+            !TradeItemDatabase.TryGet(id, out TradeItemRecord item) ||
+            (long)price * 10 < (long)item.Price * 3 || price <= 0)
+        {
+            _tradeOffers.Remove(peer);
+            DeliverTradeResult(peer, player, "Предложение не прошло проверку.", false);
+            return;
+        }
+
+        _tradeOffers[peer] = new TradeOffer
+        {
+            StandPath = stand.GetPath().ToString(),
+            ItemId = id,
+            Price = price
+        };
+        DeliverTradeOffer(peer, player, id, price, item.Item.DisplayName);
+    }
+
+    private void ProcessTradePurchase(Player player, TradingStand stand, int id, int price, bool accepted)
+    {
+        int peer = player.GetMultiplayerAuthority();
+        if (!_tradeOffers.TryGetValue(peer, out TradeOffer offer) ||
+            offer.StandPath != stand?.GetPath().ToString() ||
+            offer.ItemId != id || offer.Price != price)
+        {
+            DeliverTradeResult(peer, player, "Предложение больше недействительно.", false);
+            return;
+        }
+
+        _tradeOffers.Remove(peer);
+        if (!accepted)
+        {
+            DeliverTradeResult(peer, player, "Покупка отклонена.", true);
+            return;
+        }
+
+        if (!CanTrade(player, stand) || !stand.npc_owner.SellsItem(id) ||
+            !TradeItemDatabase.TryGet(id, out TradeItemRecord item) ||
+            (long)price * 10 < (long)item.Price * 3 || price <= 0)
+        {
+            DeliverTradeResult(peer, player, "Не удалось подтвердить покупку.", false);
+            return;
+        }
+
+        int balance = GetMoney(player);
+        if (balance < price)
+        {
+            DeliverTradeResult(peer, player, "Недостаточно денег.", false);
+            return;
+        }
+        if (!player.Inventory.CanAdd(item.Item, 1))
+        {
+            DeliverTradeResult(peer, player, "В инвентаре нет места.", false);
+            return;
+        }
+        if (player.Inventory.Add(item.Item, 1) != 0)
+        {
+            DeliverTradeResult(peer, player, "Не удалось добавить предмет в инвентарь.", false);
+            return;
+        }
+
+        _money[peer] = balance - price;
+        Publish();
+        DeliverTradeResult(peer, player, $"Куплено: {item.Item.DisplayName}.", true);
+    }
+
+    private int GetMoney(Player player)
+    {
+        int peer = player.GetMultiplayerAuthority();
+        if (!_money.TryGetValue(peer, out int balance))
+            _money[peer] = balance = Math.Max(0, player.StartingMoney);
+        return balance;
+    }
+
+    private void DeliverTradeOffer(int peer, Player player, int id, int price, string itemName)
+    {
+        if (!Multiplayer.HasMultiplayerPeer() || peer == Multiplayer.GetUniqueId())
+            player.ShowTradeOffer(id, price, itemName);
+        else
+            RpcId(peer, nameof(ReceiveTradeOffer), peer, id, price, itemName);
+    }
+
+    private void DeliverTradeResult(int peer, Player player, string message, bool closeOffer)
+    {
+        if (!Multiplayer.HasMultiplayerPeer() || peer == Multiplayer.GetUniqueId())
+            player.ShowTradeResult(message, closeOffer);
+        else
+            RpcId(peer, nameof(ReceiveTradeResult), peer, message, closeOffer);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveTradeOffer(int peer, int id, int price, string itemName)
+    {
+        GetParent().GetNodeOrNull<Player>($"Players/{peer}")?.ShowTradeOffer(id, price, itemName);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveTradeResult(int peer, string message, bool closeOffer)
+    {
+        GetParent().GetNodeOrNull<Player>($"Players/{peer}")?.ShowTradeResult(message, closeOffer);
     }
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
     private void Request(string action, string source, int from, string target, int to, int revision)
@@ -135,7 +382,10 @@ public partial class InventoryService : Node
             snapshot.Drops.Add(new() { Path = pickup.GetPath().ToString(), Slot = Encode(pickup.Slot), X = pickup.GlobalPosition.X, Y = pickup.GlobalPosition.Y, Z = pickup.GlobalPosition.Z });
         }
         foreach (Player p in GetTree().GetNodesInGroup("players"))
+        {
             if (p.Health != null) snapshot.Health[p.GetMultiplayerAuthority()] = p.Health.CurrentHealth;
+            snapshot.Money[p.GetMultiplayerAuthority()] = GetMoney(p);
+        }
         ApplySessions(snapshot);
         if (Multiplayer.HasMultiplayerPeer()) Rpc(nameof(Receive), JsonSerializer.Serialize(snapshot));
     }
@@ -155,6 +405,17 @@ public partial class InventoryService : Node
             var player = GetParent().GetNodeOrNull<Player>($"Players/{entry.Key}");
             var chest = GetNodeOrNull<Chest>(entry.Value);
             if (player == null || chest == null || !Near(player, chest)) { _sessions.Remove(entry.Key); changed = true; }
+        }
+        foreach (var entry in new Dictionary<int, string>(_tradeSessions))
+        {
+            var player = GetParent().GetNodeOrNull<Player>($"Players/{entry.Key}");
+            var stand = GetNodeOrNull<TradingStand>(entry.Value);
+            if (player != null && stand != null && Near(player, stand))
+                continue;
+            if (player != null)
+                ProcessEndTrade(player, stand);
+            else
+                EndTradeForPeer(entry.Key);
         }
         if (changed) Publish();
     }
@@ -196,6 +457,11 @@ public partial class InventoryService : Node
         foreach (Player player in GetTree().GetNodesInGroup("players"))
         {
             if (!IsServer && snapshot.Health.TryGetValue(player.GetMultiplayerAuthority(), out float health)) player.Health?.SetReplicatedHealth(health);
+            if (snapshot.Money.TryGetValue(player.GetMultiplayerAuthority(), out int money))
+            {
+                if (IsServer) _money[player.GetMultiplayerAuthority()] = money;
+                player.SetMoney(money);
+            }
             string path = snapshot.Sessions.GetValueOrDefault(player.GetMultiplayerAuthority());
             player.SetChest(path == null ? null : GetNodeOrNull<Chest>(path));
         }

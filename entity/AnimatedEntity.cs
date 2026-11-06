@@ -18,6 +18,17 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene CrouchedIdleAnimationScene { get; set; }
 	[Export] public PackedScene CrouchedWalkAnimationScene { get; set; }
 	[Export] public double BlendDuration { get; set; } = 0.2;
+	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
+
+	private float _modelBaseRotationY;
+	private float _replicatedModelFacing;
+
+	[Export]
+	public float ReplicatedModelFacing
+	{
+		get => _replicatedModelFacing;
+		set => _replicatedModelFacing = Mathf.Wrap(value, -Mathf.Pi, Mathf.Pi);
+	}
 
 	private EquipmentComponent _equipmentComponent;
 
@@ -228,7 +239,11 @@ public partial class AnimatedEntity : Entity
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
 		_modelRoot = GetNodeOrNull<Node3D>("Model");
-		if (_modelRoot == null || ModelScene == null)
+		if (_modelRoot == null)
+			return;
+
+		_modelBaseRotationY = _modelRoot.Rotation.Y;
+		if (ModelScene == null)
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
@@ -278,6 +293,15 @@ public partial class AnimatedEntity : Entity
 
 	public override void _Process(double delta)
 	{
+		if (_modelRoot != null)
+		{
+			Vector3 modelRotation = _modelRoot.Rotation;
+			float targetRotation = _modelBaseRotationY + _replicatedModelFacing;
+			modelRotation.Y = Mathf.LerpAngle(modelRotation.Y, targetRotation,
+				Mathf.Clamp(ModelTurnSpeed * (float)delta, 0.0f, 1.0f));
+			_modelRoot.Rotation = modelRotation;
+		}
+
 		if (_animationTree == null)
 			return;
 
@@ -312,6 +336,16 @@ public partial class AnimatedEntity : Entity
 			: "Walk");
 	public void PlayAttack1() => SetAttackState("Attack1");
 	public void PlayAttack2() => SetAttackState("Attack2");
+
+	public void FaceMoveDirection(Vector3 localDirection)
+	{
+		if (localDirection.LengthSquared() <= 0.0001f)
+			return;
+		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
+			return;
+
+		ReplicatedModelFacing = Mathf.Atan2(-localDirection.X, -localDirection.Z);
+	}
 
 	private void SetAnimationState(string animationName)
 	{
