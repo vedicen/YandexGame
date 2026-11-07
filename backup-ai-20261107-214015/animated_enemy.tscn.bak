@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://b3qj4v0jgak45"]
+
+[ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="0_entity"]
+[ext_resource type="Script" uid="uid://bvtumo44k0d3w" path="res://entity/AnimatedEnemy/AnimatedEnemy.cs" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://animations/enemy models/GolemIdle.fbx" id="3_imrdp"]
+[ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="4_nlck5"]
+[ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_detection"]
+radius = 25.0
+
+[node name="AnimatedEnemy" unique_id=757652966 instance=ExtResource("0_entity")]
+script = ExtResource("1_script")
+ModelScene = ExtResource("3_imrdp")
+StartingWeapon = ExtResource("4_nlck5")
+
+[node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324 node_paths=PackedStringArray("DetectionArea")]
+script = ExtResource("8_ai")
+RangedAttackRange = 20.0
+DetectionArea = NodePath("../DetectionArea")
+DebugLogging = true
+
+[node name="CombatStatsComponent" parent="." index="4" unique_id=850477259]
+Strength = 6.0
+
+[node name="DetectionArea" type="Area3D" parent="." index="7" unique_id=56230667]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+collision_layer = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DetectionArea" index="0" unique_id=475966157]
+shape = SubResource("SphereShape3D_detection")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." index="8" unique_id=342116853]

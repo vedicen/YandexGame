@@ -62,6 +62,7 @@ public partial class AnimatedEntity : Entity
 	private CombatStatsComponent _combatStats;
 	public CombatStatsComponent CombatStats => _combatStats;
 	public Weapon EquippedWeapon => _equipmentComponent?.EquippedWeapon;
+	public WeaponScene EquippedWeaponScene => _equipmentComponent?.GetEquippedWeaponScene();
 	private ProgressBar _healthBar;
 
 	[Export]
