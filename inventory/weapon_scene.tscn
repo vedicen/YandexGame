@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b0to83fkik07u" path="res://inventory/WeaponScene.cs" id="1_weapon_scene"]
 [ext_resource type="Script" uid="uid://bumcm1f37303y" path="res://inventory/WeaponDamageZone.cs" id="2_damage_zone"]
+[ext_resource type="Script" uid="uid://cpkyp55iog31p" path="res://VFX/SwordTrail.cs" id="3_coqnb"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_blade"]
 size = Vector3(0.18, 0.5630859, 0.14)
@@ -16,3 +17,7 @@ script = ExtResource("2_damage_zone")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DamageZone" unique_id=1720090740]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11845705, 0)
 shape = SubResource("BoxShape3D_blade")
+
+[node name="SlashTrail" type="MeshInstance3D" parent="." unique_id=1512631411]
+script = ExtResource("3_coqnb")
+TrailLifetime = 1.905

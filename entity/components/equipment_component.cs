@@ -61,7 +61,7 @@ public partial class EquipmentComponent : Node
                 };
                 _skeleton.AddChild(attachment);
                 slotNode = attachment;
-                GD.Print($"EquipmentComponent: Feet slot attached to skeleton bone '{footBone}'.");
+                
             }
             else if (_skeleton != null &&
                 slot is Slot.Weapon or Slot.RangedWeapon &&
@@ -74,7 +74,7 @@ public partial class EquipmentComponent : Node
                 };
                 _skeleton.AddChild(attachment);
                 slotNode = attachment;
-                GD.Print($"EquipmentComponent: {slot} slot attached to hand bone '{handBone}'.");
+                
             }
             else if (slot is Slot.Weapon or Slot.RangedWeapon)
             {
@@ -197,7 +197,7 @@ public partial class EquipmentComponent : Node
         if (!Initialize())
         {
             _pendingEquipment[slot] = clothingScene;
-            GD.Print($"EquipmentComponent: Queued {slot} equipment until slots are ready.");
+            
             Callable.From(InitializePendingEquipment).CallDeferred();
             return;
         }
@@ -227,7 +227,7 @@ public partial class EquipmentComponent : Node
 
         Unequip(slot);
         _equipped[slot] = clothing;
-        GD.Print($"EquipmentComponent: Equipped {slot} with {clothingScene.ResourcePath}.");
+        
     }
 
     public void Unequip(Slot slot)
@@ -243,7 +243,7 @@ public partial class EquipmentComponent : Node
     {
         if (weapon == null)
         {
-            GD.Print($"[Combat] Unequipping weapon: entity={GetParent()?.Name ?? "<missing>"}.");
+            
             Unequip(Slot.Weapon);
             Unequip(Slot.RangedWeapon);
             EquippedWeapon = null;
@@ -251,8 +251,7 @@ public partial class EquipmentComponent : Node
             return;
         }
 
-        GD.Print($"[Combat] EquipWeapon requested: entity={GetParent()?.Name ?? "<missing>"}, " +
-            $"weapon={weapon.DisplayName}, model={(weapon.WeaponModel?.ResourcePath ?? "<missing>")}.");
+        
         if (weapon.WeaponModel == null)
         {
             GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no WeaponModel.");
@@ -298,8 +297,7 @@ public partial class EquipmentComponent : Node
         slotNode.AddChild(instance);
         _equipped[weaponSlot] = instance;
         EquippedWeapon = weapon;
-        GD.Print($"[Combat] Weapon equipped: entity={GetParent()?.Name ?? "<missing>"}, " +
-            $"weapon={weapon.DisplayName}, hand={weaponSlot}, node={instance.GetPath()}.");
+       
     }
 
     public WeaponScene GetEquippedWeaponScene()

@@ -48,3 +48,8 @@ mesh = SubResource("GripMesh")
 [node name="Pommel" type="MeshInstance3D" parent="." unique_id=1978781305]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.29, 0)
 mesh = SubResource("PommelMesh")
+
+[node name="BladeBase" type="Marker3D" parent="." unique_id=1781997660]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8185587, 0)
+
+[node name="BladeTip" type="Marker3D" parent="." unique_id=1972890377]
