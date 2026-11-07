@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://cpkyp55iog31p" path="res://VFX/SwordTrail.cs" id="3_coqnb"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_blade"]
-size = Vector3(0.18, 0.5630859, 0.14)
+size = Vector3(0.18, 0.7621094, 0.14)
 
 [node name="WeaponScene" type="Node3D" unique_id=169345995]
 script = ExtResource("1_weapon_scene")
@@ -15,7 +15,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.46, 0)
 script = ExtResource("2_damage_zone")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DamageZone" unique_id=1720090740]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.11845705, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21796885, 0)
 shape = SubResource("BoxShape3D_blade")
 
 [node name="SlashTrail" type="MeshInstance3D" parent="." unique_id=1512631411]

@@ -21,7 +21,7 @@ public partial class EquipmentComponent : Node
     private readonly Dictionary<Slot, Node> _equipped = new();
     private readonly Dictionary<Slot, PackedScene> _pendingEquipment = new();
     private bool _initialized;
-    public Weapon EquippedWeapon { get; private set; }
+    [Export] public Weapon EquippedWeapon{ get; set; } = null;
 
     public override void _Ready()
     {

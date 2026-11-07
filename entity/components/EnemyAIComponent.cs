@@ -4,12 +4,15 @@ using System.Collections.Generic;
 public partial class EnemyAIComponent : Node
 {
 	[Export] public float Speed { get; set; } = 3.0f;
-	[Export] public float StopDistance { get; set; } = 1.5f;
+	[Export] public float StopDistance { get; set; } = 0.4f;
+	[Export] public float MeleeAttackRange { get; set; } = 1.2f;
+	[Export] public float MeleeAttackCooldown { get; set; } = 1.2f;
 	[Export] public float TurnSpeed { get; set; } = 8.0f;
 	[Export] public Area3D DetectionArea { get; set; }
 
 	private AnimatedEntity _enemy;
 	private readonly List<Node3D> _targetsInRange = new();
+	private float _meleeAttackCooldown;
 
 	public override void _Ready()
 	{
@@ -47,7 +50,9 @@ public partial class EnemyAIComponent : Node
 		if (_enemy == null || !HasAuthority())
 			return;
 
+		_meleeAttackCooldown = Mathf.Max(0, _meleeAttackCooldown - (float)delta);
 		Node3D target = FindNearestTargetInRange();
+		bool hasMeleeWeapon = _enemy.EquippedWeapon is MeleeWeapon;
 		Vector3 velocity = _enemy.Velocity;
 
 		if (!_enemy.IsOnFloor())
@@ -62,22 +67,46 @@ public partial class EnemyAIComponent : Node
 		{
 			Vector3 offset = target.GlobalPosition - _enemy.GlobalPosition;
 			offset.Y = 0;
+			float distance = offset.Length();
+			bool inMeleeRange = hasMeleeWeapon && distance <= MeleeAttackRange;
+			bool shouldStop = distance <= StopDistance || inMeleeRange;
 
-			if (offset.Length() <= StopDistance)
+			if (shouldStop)
 			{
 				StopHorizontalMovement(ref velocity, (float)delta);
-				_enemy.PlayIdle();
 			}
 			else
 			{
 				Vector3 direction = offset.Normalized();
 				velocity.X = direction.X * Speed;
 				velocity.Z = direction.Z * Speed;
+			}
 
+			if (distance > 0.001f)
+			{
+				Vector3 direction = offset.Normalized();
 				float targetRotation = Mathf.Atan2(-direction.X, -direction.Z);
 				Vector3 rotation = _enemy.Rotation;
-				rotation.Y = Mathf.LerpAngle(rotation.Y, targetRotation, TurnSpeed * (float)delta);
+				rotation.Y = Mathf.LerpAngle(rotation.Y, targetRotation,
+					Mathf.Clamp(TurnSpeed * (float)delta, 0, 1));
 				_enemy.Rotation = rotation;
+			}
+
+			if (inMeleeRange)
+			{
+				if (string.IsNullOrEmpty(_enemy.ReplicatedAttack) && _meleeAttackCooldown <= 0)
+				{
+					_enemy.PlayAttack1();
+					_meleeAttackCooldown = MeleeAttackCooldown;
+				}
+			}
+
+			if (shouldStop)
+			{
+				_enemy.PlayIdle();
+			}
+			else
+			{
 				_enemy.PlayRun();
 			}
 		}

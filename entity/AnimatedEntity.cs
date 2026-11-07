@@ -9,10 +9,14 @@ public partial class AnimatedEntity : Entity
 	[ExportGroup("Model")]
 	[Export] public PackedScene ModelScene { get; set; }
 
+	[ExportGroup("Equipment")]
+	[Export] public Weapon StartingWeapon { get; set; }
+
 	[ExportGroup("Animation Sources")]
 	[Export] public PackedScene IdleAnimationScene { get; set; }
 	[Export] public PackedScene WalkAnimationScene { get; set; }
 	[Export] public PackedScene RunAnimationScene { get; set; }
+	[Export] public PackedScene JumpingAnimationScene { get; set; }
 	[Export] public PackedScene RunWithSwordAnimationScene { get; set; }
 	[Export] public PackedScene Attack1AnimationScene { get; set; }
 	[Export] public PackedScene Attack2AnimationScene { get; set; }
@@ -57,6 +61,7 @@ public partial class AnimatedEntity : Entity
 	private Skeleton3D _skeleton;
 	private CombatStatsComponent _combatStats;
 	public CombatStatsComponent CombatStats => _combatStats;
+	public Weapon EquippedWeapon => _equipmentComponent?.EquippedWeapon;
 	private ProgressBar _healthBar;
 
 	[Export]
@@ -253,7 +258,7 @@ public partial class AnimatedEntity : Entity
 		blendTree.AddNode("Locomotion", locomotion);
 		var animationNames = new[]
 		{
-			"Idle", "Walk", "Run", "RunWithSword", "CrouchedIdle", "CrouchedWalk"
+			"Idle", "Walk", "Run", "Jumping", "RunWithSword", "CrouchedIdle", "CrouchedWalk"
 		};
 		var availableAnimations = new System.Collections.Generic.List<string>();
 
@@ -632,6 +637,8 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
+		if (StartingWeapon != null)
+			EnsureEquipmentComponent().EquipWeapon(StartingWeapon);
 		GenerateBoneHitboxes();
 		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);
@@ -646,6 +653,7 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, IdleAnimationScene, "Idle");
 		AddAnimation(runtimeLibrary, WalkAnimationScene, "Walk");
 		AddAnimation(runtimeLibrary, RunAnimationScene, "Run");
+		AddAnimation(runtimeLibrary, JumpingAnimationScene, "Jumping");
 		AddAnimation(runtimeLibrary, RunWithSwordAnimationScene, "RunWithSword");
 		AddAnimation(runtimeLibrary, CrouchedIdleAnimationScene, "CrouchedIdle");
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
@@ -668,6 +676,17 @@ public partial class AnimatedEntity : Entity
 		ApplyAnimation(_replicatedAnimation);
 		ApplyAttack(_replicatedAttack);
 		ApplyBowState(_replicatedBowState);
+	}
+
+	private EquipmentComponent EnsureEquipmentComponent()
+	{
+		_equipmentComponent ??= GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
+		if (_equipmentComponent != null)
+			return _equipmentComponent;
+
+		_equipmentComponent = new EquipmentComponent { Name = "EquipmentComponent" };
+		AddChild(_equipmentComponent);
+		return _equipmentComponent;
 	}
 
 	private void CreateHealthBar()
@@ -952,6 +971,7 @@ public partial class AnimatedEntity : Entity
 	public void PlayIdle() => SetAnimationState("Idle");
 	public void PlayWalk() => SetAnimationState("Walk");
 	public void PlayRun() => SetAnimationState("Run");
+	public void PlayJumping() => SetAnimationState("Jumping");
 	public void PlayRunWithSword() => SetAnimationState("RunWithSword");
 	public void PlayCrouchedIdle() => SetAnimationState(
 		_animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "CrouchedIdle") == true

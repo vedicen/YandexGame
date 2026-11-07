@@ -105,7 +105,6 @@ public partial class Player : AnimatedEntity
         {
             _camera.Current = false;
             SetPhysicsProcess(false);
-            SetProcess(false);
             GetNode<Control>("UI").Hide();
         }
     }
@@ -190,7 +189,11 @@ public partial class Player : AnimatedEntity
 
         States.UpdateMotion(IsOnFloor(), direction != Vector3.Zero, crouching, running);
 
-        if (crouching)
+        if (!IsOnFloor())
+        {
+            PlayJumping();
+        }
+        else if (crouching)
         {
             if (direction == Vector3.Zero)
                 PlayCrouchedIdle();
@@ -835,7 +838,16 @@ public partial class Player : AnimatedEntity
             $"item={weaponStack?.Item?.DisplayName ?? "<empty>"}, count={weaponStack?.ItemCount ?? 0}.");
         if (weaponStack == null)
         {
-            EnsureEquipmentComponent().EquipWeapon(null);
+            EquipmentComponent equipment = EnsureEquipmentComponent();
+            if (StartingWeapon != null)
+            {
+                if (equipment.EquippedWeapon != StartingWeapon)
+                    equipment.EquipWeapon(StartingWeapon);
+            }
+            else
+            {
+                equipment.EquipWeapon(null);
+            }
             return;
         }
 
