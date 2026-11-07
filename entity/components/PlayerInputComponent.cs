@@ -27,6 +27,9 @@ public partial class PlayerInputComponent : Node
     public bool Crouching =>
         HasInputAuthority && IsInputEnabled && Input.IsActionPressed("crouch");
 
+    public bool Running =>
+        HasInputAuthority && IsInputEnabled && Input.IsActionPressed("run");
+
     public bool Attack1Pressed =>
         HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("attack1");
 

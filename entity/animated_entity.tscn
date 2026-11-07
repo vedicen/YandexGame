@@ -56,6 +56,7 @@ CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
 BowPullAnimationScene = ExtResource("13_bow_pull")
 BowHoldAnimationScene = ExtResource("14_bow_hold")
 BowShootAnimationScene = ExtResource("15_bow_shoot")
+RunMultiplier = 1.5
 BlendDuration = 0.2
 ModelTurnSpeed = 10.0
 HealthBarHeight = 2.2

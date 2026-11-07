@@ -21,6 +21,7 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene BowPullAnimationScene { get; set; }
 	[Export] public PackedScene BowHoldAnimationScene { get; set; }
 	[Export] public PackedScene BowShootAnimationScene { get; set; }
+	[Export] public float RunMultiplier { get; set; } = 1.5f;
 	[Export] public double BlendDuration { get; set; } = 0.2;
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
 	[Export] public float HealthBarHeight { get; set; } = 2.2f;

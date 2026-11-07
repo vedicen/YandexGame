@@ -169,7 +169,10 @@ public partial class Player : AnimatedEntity
         if (localDirection != Vector3.Zero && !_isChargingBow)
             FaceMoveDirection(localDirection);
         bool crouching = playerInputComponent.Crouching;
-        float movementSpeed = Speed * (crouching ? CrouchSpeedMultiplier : 1.0f);
+        bool running = playerInputComponent.Running && !crouching && direction != Vector3.Zero;
+        float movementSpeed = Speed * (crouching
+            ? CrouchSpeedMultiplier
+            : running ? RunMultiplier : 1.0f);
 
         if (direction != Vector3.Zero)
         {
@@ -185,7 +188,7 @@ public partial class Player : AnimatedEntity
         Velocity = velocity;
         MoveAndSlide();
 
-        States.UpdateMotion(IsOnFloor(), direction != Vector3.Zero, crouching);
+        States.UpdateMotion(IsOnFloor(), direction != Vector3.Zero, crouching, running);
 
         if (crouching)
         {
@@ -197,6 +200,10 @@ public partial class Player : AnimatedEntity
         else if (direction == Vector3.Zero)
         {
             PlayIdle();
+        }
+        else if (running)
+        {
+            PlayRun();
         }
         else
         {
