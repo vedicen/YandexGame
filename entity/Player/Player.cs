@@ -293,7 +293,7 @@ public partial class Player : AnimatedEntity
         _bowChargeTime = 0;
         if (chargeTime < bow.MinChargeTime)
         {
-            LogBowDebug($"Bow shot cancelled: charge={chargeTime:0.###}, " +
+            GD.PushWarning($"[BowDebug] Bow shot cancelled: charge={chargeTime:0.###}, " +
                 $"minimum={bow.MinChargeTime:0.###}.");
             BroadcastBowAnimationState("Idle");
             return;
@@ -303,7 +303,12 @@ public partial class Player : AnimatedEntity
             $"state={ReplicatedBowState}.");
         BroadcastBowAnimationState("Shooting");
         Vector3 direction = -_camera.GlobalTransform.Basis.Z.Normalized();
-        Vector3 origin = GlobalPosition + Vector3.Up * 1.35f + direction * 0.8f;
+        WeaponScene bowScene = Equipment?.GetEquippedWeaponScene();
+        if (bowScene == null)
+            GD.PushWarning($"[BowDebug] Bow model node is unavailable for {Name}; using player-based projectile origin.");
+        Vector3 origin = bowScene != null
+            ? bowScene.GlobalPosition + direction * 0.25f
+            : GlobalPosition + Vector3.Up * 1.35f + direction * 0.8f;
         RequestBowShot(chargeTime, origin, direction);
     }
 
@@ -372,12 +377,30 @@ public partial class Player : AnimatedEntity
     private void HandleBowShotRequest(float chargeTime, Vector3 origin, Vector3 direction, long sender)
     {
         RangedWeapon bow = Equipment?.EquippedWeapon as RangedWeapon;
-        if (bow == null || !bow.HasValidConfiguration ||
-            !float.IsFinite(chargeTime) || chargeTime < bow.MinChargeTime ||
-            !IsFinite(origin) || !IsFinite(direction) || direction.LengthSquared() < 0.0001f ||
-            origin.DistanceTo(GlobalPosition) > 5.0f ||
-            !TryConsumeProjectile(bow.RequiredProjectile))
+        string rejectionReason = null;
+        if (bow == null)
+            rejectionReason = "no ranged weapon is equipped";
+        else if (!bow.HasValidConfiguration)
+            rejectionReason = "ranged weapon configuration is invalid";
+        else if (!float.IsFinite(chargeTime) || chargeTime < bow.MinChargeTime)
+            rejectionReason = $"charge time {chargeTime:0.###} is below minimum {bow.MinChargeTime:0.###}";
+        else if (!IsFinite(origin) || !IsFinite(direction) || direction.LengthSquared() < 0.0001f)
+            rejectionReason = "projectile origin or direction is invalid";
+        else if (origin.DistanceTo(GlobalPosition) > 5.0f)
+            rejectionReason = "projectile origin is too far from the player";
+        else if (!HasProjectile(bow.RequiredProjectile))
+            rejectionReason = $"required projectile '{bow.RequiredProjectile?.ResourcePath ?? "<null>"}' is not in inventory";
+
+        if (rejectionReason != null)
         {
+            GD.PushWarning($"[BowDebug] Rejected bow shot: player={Name}, sender={sender}, reason={rejectionReason}.");
+            RejectBowShot(sender);
+            return;
+        }
+
+        if (!TryConsumeProjectile(bow.RequiredProjectile))
+        {
+            GD.PushWarning($"[BowDebug] Could not consume required projectile for player={Name}.");
             RejectBowShot(sender);
             return;
         }
@@ -408,8 +431,12 @@ public partial class Player : AnimatedEntity
         }
         else
         {
-            bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
+            WeaponProjectileScene instance = bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
                 bow.RequiredProjectile, origin, flightDirection, damage);
+            if (instance == null)
+                GD.PushError($"[BowDebug] Projectile instance was not created: player={Name}, name={projectileName}.");
+            else
+                GD.Print($"[BowDebug] Projectile spawned: player={Name}, name={projectileName}, position={instance.GlobalPosition}.");
         }
     }
 
@@ -491,8 +518,12 @@ public partial class Player : AnimatedEntity
         GD.Print($"[BowDebug] Spawning projectile from resource paths: player={Name}, " +
             $"weapon={bow.ResourcePath}, scene={bow.ProjectileScene.ResourcePath}, " +
             $"projectile={projectile.ResourcePath}, model={projectile.Model.ResourcePath}.");
-        bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
+        WeaponProjectileScene instance = bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
             projectile, origin, direction, damage);
+        if (instance == null)
+            GD.PushError($"[BowDebug] Projectile instance was not created: player={Name}, name={projectileName}.");
+        else
+            GD.Print($"[BowDebug] Projectile spawned: player={Name}, name={projectileName}, position={instance.GlobalPosition}.");
     }
 
     private static bool IsFinite(Vector3 value) =>

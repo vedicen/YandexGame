@@ -1,12 +1,12 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dheqd547wkyuh"]
 
-[ext_resource type="Script" path="res://inventory/WeaponProjectileScene.cs" id="1_projectile"]
+[ext_resource type="Script" uid="uid://dcf1sdpgvvmyi" path="res://inventory/WeaponProjectileScene.cs" id="1_projectile"]
 
 [sub_resource type="SphereShape3D" id="ProjectileShape"]
 radius = 0.08
 
-[node name="WeaponProjectile" type="Area3D"]
+[node name="WeaponProjectile" type="Area3D" unique_id=444120028]
 script = ExtResource("1_projectile")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=537516895]
 shape = SubResource("ProjectileShape")

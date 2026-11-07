@@ -1,12 +1,11 @@
-[gd_resource type="Resource" script_class="WeaponProjectile" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="WeaponProjectile" format=3 uid="uid://v1wdihyiqcbq"]
 
-[ext_resource type="Script" path="res://inventory/WeaponProjectile.cs" id="1_projectile"]
-[ext_resource type="PackedScene" path="res://inventory/models/arrow_model.tscn" id="2_model"]
+[ext_resource type="Script" uid="uid://bjh74qk7jgyiv" path="res://inventory/WeaponProjectile.cs" id="1_projectile"]
+[ext_resource type="PackedScene" uid="uid://ba4yvxgoy5n6r" path="res://inventory/models/arrow_model.tscn" id="2_model"]
 
 [resource]
 script = ExtResource("1_projectile")
 DisplayName = "Стрела"
-Description = "Простая стрела для лука."
 Model = ExtResource("2_model")
-MaxStackSize = 99
-Weight = 0.1
+MaxStackSize = 81
+metadata/_custom_type_script = "uid://bjh74qk7jgyiv"

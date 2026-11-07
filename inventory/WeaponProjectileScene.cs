@@ -63,7 +63,6 @@ public partial class WeaponProjectileScene : Area3D
     {
         if (!_initialized)
             return;
-
         Vector3 previousPosition = GlobalPosition;
         Vector3 nextPosition = previousPosition + _direction * _speed * (float)delta;
         if (IsServerAuthority())

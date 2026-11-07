@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" uid="uid://dcqaxgkdrn6lg" path="res://inventory/Bow.cs" id="1_bow"]
 [ext_resource type="PackedScene" uid="uid://chp3ubiab22fp" path="res://inventory/models/bow_model.tscn" id="2_bow_model"]
-[ext_resource type="Resource" path="res://inventory/items/arrow.tres" id="3_arrow"]
-[ext_resource type="PackedScene" path="res://inventory/weapon_projectile.tscn" id="4_projectile_scene"]
+[ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="3_arrow"]
+[ext_resource type="PackedScene" uid="uid://dheqd547wkyuh" path="res://inventory/weapon_projectile.tscn" id="4_projectile_scene"]
 
 [resource]
 script = ExtResource("1_bow")
-ProjectileSpeed = 1.01
+ProjectileSpeed = 20.71
 RequiredProjectile = ExtResource("3_arrow")
 ProjectileScene = ExtResource("4_projectile_scene")
 MinChargeTime = 0.4

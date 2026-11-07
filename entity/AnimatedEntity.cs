@@ -24,6 +24,7 @@ public partial class AnimatedEntity : Entity
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
 	[Export] public float HealthBarHeight { get; set; } = 2.2f;
 	[Export] public bool BowDebugLogging { get; set; }
+	[Export] public float BowBodyYawDegrees { get; set; } = -60.0f;
 
 	public void LogBowDebug(string message)
 	{
@@ -140,7 +141,7 @@ public partial class AnimatedEntity : Entity
 
 	private bool RotateFirstUpperBodyBoneRight(Animation animation, string animationName)
 	{
-		float yaw = -1.0f * Mathf.Pi / 3.0f;
+		float yaw = Mathf.DegToRad(BowBodyYawDegrees);
 		Quaternion rightTurn = new(Vector3.Up, yaw);
 
 		for (int track = 0; track < animation.GetTrackCount(); track++)
@@ -156,7 +157,7 @@ public partial class AnimatedEntity : Entity
 				animation.TrackSetKeyValue(track, key, rightTurn * rotation);
 			}
 
-			GD.Print($"[BowDebug] Turned bow torso bone: animation={animationName}, " +
+			LogBowDebug($"Turned bow torso bone: animation={animationName}, " +
 				$"track={animation.TrackGetPath(track)}, yaw={yaw:0.###} rad, keys={keyCount}.");
 			return keyCount > 0;
 		}
@@ -225,49 +226,7 @@ public partial class AnimatedEntity : Entity
 		AddUpperBodyFilter(attack, "Attack1");
 		AddUpperBodyFilter(attack, "Attack2");
 
-		var bowTransition = new AnimationNodeTransition
-		{
-			XfadeTime = (float)BlendDuration
-		};
-		blendTree.AddNode("BowState", bowTransition);
-		var bowAnimations = new[]
-		{
-			("Pulling", "BowPull"),
-			("Pulled", "BowHold"),
-			("Shooting", "BowShoot")
-		};
-		int bowTransitionIndex = 0;
-		foreach ((string state, string animationName) in bowAnimations)
-		{
-			StringName animationPath = RuntimeLibraryPrefix + animationName;
-			if (!_animationPlayer.HasAnimation(animationPath))
-				continue;
-
-			bowTransition.AddInput(state);
-			blendTree.AddNode($"BowAnimation_{state}", new AnimationNodeAnimation
-			{
-				Animation = animationPath
-			});
-			blendTree.ConnectNode("BowState", bowTransitionIndex++, $"BowAnimation_{state}");
-		}
-
-		var bowTimeScale = new AnimationNodeTimeScale();
-		blendTree.AddNode("BowTimeScale", bowTimeScale);
-		blendTree.ConnectNode("BowTimeScale", 0, "BowState");
-		var bow = new AnimationNodeOneShot
-		{
-			FadeInTime = (float)BlendDuration,
-			FadeOutTime = (float)BlendDuration,
-			BreakLoopAtEnd = false,
-			FilterEnabled = true
-		};
-		blendTree.AddNode("Bow", bow);
-		blendTree.ConnectNode("Bow", 0, "Attack");
-		blendTree.ConnectNode("Bow", 1, "BowTimeScale");
-		blendTree.ConnectNode("output", 0, "Bow");
-		AddUpperBodyFilter(bow, "BowPull");
-		AddUpperBodyFilter(bow, "BowHold");
-		AddUpperBodyFilter(bow, "BowShoot");
+		BuildBowNodes(blendTree);
 
 		_animationTree = new AnimationTree
 		{
@@ -280,7 +239,92 @@ public partial class AnimatedEntity : Entity
 		_animationTree.Active = true;
 	}
 
-	private void AddUpperBodyFilter(AnimationNodeOneShot attackNode, string animationName)
+	private void BuildBowNodes(AnimationNodeBlendTree blendTree)
+	{
+		_bowAvailable = false;
+		_bowStates.Clear();
+		_bowBlend = 0f;
+		_bowStateTime = 0f;
+		_bowPullLength = 0f;
+		_bowShootLength = 0f;
+
+		var bowAnimations = new[]
+		{
+			("Pulling", "BowPull"),
+			("Pulled", "BowHold"),
+			("Shooting", "BowShoot")
+		};
+
+		bool anyBowAnimation = false;
+		foreach ((string _, string animationName) in bowAnimations)
+			anyBowAnimation |= _animationPlayer.HasAnimation(RuntimeLibraryPrefix + animationName);
+
+		if (!anyBowAnimation)
+		{
+			blendTree.ConnectNode("output", 0, "Attack");
+			return;
+		}
+
+		// Выбор состояния лука: Pulling / Pulled / Shooting.
+		var bowTransition = new AnimationNodeTransition
+		{
+			XfadeTime = (float)BlendDuration * 0.5f
+		};
+		blendTree.AddNode("BowState", bowTransition);
+
+		foreach ((string state, string animationName) in bowAnimations)
+		{
+			StringName animationPath = RuntimeLibraryPrefix + animationName;
+			if (!_animationPlayer.HasAnimation(animationPath))
+				continue;
+
+			Animation animation = _animationPlayer.GetAnimation(animationPath);
+			int inputIndex = _bowStates.Count;
+			_bowStates.Add(state);
+			bowTransition.AddInput(state);
+
+			string clipName = $"BowClip_{state}";
+			blendTree.AddNode(clipName, new AnimationNodeAnimation { Animation = animationPath });
+
+			if (state == "Pulling")
+			{
+				// Seek нужен, чтобы натяжение гарантированно начиналось с 0,
+				// даже если transition уже стоит на "Pulling" (отмена -> новое натяжение).
+				// TimeScale растягивает анимацию натяжения ровно на время натяжения оружия.
+				_bowPullLength = (float)animation.Length;
+				blendTree.AddNode("BowPullSeek", new AnimationNodeTimeSeek());
+				blendTree.AddNode("BowPullScale", new AnimationNodeTimeScale());
+				blendTree.ConnectNode("BowPullSeek", 0, clipName);
+				blendTree.ConnectNode("BowPullScale", 0, "BowPullSeek");
+				blendTree.ConnectNode("BowState", inputIndex, "BowPullScale");
+			}
+			else
+			{
+				if (state == "Shooting")
+					_bowShootLength = (float)animation.Length;
+				blendTree.ConnectNode("BowState", inputIndex, clipName);
+			}
+		}
+
+		// Blend2 с фильтром верхней части тела: вход 0 - обычная анимация (ходьба/атака),
+		// вход 1 - лук. blend_amount плавно меняется из кода (см. UpdateBow),
+		// поэтому оверлей не может "самопроизвольно" закончиться, как OneShot.
+		var bow = new AnimationNodeBlend2
+		{
+			FilterEnabled = true,
+			Sync = true
+		};
+		blendTree.AddNode("Bow", bow);
+		blendTree.ConnectNode("Bow", 0, "Attack");
+		blendTree.ConnectNode("Bow", 1, "BowState");
+		blendTree.ConnectNode("output", 0, "Bow");
+		AddUpperBodyFilter(bow, "BowPull");
+		AddUpperBodyFilter(bow, "BowHold");
+		AddUpperBodyFilter(bow, "BowShoot");
+		_bowAvailable = true;
+	}
+
+	private void AddUpperBodyFilter(AnimationNode filteredNode, string animationName)
 	{
 		StringName animationPath = RuntimeLibraryPrefix + animationName;
 		if (!_animationPlayer.HasAnimation(animationPath))
@@ -290,7 +334,7 @@ public partial class AnimatedEntity : Entity
 		for (int track = 0; track < animation.GetTrackCount(); track++)
 		{
 			if (IsUpperBodyTrack(animation.TrackGetPath(track).ToString()))
-				attackNode.SetFilterPath(animation.TrackGetPath(track), true);
+				filteredNode.SetFilterPath(animation.TrackGetPath(track), true);
 		}
 	}
 
@@ -325,8 +369,13 @@ public partial class AnimatedEntity : Entity
 	private Node3D _modelRoot;
 	private string[] _availableAnimationNames = System.Array.Empty<string>();
 	private bool _attackWasActive;
-	private bool _bowOverlayActive;
-	private bool _bowShootWasActive;
+	private bool _bowAvailable;
+	private readonly System.Collections.Generic.List<string> _bowStates = new();
+	private float _bowBlend;
+	private float _bowStateTime;
+	private float _bowPullLength;
+	private float _bowShootLength;
+	private float _replicatedBowPullDuration;
 
 	[Export]
 	public string ReplicatedBowState
@@ -342,6 +391,20 @@ public partial class AnimatedEntity : Entity
 				ApplyBowState(value);
 		}
 	}
+
+	/// <summary>Время натяжения (сек), реплицируется через RPC вместе с состоянием "Pulling".</summary>
+	public float ReplicatedBowPullDuration
+	{
+		get => _replicatedBowPullDuration;
+		set
+		{
+			_replicatedBowPullDuration = value;
+			UpdateBowPullSpeed();
+		}
+	}
+
+	private bool IsBowAuthority =>
+		!Multiplayer.HasMultiplayerPeer() || GetMultiplayerAuthority() == Multiplayer.GetUniqueId();
 
 	[Export]
 	public string ReplicatedAttack
@@ -398,12 +461,11 @@ public partial class AnimatedEntity : Entity
 		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull", turnBowBodyRight: true);
 		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true, true);
 		AddUpperBodyAnimation(runtimeLibrary, BowShootAnimationScene, "BowShoot", turnBowBodyRight: true);
-		GD.Print($"[BowDebug] Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
+		LogBowDebug($"Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
 			$"tree={_animationTree?.GetPath().ToString() ?? "<not-built>"}, " +
 			$"pull={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowPull")}, " +
 			$"hold={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowHold")}, " +
 			$"shoot={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowShoot")}.");
-		_animationPlayer.AnimationFinished += OnRuntimeAnimationFinished;
 
 		BuildAnimationTree();
 
@@ -622,7 +684,7 @@ public partial class AnimatedEntity : Entity
 		if (_animationTree == null)
 			return;
 
-		UpdateBowAnimationCompletion();
+		UpdateBow(delta);
 
 		bool attackActive = _animationTree.Get("parameters/Attack/active").AsBool();
 		if (attackActive)
@@ -645,21 +707,28 @@ public partial class AnimatedEntity : Entity
 			_replicatedAttack = "";
 	}
 
-	private void UpdateBowAnimationCompletion()
+	private void UpdateBow(double delta)
 	{
-		if (_replicatedBowState == "Shooting")
+		if (!_bowAvailable || _animationTree == null)
+			return;
+
+		bool idle = _replicatedBowState == "Idle";
+		if (!idle)
+			_bowStateTime += (float)delta;
+
+		// Анимация выстрела доиграна - все пиры плавно убирают лук локально,
+		// а авторитет переводит состояние в Idle (и реплицирует его).
+		bool shootFinished = _replicatedBowState == "Shooting" && _bowStateTime >= _bowShootLength;
+		if (shootFinished && IsBowAuthority)
+			BroadcastBowAnimationState("Idle");
+
+		float target = (idle || shootFinished) ? 0f : 1f;
+		float step = BlendDuration > 0.0 ? (float)(delta / BlendDuration) : 1f;
+		float blend = Mathf.MoveToward(_bowBlend, target, step);
+		if (!Mathf.IsEqualApprox(blend, _bowBlend))
 		{
-			bool bowOverlayActive = _animationTree.Get("parameters/Bow/active").AsBool();
-			if (bowOverlayActive)
-				_bowShootWasActive = true;
-			else if (_bowShootWasActive)
-			{
-				_bowShootWasActive = false;
-				_bowOverlayActive = false;
-				if (!Multiplayer.HasMultiplayerPeer() ||
-					GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
-					BroadcastBowAnimationState("Idle");
-			}
+			_bowBlend = blend;
+			_animationTree.Set("parameters/Bow/blend_amount", _bowBlend);
 		}
 	}
 
@@ -740,6 +809,24 @@ public partial class AnimatedEntity : Entity
 		sourceRoot.Free();
 	}
 
+	private float GetBowPullDuration()
+	{
+		float duration = _replicatedBowPullDuration;
+		if (duration <= 0f && _equipmentComponent?.EquippedWeapon is RangedWeapon bow)
+			duration = (float)bow.MaxChargeTime;
+		return duration;
+	}
+
+	private void UpdateBowPullSpeed()
+	{
+		if (!_bowAvailable || _animationTree == null || _bowPullLength <= 0f)
+			return;
+
+		float duration = GetBowPullDuration();
+		float speed = duration > 0f ? _bowPullLength / duration : 1.0f;
+		_animationTree.Set("parameters/BowPullScale/scale", speed);
+	}
+
 	private void ApplyBowState(string state)
 	{
 		if (_animationPlayer == null || _animationTree == null)
@@ -748,79 +835,33 @@ public partial class AnimatedEntity : Entity
 				$"animationPlayer={_animationPlayer != null}, animationTree={_animationTree != null}.");
 			return;
 		}
+		if (!_bowAvailable)
+			return;
 
 		LogBowDebug($"Applying bow state: entity={Name}, state={state}, " +
 			$"authority={GetMultiplayerAuthority()}, localPeer=" +
 			$"{(Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1)}.");
 
+		_bowStateTime = 0f;
 		if (state == "Idle")
-		{
-			_bowShootWasActive = false;
-			if (_bowOverlayActive)
-			{
-				_animationTree.Set(
-					"parameters/Bow/request",
-					(int)AnimationNodeOneShot.OneShotRequest.Abort);
-				_bowOverlayActive = false;
-			}
-			return;
-		}
+			return; // плавное убирание лука делает UpdateBow
 
-		string animationName = state switch
+		if (!_bowStates.Contains(state))
 		{
-			"Pulling" => "BowPull",
-			"Pulled" => "BowHold",
-			"Shooting" => "BowShoot",
-			_ => null
-		};
-		if (animationName == null)
-			return;
-
-		StringName animationPath = RuntimeLibraryPrefix + animationName;
-		if (!_animationPlayer.HasAnimation(animationPath))
-		{
-			GD.PushWarning($"[BowDebug] No animation source is assigned for bow state '{state}' " +
-				$"on {Name}; requested animation={animationPath}.");
+			GD.PushWarning($"[BowDebug] No animation source is assigned for bow state '{state}' on {Name}.");
 			return;
 		}
 
 		_animationTree.Active = true;
+		if (state == "Pulling")
+		{
+			UpdateBowPullSpeed();
+			_animationTree.Set("parameters/BowPullSeek/seek_request", 0.0);
+		}
 		_animationTree.Set("parameters/BowState/transition_request", state);
-		float playbackSpeed = 1.0f;
-		if (state == "Pulling" &&
-			_equipmentComponent?.EquippedWeapon is RangedWeapon bow &&
-			bow.MaxChargeTime > 0)
-		{
-			Animation animation = _animationPlayer.GetAnimation(animationPath);
-			playbackSpeed = (float)(animation.Length / bow.MaxChargeTime);
-		}
-
-		_animationTree.Set("parameters/BowTimeScale/scale", playbackSpeed);
-		if (state == "Shooting")
-			_bowShootWasActive = false;
-		if (!_bowOverlayActive)
-		{
-			_animationTree.Set(
-				"parameters/Bow/request",
-				(int)AnimationNodeOneShot.OneShotRequest.Fire);
-			_bowOverlayActive = true;
-		}
-		LogBowDebug($"Filtered bow animation blend requested: entity={Name}, state={state}, " +
-			$"animation={animationPath}, speed={playbackSpeed:0.###}, treeActive={_animationTree.Active}.");
 	}
 
-	private void OnRuntimeAnimationFinished(StringName animationName)
-	{
-		if (animationName != RuntimeLibraryPrefix + "BowShoot" ||
-			ReplicatedBowState != "Shooting" ||
-			(Multiplayer.HasMultiplayerPeer() &&
-				GetMultiplayerAuthority() != Multiplayer.GetUniqueId()))
-			return;
-
-		BroadcastBowAnimationState("Idle");
-	}
-
-	public void BroadcastBowAnimationState(string state)
+	public void BroadcastBowAnimationState(string state, float pullDuration = 0f)
 	{
 		if (_replicatedBowState == state)
 			return;
@@ -829,16 +870,19 @@ public partial class AnimatedEntity : Entity
 			$"authority={GetMultiplayerAuthority()}, localPeer=" +
 			$"{(Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1)}, " +
 			$"network={Multiplayer.HasMultiplayerPeer()}.");
+
+		if (state == "Pulling")
+			ReplicatedBowPullDuration = pullDuration > 0f ? pullDuration : GetBowPullDuration();
 		ReplicatedBowState = state;
 		if (!Multiplayer.HasMultiplayerPeer())
 			return;
 
-		Rpc(nameof(ReceiveBowAnimationState), state);
+		Rpc(nameof(ReceiveBowAnimationState), state, _replicatedBowPullDuration);
 	}
 
 	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
 		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-	private void ReceiveBowAnimationState(string state)
+	private void ReceiveBowAnimationState(string state, float pullDuration)
 	{
 		if (Multiplayer.HasMultiplayerPeer() &&
 			Multiplayer.GetRemoteSenderId() != 0 &&
@@ -857,6 +901,8 @@ public partial class AnimatedEntity : Entity
 
 		LogBowDebug($"Accepted bow state RPC: entity={Name}, state={state}, " +
 			$"sender={Multiplayer.GetRemoteSenderId()}.");
+		if (state == "Pulling" && pullDuration > 0f)
+			ReplicatedBowPullDuration = pullDuration;
 		ReplicatedBowState = state;
 	}
 
