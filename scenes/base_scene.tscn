@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="4_osw8o"]
 [ext_resource type="PackedScene" uid="uid://cbelhyrwa5v86" path="res://entity/interact/chest.tscn" id="6_chest"]
 [ext_resource type="PackedScene" uid="uid://dpd70frbgid51" path="res://entity/interact/PickUp_obj.tscn" id="7_pickup"]
+[ext_resource type="Resource" path="res://inventory/items/arrow.tres" id="7_vjnli"]
+[ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="8_oelfw"]
+[ext_resource type="Resource" path="res://inventory/items/bow.tres" id="9_oelfw"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_qcxwf"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -20,6 +23,17 @@ sky = SubResource("Sky_2puwf")
 glow_enabled = true
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_eg6r0"]
+
+[sub_resource type="Resource" id="Resource_e5sna"]
+script = ExtResource("8_oelfw")
+ItemCount = 58
+Item = ExtResource("7_vjnli")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_plbvg"]
+script = ExtResource("8_oelfw")
+Item = ExtResource("9_oelfw")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [node name="BaseScene" type="Node3D" unique_id=944606836]
 script = ExtResource("1_gf1bn")
@@ -69,12 +83,20 @@ spawn_path = NodePath("../Enemies")
 
 [node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("4_osw8o")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6664872, 1.3076003, 2.3353438)
-
-[node name="entity" parent="." unique_id=1924824913 instance=ExtResource("7_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.29363656, 0.2711612, 0.48576897)
+BowPullAnimationScene = null
+BowHoldAnimationScene = null
+BowShootAnimationScene = null
 
 [node name="Chest" parent="." unique_id=1261187228 instance=ExtResource("6_chest")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9688804, 0.4, 5.77059)
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=905667666]
 navigation_mesh = SubResource("NavigationMesh_eg6r0")
+
+[node name="PickUpObj" parent="." unique_id=1924824913 instance=ExtResource("7_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.0811768, 1.3724647, -15.391846)
+Slot = SubResource("Resource_e5sna")
+
+[node name="PickUpObj2" parent="." unique_id=1148592246 instance=ExtResource("7_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.68042, 2.6578178, -21.361755)
+Slot = SubResource("Resource_plbvg")

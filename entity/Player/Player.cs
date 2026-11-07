@@ -15,6 +15,11 @@ public partial class Player : AnimatedEntity
     private TradingStand _tradingStand;
     private interact_obj _inputLockSource;
     private Node _tradeDialog;
+    private bool _isChargingBow;
+    private RangedWeapon _chargingBow;
+    private float _bowChargeTime;
+    private int _nextProjectileId;
+    private bool _lastPhysicsHadRangedWeapon;
     [Export(PropertyHint.Range, "0,1000000")]
     public int StartingMoney { get; set; } = 500;
     public int Money { get; private set; }
@@ -58,6 +63,9 @@ public partial class Player : AnimatedEntity
         EquipmentInventory = GetNode<InventoryComponent>("EquipmentInventory");
         EquipmentInventory.Changed += OnEquipmentInventoryChanged;
         OnEquipmentInventoryChanged();
+        GD.Print($"[BowDebug] Player ready: player={Name}, inputAuthority={playerInputComponent?.HasInputAuthority}, " +
+            $"inputEnabled={playerInputComponent?.IsInputEnabled}, inventorySlots={Inventory?.Slots?.Count ?? 0}, " +
+            $"equipmentSlots={EquipmentInventory?.Slots?.Count ?? 0}.");
         Money = StartingMoney;
         States = new PlayerStateMachine { Name = "States" };
         AddChild(States);
@@ -190,11 +198,305 @@ public partial class Player : AnimatedEntity
             PlayWalk();
         }
 
-        if (States.CanAttack && playerInputComponent.Attack1Pressed)
-            PlayAttack1();
-        else if (States.CanAttack && playerInputComponent.Attack2Pressed)
-            PlayAttack2();
+        RangedWeapon bow = Equipment?.EquippedWeapon as RangedWeapon;
+        if ((bow != null) != _lastPhysicsHadRangedWeapon)
+        {
+            _lastPhysicsHadRangedWeapon = bow != null;
+            GD.Print($"[BowDebug] Ranged weapon input path {(bow != null ? "enabled" : "disabled")}: " +
+                $"player={Name}, equippedType={Equipment?.EquippedWeapon?.GetType().Name ?? "<none>"}, " +
+                $"equippedName={Equipment?.EquippedWeapon?.DisplayName ?? "<none>"}.");
+        }
+
+        if (bow != null)
+        {
+            ProcessBowInput(bow, (float)delta);
+        }
+        else
+        {
+            CancelBowCharge();
+            playerInputComponent.ClearAttack1Events();
+            if (States.CanAttack && playerInputComponent.Attack1Pressed)
+                PlayAttack1();
+            else if (States.CanAttack && playerInputComponent.Attack2Pressed)
+                PlayAttack2();
+        }
     }
+
+    private void ProcessBowInput(RangedWeapon bow, float delta)
+    {
+        if (!States.CanAttack)
+        {
+            if (playerInputComponent.HasPendingAttack1Press ||
+                playerInputComponent.HasPendingAttack1Release)
+                LogBowDebug($"Dropping attack input: player={Name}, state={States.Current}, " +
+                    $"canAttack={States.CanAttack}.");
+            CancelBowCharge();
+            playerInputComponent.ClearAttack1Events();
+            return;
+        }
+
+        if (_isChargingBow && _chargingBow != bow)
+            CancelBowCharge();
+
+        bool attackPressed = playerInputComponent.ConsumeAttack1Pressed();
+        if (!_isChargingBow && attackPressed)
+        {
+            LogBowDebug($"Processing attack1 press: player={Name}, weapon={bow.DisplayName}, " +
+                $"requiredProjectile={bow.RequiredProjectile?.ResourcePath ?? "<null>"}, " +
+                $"chargeRange={bow.MinChargeTime:0.###}-{bow.MaxChargeTime:0.###}, " +
+                $"state={ReplicatedBowState}.");
+            if (!bow.HasValidConfiguration)
+            {
+                GD.PushError($"[BowDebug] Equipped ranged weapon '{bow.DisplayName}' has invalid configuration: " +
+                    $"projectile={bow.RequiredProjectile?.ResourcePath ?? "<null>"}, " +
+                    $"projectileScene={bow.ProjectileScene?.ResourcePath ?? "<null>"}, " +
+                    $"speed={bow.ProjectileSpeed}, min={bow.MinChargeTime}, max={bow.MaxChargeTime}.");
+                playerInputComponent.ClearAttack1Events();
+                return;
+            }
+
+            if (!HasProjectile(bow.RequiredProjectile))
+            {
+                GD.PushWarning($"[BowDebug] Required projectile not found: player={Name}, " +
+                    $"required={bow.RequiredProjectile.ResourcePath}, inventory={DescribeInventory()}.");
+                playerInputComponent.ClearAttack1Events();
+                return;
+            }
+
+            _isChargingBow = true;
+            _chargingBow = bow;
+            _bowChargeTime = 0;
+            LogBowDebug($"Bow charge started: player={Name}, bow={bow.DisplayName}.");
+            BroadcastBowAnimationState("Pulling");
+        }
+
+        if (!_isChargingBow || _chargingBow != bow)
+            return;
+
+        _bowChargeTime += delta;
+        if (_bowChargeTime >= bow.MaxChargeTime && ReplicatedBowState != "Pulled")
+        {
+            LogBowDebug($"Bow reached max charge: player={Name}, time={_bowChargeTime:0.###}.");
+            BroadcastBowAnimationState("Pulled");
+        }
+
+        bool attackReleased = playerInputComponent.ConsumeAttack1Released();
+        if (!attackReleased && !_isChargingBow)
+            return;
+
+        if (!attackReleased && playerInputComponent.Attack1Held)
+            return;
+
+        float chargeTime = _bowChargeTime;
+        _isChargingBow = false;
+        _chargingBow = null;
+        _bowChargeTime = 0;
+        if (chargeTime < bow.MinChargeTime)
+        {
+            LogBowDebug($"Bow shot cancelled: charge={chargeTime:0.###}, " +
+                $"minimum={bow.MinChargeTime:0.###}.");
+            BroadcastBowAnimationState("Idle");
+            return;
+        }
+
+        LogBowDebug($"Bow shot released: player={Name}, charge={chargeTime:0.###}, " +
+            $"state={ReplicatedBowState}.");
+        BroadcastBowAnimationState("Shooting");
+        Vector3 direction = -_camera.GlobalTransform.Basis.Z.Normalized();
+        Vector3 origin = GlobalPosition + Vector3.Up * 1.35f + direction * 0.8f;
+        RequestBowShot(chargeTime, origin, direction);
+    }
+
+    private void CancelBowCharge()
+    {
+        if (!_isChargingBow)
+            return;
+
+        _isChargingBow = false;
+        _chargingBow = null;
+        _bowChargeTime = 0;
+        BroadcastBowAnimationState("Idle");
+    }
+
+    private bool HasProjectile(WeaponProjectile requiredProjectile)
+    {
+        if (requiredProjectile == null || Inventory == null)
+            return false;
+
+        foreach (Stack stack in Inventory.Slots)
+            if (stack?.Item is WeaponProjectile projectile &&
+                (projectile == requiredProjectile ||
+                 projectile.ResourcePath == requiredProjectile.ResourcePath) &&
+                stack.ItemCount > 0)
+                return true;
+
+        return false;
+    }
+
+    private string DescribeInventory()
+    {
+        if (Inventory?.Slots == null)
+            return "<inventory unavailable>";
+
+        var contents = new List<string>();
+        foreach (Stack stack in Inventory.Slots)
+            if (stack?.Item != null)
+                contents.Add($"{stack.Item.GetType().Name}:{stack.Item.ResourcePath}x{stack.ItemCount}");
+        return contents.Count == 0 ? "<empty>" : string.Join(", ", contents);
+    }
+
+    private void RequestBowShot(float chargeTime, Vector3 origin, Vector3 direction)
+    {
+        if (!Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer())
+        {
+            HandleBowShotRequest(chargeTime, origin, direction, 0);
+            return;
+        }
+
+        RpcId(1, nameof(ReceiveBowShotRequest), chargeTime, origin, direction);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveBowShotRequest(float chargeTime, Vector3 origin, Vector3 direction)
+    {
+        if (!Multiplayer.IsServer())
+            return;
+
+        long sender = Multiplayer.GetRemoteSenderId();
+        if (sender != GetMultiplayerAuthority())
+            return;
+
+        HandleBowShotRequest(chargeTime, origin, direction, sender);
+    }
+
+    private void HandleBowShotRequest(float chargeTime, Vector3 origin, Vector3 direction, long sender)
+    {
+        RangedWeapon bow = Equipment?.EquippedWeapon as RangedWeapon;
+        if (bow == null || !bow.HasValidConfiguration ||
+            !float.IsFinite(chargeTime) || chargeTime < bow.MinChargeTime ||
+            !IsFinite(origin) || !IsFinite(direction) || direction.LengthSquared() < 0.0001f ||
+            origin.DistanceTo(GlobalPosition) > 5.0f ||
+            !TryConsumeProjectile(bow.RequiredProjectile))
+        {
+            RejectBowShot(sender);
+            return;
+        }
+
+        float clampedCharge = Mathf.Clamp(chargeTime, bow.MinChargeTime, bow.MaxChargeTime);
+        float damage;
+        if (clampedCharge >= bow.MaxChargeTime)
+        {
+            damage = bow.Damage;
+        }
+        else
+        {
+            float chargePercent = Mathf.Clamp(
+                (clampedCharge - bow.MinChargeTime) /
+                (bow.MaxChargeTime - bow.MinChargeTime),
+                0,
+                1);
+            damage = bow.Damage * 0.5f + bow.Damage * 0.5f * chargePercent;
+        }
+
+        InventoryService.Instance?.Publish();
+        string projectileName = $"{Name}_Arrow_{++_nextProjectileId}";
+        Vector3 flightDirection = direction.Normalized();
+        if (Multiplayer.HasMultiplayerPeer())
+        {
+            Rpc(nameof(SpawnBowProjectile), projectileName, bow.ResourcePath,
+                bow.RequiredProjectile.ResourcePath, origin, flightDirection, damage);
+        }
+        else
+        {
+            bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
+                bow.RequiredProjectile, origin, flightDirection, damage);
+        }
+    }
+
+    private bool TryConsumeProjectile(WeaponProjectile requiredProjectile)
+    {
+        if (Inventory == null || requiredProjectile == null)
+            return false;
+
+        for (int i = 0; i < Inventory.Slots.Count; i++)
+        {
+            Stack stack = Inventory.Slots[i];
+            if (stack?.Item is not WeaponProjectile projectile ||
+                (projectile != requiredProjectile &&
+                 projectile.ResourcePath != requiredProjectile.ResourcePath) ||
+                stack.ItemCount <= 0)
+                continue;
+
+            stack.ItemCount--;
+            if (stack.ItemCount == 0)
+                Inventory.Slots[i] = null;
+            Inventory.NotifyChanged();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void RejectBowShot(long peerId)
+    {
+        if (Multiplayer.HasMultiplayerPeer() && peerId > 1)
+            RpcId(peerId, nameof(ReceiveBowShotRejected));
+        else
+            BroadcastBowAnimationState("Idle");
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveBowShotRejected()
+    {
+        if (Multiplayer.HasMultiplayerPeer() && Multiplayer.GetRemoteSenderId() != 1)
+            return;
+
+        _isChargingBow = false;
+        _chargingBow = null;
+        _bowChargeTime = 0;
+        BroadcastBowAnimationState("Idle");
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
+        TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void SpawnBowProjectile(
+        string projectileName,
+        string weaponResourcePath,
+        string projectileResourcePath,
+        Vector3 origin,
+        Vector3 direction,
+        float damage)
+    {
+        if (Multiplayer.HasMultiplayerPeer())
+        {
+            long sender = Multiplayer.GetRemoteSenderId();
+            if (sender != 0 && sender != 1)
+                return;
+        }
+
+        RangedWeapon bow = GD.Load<RangedWeapon>(weaponResourcePath);
+        WeaponProjectile projectile = GD.Load<WeaponProjectile>(projectileResourcePath);
+        if (bow == null || bow.ProjectileScene == null || projectile?.Model == null)
+        {
+            GD.PushError($"[BowDebug] Projectile RPC resource load failed: player={Name}, " +
+                $"weaponPath={weaponResourcePath}, loadedWeapon={bow != null}, " +
+                $"scene={bow?.ProjectileScene?.ResourcePath ?? "<null>"}, " +
+                $"projectilePath={projectileResourcePath}, loadedProjectile={projectile != null}, " +
+                $"model={projectile?.Model?.ResourcePath ?? "<null>"}, " +
+                $"currentEquipped={Equipment?.EquippedWeapon?.ResourcePath ?? "<null>"}, " +
+                $"parent={GetTree().CurrentScene?.GetPath().ToString() ?? "<null>"}.");
+            return;
+        }
+
+        GD.Print($"[BowDebug] Spawning projectile from resource paths: player={Name}, " +
+            $"weapon={bow.ResourcePath}, scene={bow.ProjectileScene.ResourcePath}, " +
+            $"projectile={projectile.ResourcePath}, model={projectile.Model.ResourcePath}.");
+        bow.SpawnProjectile(this, GetTree().CurrentScene, projectileName,
+            projectile, origin, direction, damage);
+    }
+
+    private static bool IsFinite(Vector3 value) =>
+        float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
     public void interact_show(interact_obj _interact_obj)
     {
         if (playerInputComponent?.HasInputAuthority != true ||
@@ -485,6 +787,8 @@ public partial class Player : AnimatedEntity
             return;
         }
 
+        GD.Print($"[BowDebug] Equipment inventory resolved: player={Name}, " +
+            $"weaponType={weapon.GetType().Name}, weaponPath={weapon.ResourcePath}.");
         GD.Print($"[Combat] Equipping weapon from slot: player={Name}, weapon={weapon.DisplayName}, " +
             $"model={(weapon.WeaponModel?.ResourcePath ?? "<missing>")}.");
         EnsureEquipmentComponent().EquipWeapon(weapon);

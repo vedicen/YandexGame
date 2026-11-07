@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ba4yvxgoy5n6r"]
+
+[sub_resource type="StandardMaterial3D" id="ShaftMaterial"]
+albedo_color = Color(0.42, 0.25, 0.1, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="ShaftMesh"]
+material = SubResource("ShaftMaterial")
+size = Vector3(0.025, 0.025, 0.8)
+
+[sub_resource type="PrismMesh" id="PrismMesh_vjnli"]
+
+[node name="ArrowModel" type="Node3D" unique_id=1596092940]
+
+[node name="Shaft" type="MeshInstance3D" parent="." unique_id=219374931]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.34)
+mesh = SubResource("ShaftMesh")
+
+[node name="Head" type="MeshInstance3D" parent="." unique_id=395599540]
+transform = Transform3D(0.115, 0, 0, 0, -5.0268096e-09, 0.115, 0, -0.115, -5.0268096e-09, 0, 0, -0.78)
+mesh = SubResource("PrismMesh_vjnli")

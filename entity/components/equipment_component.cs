@@ -10,7 +10,8 @@ public partial class EquipmentComponent : Node
         Legs,
         Feet,
         Hands,
-        Weapon
+        Weapon,
+        RangedWeapon
     }
 
     private Node3D _modelRoot;
@@ -20,6 +21,7 @@ public partial class EquipmentComponent : Node
     private readonly Dictionary<Slot, Node> _equipped = new();
     private readonly Dictionary<Slot, PackedScene> _pendingEquipment = new();
     private bool _initialized;
+    public Weapon EquippedWeapon { get; private set; }
 
     public override void _Ready()
     {
@@ -42,9 +44,14 @@ public partial class EquipmentComponent : Node
         {
             Node3D slotNode;
             string footBone = _skeleton == null ? string.Empty : FindFootBone();
-            string handBone = slot == Slot.Weapon && _skeleton != null
-                ? FindRightHandBone()
-                : string.Empty;
+            string handBone = _skeleton == null
+                ? string.Empty
+                : slot switch
+                {
+                    Slot.Weapon => FindRightHandBone(),
+                    Slot.RangedWeapon => FindLeftHandBone(),
+                    _ => string.Empty
+                };
             if (_skeleton != null && slot == Slot.Feet && !string.IsNullOrEmpty(footBone))
             {
                 var attachment = new BoneAttachment3D
@@ -56,7 +63,9 @@ public partial class EquipmentComponent : Node
                 slotNode = attachment;
                 GD.Print($"EquipmentComponent: Feet slot attached to skeleton bone '{footBone}'.");
             }
-            else if (_skeleton != null && slot == Slot.Weapon && !string.IsNullOrEmpty(handBone))
+            else if (_skeleton != null &&
+                slot is Slot.Weapon or Slot.RangedWeapon &&
+                !string.IsNullOrEmpty(handBone))
             {
                 var attachment = new BoneAttachment3D
                 {
@@ -65,11 +74,14 @@ public partial class EquipmentComponent : Node
                 };
                 _skeleton.AddChild(attachment);
                 slotNode = attachment;
-                GD.Print($"EquipmentComponent: Weapon slot attached to right-hand bone '{handBone}'.");
+                GD.Print($"EquipmentComponent: {slot} slot attached to hand bone '{handBone}'.");
             }
-            else if (slot == Slot.Weapon)
+            else if (slot is Slot.Weapon or Slot.RangedWeapon)
             {
-                GD.PushError("EquipmentComponent: Could not find a right-hand bone; weapon slot is unavailable.");
+                if (slot == Slot.RangedWeapon)
+                    GD.PushError("EquipmentComponent: Could not find a left-hand bone; ranged weapon slot is unavailable.");
+                else
+                    GD.PushError("EquipmentComponent: Could not find a right-hand bone; weapon slot is unavailable.");
                 continue;
             }
             else
@@ -121,6 +133,24 @@ public partial class EquipmentComponent : Node
                 normalized.Contains("righthand", System.StringComparison.OrdinalIgnoreCase) ||
                 normalized.Contains("handr", System.StringComparison.OrdinalIgnoreCase) ||
                 normalized.Contains("rhand", System.StringComparison.OrdinalIgnoreCase))
+                return boneName;
+        }
+
+        return string.Empty;
+    }
+
+    private string FindLeftHandBone()
+    {
+        for (int i = 0; i < _skeleton.GetBoneCount(); i++)
+        {
+            string boneName = _skeleton.GetBoneName(i).ToString();
+            string normalized = boneName.Replace("_", "").Replace(".", "")
+                .Replace("-", "").Replace(" ", "").Replace(":", "");
+            if ((normalized.Contains("left", System.StringComparison.OrdinalIgnoreCase) &&
+                 normalized.Contains("hand", System.StringComparison.OrdinalIgnoreCase)) ||
+                normalized.Contains("lefthand", System.StringComparison.OrdinalIgnoreCase) ||
+                normalized.Contains("handl", System.StringComparison.OrdinalIgnoreCase) ||
+                normalized.Contains("lhand", System.StringComparison.OrdinalIgnoreCase))
                 return boneName;
         }
 
@@ -215,6 +245,8 @@ public partial class EquipmentComponent : Node
         {
             GD.Print($"[Combat] Unequipping weapon: entity={GetParent()?.Name ?? "<missing>"}.");
             Unequip(Slot.Weapon);
+            Unequip(Slot.RangedWeapon);
+            EquippedWeapon = null;
             _pendingWeapon = null;
             return;
         }
@@ -227,6 +259,7 @@ public partial class EquipmentComponent : Node
             return;
         }
 
+        EquippedWeapon = weapon;
         if (!Initialize())
         {
             _pendingWeapon = weapon;
@@ -240,9 +273,10 @@ public partial class EquipmentComponent : Node
 
     private void EquipWeaponNow(Weapon weapon)
     {
-        if (!_slots.TryGetValue(Slot.Weapon, out Node3D slotNode) || slotNode == null)
+        Slot weaponSlot = weapon is RangedWeapon ? Slot.RangedWeapon : Slot.Weapon;
+        if (!_slots.TryGetValue(weaponSlot, out Node3D slotNode) || slotNode == null)
         {
-            GD.PushError("EquipmentComponent: Weapon slot is unavailable; check the character's right-hand bone.");
+            GD.PushError($"EquipmentComponent: {weaponSlot} is unavailable; check the corresponding hand bone.");
             return;
         }
 
@@ -260,28 +294,34 @@ public partial class EquipmentComponent : Node
         instance.Scale = weapon.EquipScale;
         instance.ConfigureCombat(GetParent() as AnimatedEntity, weapon);
         Unequip(Slot.Weapon);
+        Unequip(Slot.RangedWeapon);
         slotNode.AddChild(instance);
-        _equipped[Slot.Weapon] = instance;
+        _equipped[weaponSlot] = instance;
+        EquippedWeapon = weapon;
         GD.Print($"[Combat] Weapon equipped: entity={GetParent()?.Name ?? "<missing>"}, " +
-            $"weapon={weapon.DisplayName}, node={instance.GetPath()}.");
+            $"weapon={weapon.DisplayName}, hand={weaponSlot}, node={instance.GetPath()}.");
     }
 
     public WeaponScene GetEquippedWeaponScene()
     {
-        if (_equipped.TryGetValue(Slot.Weapon, out Node equipped) &&
+        Slot weaponSlot = EquippedWeapon is RangedWeapon ? Slot.RangedWeapon : Slot.Weapon;
+        if (_equipped.TryGetValue(weaponSlot, out Node equipped) &&
             GodotObject.IsInstanceValid(equipped) &&
             !equipped.IsQueuedForDeletion() &&
             equipped is WeaponScene weaponScene)
             return weaponScene;
 
-        if (_slots.TryGetValue(Slot.Weapon, out Node3D weaponSlot) &&
-            GodotObject.IsInstanceValid(weaponSlot))
+        foreach (Slot slot in new[] { Slot.Weapon, Slot.RangedWeapon })
         {
-            foreach (Node child in weaponSlot.GetChildren())
+            if (!_slots.TryGetValue(slot, out Node3D slotNode) ||
+                !GodotObject.IsInstanceValid(slotNode))
+                continue;
+
+            foreach (Node child in slotNode.GetChildren())
             {
                 if (child is WeaponScene attachedWeapon && !child.IsQueuedForDeletion())
                 {
-                    _equipped[Slot.Weapon] = attachedWeapon;
+                    _equipped[slot] = attachedWeapon;
                     GD.PushWarning($"[Combat] Recovered equipped weapon reference from slot: {attachedWeapon.GetPath()}.");
                     return attachedWeapon;
                 }

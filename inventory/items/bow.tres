@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Bow" format=3 uid="uid://dsfneviu7f7nf"]
+
+[ext_resource type="Script" uid="uid://dcqaxgkdrn6lg" path="res://inventory/Bow.cs" id="1_bow"]
+[ext_resource type="PackedScene" uid="uid://chp3ubiab22fp" path="res://inventory/models/bow_model.tscn" id="2_bow_model"]
+[ext_resource type="Resource" path="res://inventory/items/arrow.tres" id="3_arrow"]
+[ext_resource type="PackedScene" path="res://inventory/weapon_projectile.tscn" id="4_projectile_scene"]
+
+[resource]
+script = ExtResource("1_bow")
+ProjectileSpeed = 1.01
+RequiredProjectile = ExtResource("3_arrow")
+ProjectileScene = ExtResource("4_projectile_scene")
+MinChargeTime = 0.4
+Damage = 20.0
+WeaponModel = ExtResource("2_bow_model")
+EquipRotationDegrees = Vector3(180, 180, 90)
+DisplayName = "Лук"
+Description = "Натягивайте тетиву для более сильного выстрела."
+Model = ExtResource("2_bow_model")
+MaxStackSize = 1
+Weight = 1.5

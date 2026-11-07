@@ -3,6 +3,8 @@ using Godot;
 public partial class PlayerInputComponent : Node
 {
     private Vector2 _lookMotion;
+    private bool _attack1PressedPending;
+    private bool _attack1ReleasedPending;
     public bool IsInputEnabled { get; private set; } = true;
 
     public bool HasInputAuthority
@@ -28,6 +30,35 @@ public partial class PlayerInputComponent : Node
     public bool Attack1Pressed =>
         HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("attack1");
 
+    public bool Attack1Held =>
+        HasInputAuthority && IsInputEnabled && Input.IsActionPressed("attack1");
+
+    public bool HasPendingAttack1Press => _attack1PressedPending;
+    public bool HasPendingAttack1Release => _attack1ReleasedPending;
+
+    public bool Attack1Released =>
+        HasInputAuthority && IsInputEnabled && Input.IsActionJustReleased("attack1");
+
+    public bool ConsumeAttack1Pressed()
+    {
+        bool pressed = _attack1PressedPending;
+        _attack1PressedPending = false;
+        return pressed;
+    }
+
+    public bool ConsumeAttack1Released()
+    {
+        bool released = _attack1ReleasedPending;
+        _attack1ReleasedPending = false;
+        return released;
+    }
+
+    public void ClearAttack1Events()
+    {
+        _attack1PressedPending = false;
+        _attack1ReleasedPending = false;
+    }
+
     public bool Attack2Pressed =>
         HasInputAuthority && IsInputEnabled && Input.IsActionJustPressed("attack2");
 
@@ -39,8 +70,40 @@ public partial class PlayerInputComponent : Node
         if (IsInputEnabled == enabled) return;
         IsInputEnabled = enabled;
         _lookMotion = Vector2.Zero;
+        ClearAttack1Events();
         if (HasInputAuthority)
             Input.MouseMode = enabled ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        bool pressed = @event.IsActionPressed("attack1") && !@event.IsEcho();
+        bool released = @event.IsActionReleased("attack1");
+        if (!pressed && !released)
+            return;
+
+        bool hasAuthority = HasInputAuthority;
+        if (!hasAuthority || !IsInputEnabled)
+        {
+            if (GetParent() is AnimatedEntity entity)
+                entity.LogBowDebug($"Ignored attack1 {(pressed ? "press" : "release")}: " +
+                    $"inputAuthority={hasAuthority}, inputEnabled={IsInputEnabled}, node={GetPath()}.");
+            return;
+        }
+
+        if (pressed)
+        {
+            _attack1PressedPending = true;
+            if (GetParent() is AnimatedEntity entity)
+                entity.LogBowDebug($"Captured attack1 press: player={GetParent()?.Name}, " +
+                    $"actionMapped={InputMap.HasAction("attack1")}, mouseCaptured={IsMouseCaptured}.");
+        }
+        else
+        {
+            _attack1ReleasedPending = true;
+            if (GetParent() is AnimatedEntity entity)
+                entity.LogBowDebug($"Captured attack1 release: player={GetParent()?.Name}.");
+        }
     }
 
     public override void _Ready()

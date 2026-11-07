@@ -17,9 +17,19 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene Attack2AnimationScene { get; set; }
 	[Export] public PackedScene CrouchedIdleAnimationScene { get; set; }
 	[Export] public PackedScene CrouchedWalkAnimationScene { get; set; }
+	[Export] public PackedScene BowPullAnimationScene { get; set; }
+	[Export] public PackedScene BowHoldAnimationScene { get; set; }
+	[Export] public PackedScene BowShootAnimationScene { get; set; }
 	[Export] public double BlendDuration { get; set; } = 0.2;
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
 	[Export] public float HealthBarHeight { get; set; } = 2.2f;
+	[Export] public bool BowDebugLogging { get; set; }
+
+	public void LogBowDebug(string message)
+	{
+		if (BowDebugLogging)
+			GD.Print($"[BowDebug] {message}");
+	}
 
 	[ExportGroup("Hitboxes")]
 	[Export(PropertyHint.Range, "0.01,1.0,0.01")]
@@ -61,7 +71,12 @@ public partial class AnimatedEntity : Entity
 		}
 	}
 
-	private void AddUpperBodyAnimation(AnimationLibrary library, PackedScene sourceScene, string targetName)
+	private void AddUpperBodyAnimation(
+		AnimationLibrary library,
+		PackedScene sourceScene,
+		string targetName,
+		bool loop = false,
+		bool turnBowBodyRight = false)
 	{
 		if (sourceScene == null)
 			return;
@@ -89,13 +104,22 @@ public partial class AnimatedEntity : Entity
 				return;
 			}
 
-			attackAnimation.LoopMode = Animation.LoopModeEnum.None;
+			attackAnimation.LoopMode = loop
+				? Animation.LoopModeEnum.Linear
+				: Animation.LoopModeEnum.None;
 			bool hasUpperBodyTrack = false;
 			for (int track = 0; track < attackAnimation.GetTrackCount(); track++)
 			{
 				bool isUpperBodyTrack = IsUpperBodyTrack(attackAnimation.TrackGetPath(track).ToString());
 				attackAnimation.TrackSetEnabled(track, isUpperBodyTrack);
 				hasUpperBodyTrack |= isUpperBodyTrack;
+			}
+
+			if (turnBowBodyRight && !RotateFirstUpperBodyBoneRight(attackAnimation, targetName))
+			{
+				sourceRoot.Free();
+				GD.PushWarning($"Bow animation '{targetName}' has no upper-body rotation track to turn.");
+				return;
 			}
 
 			if (!hasUpperBodyTrack)
@@ -112,6 +136,32 @@ public partial class AnimatedEntity : Entity
 
 		GD.PushWarning($"Animation source for '{targetName}' has no playable animation.");
 		sourceRoot.Free();
+	}
+
+	private bool RotateFirstUpperBodyBoneRight(Animation animation, string animationName)
+	{
+		float yaw = -1.0f * Mathf.Pi / 3.0f;
+		Quaternion rightTurn = new(Vector3.Up, yaw);
+
+		for (int track = 0; track < animation.GetTrackCount(); track++)
+		{
+			if (animation.TrackGetType(track) != Animation.TrackType.Rotation3D ||
+				!IsUpperBodyTrack(animation.TrackGetPath(track).ToString()))
+				continue;
+
+			int keyCount = animation.TrackGetKeyCount(track);
+			for (int key = 0; key < keyCount; key++)
+			{
+				Quaternion rotation = animation.TrackGetKeyValue(track, key).AsQuaternion();
+				animation.TrackSetKeyValue(track, key, rightTurn * rotation);
+			}
+
+			GD.Print($"[BowDebug] Turned bow torso bone: animation={animationName}, " +
+				$"track={animation.TrackGetPath(track)}, yaw={yaw:0.###} rad, keys={keyCount}.");
+			return keyCount > 0;
+		}
+
+		return false;
 	}
 
 	private void BuildAnimationTree()
@@ -171,10 +221,53 @@ public partial class AnimatedEntity : Entity
 		blendTree.AddNode("Attack", attack);
 		blendTree.ConnectNode("Attack", 0, "Locomotion");
 		blendTree.ConnectNode("Attack", 1, "AttackClip");
-		blendTree.ConnectNode("output", 0, "Attack");
 
 		AddUpperBodyFilter(attack, "Attack1");
 		AddUpperBodyFilter(attack, "Attack2");
+
+		var bowTransition = new AnimationNodeTransition
+		{
+			XfadeTime = (float)BlendDuration
+		};
+		blendTree.AddNode("BowState", bowTransition);
+		var bowAnimations = new[]
+		{
+			("Pulling", "BowPull"),
+			("Pulled", "BowHold"),
+			("Shooting", "BowShoot")
+		};
+		int bowTransitionIndex = 0;
+		foreach ((string state, string animationName) in bowAnimations)
+		{
+			StringName animationPath = RuntimeLibraryPrefix + animationName;
+			if (!_animationPlayer.HasAnimation(animationPath))
+				continue;
+
+			bowTransition.AddInput(state);
+			blendTree.AddNode($"BowAnimation_{state}", new AnimationNodeAnimation
+			{
+				Animation = animationPath
+			});
+			blendTree.ConnectNode("BowState", bowTransitionIndex++, $"BowAnimation_{state}");
+		}
+
+		var bowTimeScale = new AnimationNodeTimeScale();
+		blendTree.AddNode("BowTimeScale", bowTimeScale);
+		blendTree.ConnectNode("BowTimeScale", 0, "BowState");
+		var bow = new AnimationNodeOneShot
+		{
+			FadeInTime = (float)BlendDuration,
+			FadeOutTime = (float)BlendDuration,
+			BreakLoopAtEnd = false,
+			FilterEnabled = true
+		};
+		blendTree.AddNode("Bow", bow);
+		blendTree.ConnectNode("Bow", 0, "Attack");
+		blendTree.ConnectNode("Bow", 1, "BowTimeScale");
+		blendTree.ConnectNode("output", 0, "Bow");
+		AddUpperBodyFilter(bow, "BowPull");
+		AddUpperBodyFilter(bow, "BowHold");
+		AddUpperBodyFilter(bow, "BowShoot");
 
 		_animationTree = new AnimationTree
 		{
@@ -226,11 +319,29 @@ public partial class AnimatedEntity : Entity
 
 	private string _replicatedAnimation = "Idle";
 	private string _replicatedAttack = "";
+	private string _replicatedBowState = "Idle";
 	private AnimationPlayer _animationPlayer;
 	private AnimationTree _animationTree;
 	private Node3D _modelRoot;
 	private string[] _availableAnimationNames = System.Array.Empty<string>();
 	private bool _attackWasActive;
+	private bool _bowOverlayActive;
+	private bool _bowShootWasActive;
+
+	[Export]
+	public string ReplicatedBowState
+	{
+		get => _replicatedBowState;
+		set
+		{
+			if (_replicatedBowState == value)
+				return;
+
+			_replicatedBowState = value;
+			if (IsInsideTree())
+				ApplyBowState(value);
+		}
+	}
 
 	[Export]
 	public string ReplicatedAttack
@@ -284,11 +395,21 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
 		AddUpperBodyAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1");
 		AddUpperBodyAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2");
+		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull", turnBowBodyRight: true);
+		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true, true);
+		AddUpperBodyAnimation(runtimeLibrary, BowShootAnimationScene, "BowShoot", turnBowBodyRight: true);
+		GD.Print($"[BowDebug] Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
+			$"tree={_animationTree?.GetPath().ToString() ?? "<not-built>"}, " +
+			$"pull={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowPull")}, " +
+			$"hold={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowHold")}, " +
+			$"shoot={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowShoot")}.");
+		_animationPlayer.AnimationFinished += OnRuntimeAnimationFinished;
 
 		BuildAnimationTree();
 
 		ApplyAnimation(_replicatedAnimation);
 		ApplyAttack(_replicatedAttack);
+		ApplyBowState(_replicatedBowState);
 	}
 
 	private void CreateHealthBar()
@@ -501,6 +622,8 @@ public partial class AnimatedEntity : Entity
 		if (_animationTree == null)
 			return;
 
+		UpdateBowAnimationCompletion();
+
 		bool attackActive = _animationTree.Get("parameters/Attack/active").AsBool();
 		if (attackActive)
 		{
@@ -520,6 +643,24 @@ public partial class AnimatedEntity : Entity
 			ReplicatedAttack = "";
 		else
 			_replicatedAttack = "";
+	}
+
+	private void UpdateBowAnimationCompletion()
+	{
+		if (_replicatedBowState == "Shooting")
+		{
+			bool bowOverlayActive = _animationTree.Get("parameters/Bow/active").AsBool();
+			if (bowOverlayActive)
+				_bowShootWasActive = true;
+			else if (_bowShootWasActive)
+			{
+				_bowShootWasActive = false;
+				_bowOverlayActive = false;
+				if (!Multiplayer.HasMultiplayerPeer() ||
+					GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
+					BroadcastBowAnimationState("Idle");
+			}
+		}
 	}
 
 	public void PlayIdle() => SetAnimationState("Idle");
@@ -597,6 +738,126 @@ public partial class AnimatedEntity : Entity
 
 		GD.PushWarning($"Animation source for '{targetName}' has no playable animation.");
 		sourceRoot.Free();
+	}
+
+	private void ApplyBowState(string state)
+	{
+		if (_animationPlayer == null || _animationTree == null)
+		{
+			GD.PushWarning($"[BowDebug] Cannot apply bow state '{state}' to {Name}: " +
+				$"animationPlayer={_animationPlayer != null}, animationTree={_animationTree != null}.");
+			return;
+		}
+
+		LogBowDebug($"Applying bow state: entity={Name}, state={state}, " +
+			$"authority={GetMultiplayerAuthority()}, localPeer=" +
+			$"{(Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1)}.");
+
+		if (state == "Idle")
+		{
+			_bowShootWasActive = false;
+			if (_bowOverlayActive)
+			{
+				_animationTree.Set(
+					"parameters/Bow/request",
+					(int)AnimationNodeOneShot.OneShotRequest.Abort);
+				_bowOverlayActive = false;
+			}
+			return;
+		}
+
+		string animationName = state switch
+		{
+			"Pulling" => "BowPull",
+			"Pulled" => "BowHold",
+			"Shooting" => "BowShoot",
+			_ => null
+		};
+		if (animationName == null)
+			return;
+
+		StringName animationPath = RuntimeLibraryPrefix + animationName;
+		if (!_animationPlayer.HasAnimation(animationPath))
+		{
+			GD.PushWarning($"[BowDebug] No animation source is assigned for bow state '{state}' " +
+				$"on {Name}; requested animation={animationPath}.");
+			return;
+		}
+
+		_animationTree.Active = true;
+		_animationTree.Set("parameters/BowState/transition_request", state);
+		float playbackSpeed = 1.0f;
+		if (state == "Pulling" &&
+			_equipmentComponent?.EquippedWeapon is RangedWeapon bow &&
+			bow.MaxChargeTime > 0)
+		{
+			Animation animation = _animationPlayer.GetAnimation(animationPath);
+			playbackSpeed = (float)(animation.Length / bow.MaxChargeTime);
+		}
+
+		_animationTree.Set("parameters/BowTimeScale/scale", playbackSpeed);
+		if (state == "Shooting")
+			_bowShootWasActive = false;
+		if (!_bowOverlayActive)
+		{
+			_animationTree.Set(
+				"parameters/Bow/request",
+				(int)AnimationNodeOneShot.OneShotRequest.Fire);
+			_bowOverlayActive = true;
+		}
+		LogBowDebug($"Filtered bow animation blend requested: entity={Name}, state={state}, " +
+			$"animation={animationPath}, speed={playbackSpeed:0.###}, treeActive={_animationTree.Active}.");
+	}
+
+	private void OnRuntimeAnimationFinished(StringName animationName)
+	{
+		if (animationName != RuntimeLibraryPrefix + "BowShoot" ||
+			ReplicatedBowState != "Shooting" ||
+			(Multiplayer.HasMultiplayerPeer() &&
+				GetMultiplayerAuthority() != Multiplayer.GetUniqueId()))
+			return;
+
+		BroadcastBowAnimationState("Idle");
+	}
+
+	public void BroadcastBowAnimationState(string state)
+	{
+		if (_replicatedBowState == state)
+			return;
+
+		LogBowDebug($"Broadcasting bow state: entity={Name}, state={state}, " +
+			$"authority={GetMultiplayerAuthority()}, localPeer=" +
+			$"{(Multiplayer.HasMultiplayerPeer() ? Multiplayer.GetUniqueId() : 1)}, " +
+			$"network={Multiplayer.HasMultiplayerPeer()}.");
+		ReplicatedBowState = state;
+		if (!Multiplayer.HasMultiplayerPeer())
+			return;
+
+		Rpc(nameof(ReceiveBowAnimationState), state);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
+		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void ReceiveBowAnimationState(string state)
+	{
+		if (Multiplayer.HasMultiplayerPeer() &&
+			Multiplayer.GetRemoteSenderId() != 0 &&
+			Multiplayer.GetRemoteSenderId() != GetMultiplayerAuthority())
+		{
+			GD.PushWarning($"[BowDebug] Rejected bow state RPC: entity={Name}, state={state}, " +
+				$"sender={Multiplayer.GetRemoteSenderId()}, authority={GetMultiplayerAuthority()}.");
+			return;
+		}
+
+		if (state is not ("Idle" or "Pulling" or "Pulled" or "Shooting"))
+		{
+			GD.PushWarning($"Rejected unknown bow animation state '{state}'.");
+			return;
+		}
+
+		LogBowDebug($"Accepted bow state RPC: entity={Name}, state={state}, " +
+			$"sender={Multiplayer.GetRemoteSenderId()}.");
+		ReplicatedBowState = state;
 	}
 
 	private static AnimationPlayer FindAnimationPlayer(Node node)

@@ -6,15 +6,28 @@
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="7_swhyu"]
 [ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
+[ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_8uuv0"]
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="9_inventory"]
+[ext_resource type="Resource" path="res://inventory/items/arrow.tres" id="9_l12rd"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="10_equipment_inventory"]
-[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
+[ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
 
 [sub_resource type="Resource" id="PotionStack"]
 script = ExtResource("7_swhyu")
 ItemCount = 3
 Item = ExtResource("8_xqki4")
+
+[sub_resource type="Resource" id="Resource_oelfw"]
+script = ExtResource("7_swhyu")
+ItemCount = 46
+Item = ExtResource("9_l12rd")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_yfdfb"]
+script = ExtResource("7_swhyu")
+Item = ExtResource("9_8uuv0")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="Resource" id="Resource_vjnli"]
 script = ExtResource("7_swhyu")
@@ -23,8 +36,8 @@ metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
-StartingMoney = 500
 InventoryUIScene = ExtResource("11_inventory_ui")
+StartingMoney = 500
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
 JumpVelocity = 4.5
@@ -71,7 +84,7 @@ theme_override_constants/separation = 4
 alignment = 1
 
 [node name="InventoryComponent" parent="." index="4" unique_id=1158324123 instance=ExtResource("9_inventory")]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack")])
+Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb")])
 
 [node name="EquipmentInventory" parent="." index="5" unique_id=821787446 instance=ExtResource("10_equipment_inventory")]
 Slots = Array[ExtResource("7_swhyu")]([SubResource("Resource_vjnli")])
