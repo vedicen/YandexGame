@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("1_bow")
-ProjectileSpeed = 20.71
+ProjectileSpeed = 20.01
 RequiredProjectile = ExtResource("3_arrow")
 ProjectileScene = ExtResource("4_projectile_scene")
 MinChargeTime = 0.4

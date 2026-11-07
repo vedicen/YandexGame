@@ -2,11 +2,13 @@
 
 [ext_resource type="Script" uid="uid://dcf1sdpgvvmyi" path="res://inventory/WeaponProjectileScene.cs" id="1_projectile"]
 
-[sub_resource type="SphereShape3D" id="ProjectileShape"]
-radius = 0.08
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8uuv0"]
+radius = 0.07080078
+height = 1.6073608
 
 [node name="WeaponProjectile" type="Area3D" unique_id=444120028]
 script = ExtResource("1_projectile")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=537516895]
-shape = SubResource("ProjectileShape")
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 3.614914e-08, -0.82699585)
+shape = SubResource("CapsuleShape3D_8uuv0")

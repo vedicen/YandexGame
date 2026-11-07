@@ -8,7 +8,7 @@
 [ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
 [ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_8uuv0"]
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="9_inventory"]
-[ext_resource type="Resource" path="res://inventory/items/arrow.tres" id="9_l12rd"]
+[ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="9_l12rd"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="10_equipment_inventory"]
 [ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
@@ -46,6 +46,10 @@ MouseSensitivity = 0.003
 MinPitch = -80.0
 MaxPitch = 60.0
 ModelScene = ExtResource("3_xqki4")
+BowDebugLogging = false
+BowBodyYawDegrees = -60.0
+BowCrouchBodyPitchDegrees = 20.0
+ReplicatedBowAimPitch = 0.0
 
 [node name="PlayerInputComponent" parent="." index="1" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
 
@@ -82,6 +86,22 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 4
 alignment = 1
+
+[node name="Panel" type="Panel" parent="UI" index="1" unique_id=408463671]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+mouse_behavior_recursive = 1
 
 [node name="InventoryComponent" parent="." index="4" unique_id=1158324123 instance=ExtResource("9_inventory")]
 Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb")])

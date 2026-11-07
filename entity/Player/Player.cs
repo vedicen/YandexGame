@@ -135,6 +135,11 @@ public partial class Player : AnimatedEntity
             _cameraPivot.Rotation = pivotRotation;
         }
 
+        ReplicatedBowAimPitch = Mathf.Clamp(
+            _cameraRotationX,
+            -Mathf.DegToRad(45.0f),
+            Mathf.DegToRad(45.0f));
+
     }
 
     public override void _ExitTree()
@@ -161,7 +166,7 @@ public partial class Player : AnimatedEntity
         localDirection.Y = 0;
         localDirection = localDirection.Normalized();
         Vector3 direction = (Transform.Basis * localDirection).Normalized();
-        if (localDirection != Vector3.Zero)
+        if (localDirection != Vector3.Zero && !_isChargingBow)
             FaceMoveDirection(localDirection);
         bool crouching = playerInputComponent.Crouching;
         float movementSpeed = Speed * (crouching ? CrouchSpeedMultiplier : 1.0f);
@@ -210,6 +215,8 @@ public partial class Player : AnimatedEntity
         if (bow != null)
         {
             ProcessBowInput(bow, (float)delta);
+            if (_isChargingBow)
+                FaceMoveDirection(new Basis(Vector3.Up, _cameraRotationY) * Vector3.Forward);
         }
         else
         {
@@ -302,7 +309,7 @@ public partial class Player : AnimatedEntity
         LogBowDebug($"Bow shot released: player={Name}, charge={chargeTime:0.###}, " +
             $"state={ReplicatedBowState}.");
         BroadcastBowAnimationState("Shooting");
-        Vector3 direction = -_camera.GlobalTransform.Basis.Z.Normalized();
+        Vector3 direction = GetBowShotDirection();
         WeaponScene bowScene = Equipment?.GetEquippedWeaponScene();
         if (bowScene == null)
             GD.PushWarning($"[BowDebug] Bow model node is unavailable for {Name}; using player-based projectile origin.");
@@ -310,6 +317,19 @@ public partial class Player : AnimatedEntity
             ? bowScene.GlobalPosition + direction * 0.25f
             : GlobalPosition + Vector3.Up * 1.35f + direction * 0.8f;
         RequestBowShot(chargeTime, origin, direction);
+    }
+
+    private Vector3 GetBowShotDirection()
+    {
+        Vector3 cameraDirection = -_camera.GlobalTransform.Basis.Z.Normalized();
+        Vector3 horizontalDirection = new(cameraDirection.X, 0, cameraDirection.Z);
+        float pitch = Mathf.Clamp(
+            Mathf.Atan2(cameraDirection.Y, horizontalDirection.Length()),
+            -Mathf.DegToRad(45.0f),
+            Mathf.DegToRad(45.0f));
+
+        return horizontalDirection.Normalized() * Mathf.Cos(pitch) +
+            Vector3.Up * Mathf.Sin(pitch);
     }
 
     private void CancelBowCharge()

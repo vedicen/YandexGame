@@ -4,6 +4,7 @@ public partial class AnimatedEntity : Entity
 {
 	private const string RuntimeLibraryName = "entity_runtime";
 	private const string RuntimeLibraryPrefix = RuntimeLibraryName + "/";
+	private static readonly float MaxBowAimPitch = Mathf.DegToRad(45.0f);
 
 	[ExportGroup("Model")]
 	[Export] public PackedScene ModelScene { get; set; }
@@ -25,6 +26,7 @@ public partial class AnimatedEntity : Entity
 	[Export] public float HealthBarHeight { get; set; } = 2.2f;
 	[Export] public bool BowDebugLogging { get; set; }
 	[Export] public float BowBodyYawDegrees { get; set; } = -60.0f;
+	[Export] public float BowCrouchBodyPitchDegrees { get; set; } = 20.0f;
 
 	public void LogBowDebug(string message)
 	{
@@ -77,7 +79,8 @@ public partial class AnimatedEntity : Entity
 		PackedScene sourceScene,
 		string targetName,
 		bool loop = false,
-		bool turnBowBodyRight = false)
+		bool turnBowBodyRight = false,
+		string crouchedTargetName = null)
 	{
 		if (sourceScene == null)
 			return;
@@ -130,7 +133,22 @@ public partial class AnimatedEntity : Entity
 				return;
 			}
 
+			Animation crouchedAnimation = null;
+			if (crouchedTargetName != null)
+			{
+				crouchedAnimation = attackAnimation.Duplicate(true) as Animation;
+				if (crouchedAnimation == null ||
+					!RaiseFirstUpperBodyBone(crouchedAnimation, crouchedTargetName))
+				{
+					sourceRoot.Free();
+					GD.PushWarning($"Bow animation '{targetName}' has no upper-body rotation track to raise.");
+					return;
+				}
+			}
+
 			library.AddAnimation(targetName, attackAnimation);
+			if (crouchedTargetName != null)
+				library.AddAnimation(crouchedTargetName, crouchedAnimation);
 			sourceRoot.Free();
 			return;
 		}
@@ -163,6 +181,65 @@ public partial class AnimatedEntity : Entity
 		}
 
 		return false;
+	}
+
+	private bool RaiseFirstUpperBodyBone(Animation animation, string animationName)
+	{
+		Quaternion raise = new(Vector3.Right, Mathf.DegToRad(BowCrouchBodyPitchDegrees));
+		int selectedTrack = -1;
+		int selectedPriority = -1;
+
+		for (int track = 0; track < animation.GetTrackCount(); track++)
+		{
+			if (animation.TrackGetType(track) != Animation.TrackType.Rotation3D ||
+				!IsUpperBodyTrack(animation.TrackGetPath(track).ToString()))
+				continue;
+
+			int priority = GetUpperBodyBoneRaisePriority(animation.TrackGetPath(track).ToString());
+			if (priority <= selectedPriority)
+				continue;
+
+			selectedTrack = track;
+			selectedPriority = priority;
+		}
+
+		if (selectedTrack < 0)
+			return false;
+
+		int keyCount = animation.TrackGetKeyCount(selectedTrack);
+		for (int key = 0; key < keyCount; key++)
+		{
+			Quaternion rotation = animation.TrackGetKeyValue(selectedTrack, key).AsQuaternion();
+			animation.TrackSetKeyValue(selectedTrack, key, raise * rotation);
+		}
+
+		LogBowDebug($"Raised bow crouch bone: animation={animationName}, " +
+			$"track={animation.TrackGetPath(selectedTrack)}, pitch={BowCrouchBodyPitchDegrees:0.###} degrees, keys={keyCount}.");
+		return keyCount > 0;
+	}
+
+	private static int GetUpperBodyBoneRaisePriority(string trackPath)
+	{
+		int separator = trackPath.LastIndexOf(':');
+		string boneName = separator >= 0 ? trackPath[(separator + 1)..] : trackPath;
+		boneName = boneName.Replace("_", "").Replace("-", "").Replace(".", "")
+			.Replace(" ", "").ToLowerInvariant();
+
+		if (boneName.Contains("upperchest", System.StringComparison.Ordinal))
+			return 400;
+		if (boneName.Contains("chest", System.StringComparison.Ordinal))
+			return 300;
+		if (boneName.Contains("spine", System.StringComparison.Ordinal))
+		{
+			int suffixStart = boneName.IndexOf("spine", System.StringComparison.Ordinal) + "spine".Length;
+			string suffix = boneName[suffixStart..];
+			int end = 0;
+			while (end < suffix.Length && char.IsDigit(suffix[end]))
+				end++;
+			return 100 + (int.TryParse(suffix[..end], out int spineIndex) ? spineIndex : 0);
+		}
+
+		return 0;
 	}
 
 	private void BuildAnimationTree()
@@ -243,20 +320,23 @@ public partial class AnimatedEntity : Entity
 	{
 		_bowAvailable = false;
 		_bowStates.Clear();
+		_bowCrouchStates.Clear();
+		_bowAimNodes.Clear();
 		_bowBlend = 0f;
+		_bowCrouchBlend = 0f;
 		_bowStateTime = 0f;
 		_bowPullLength = 0f;
 		_bowShootLength = 0f;
 
 		var bowAnimations = new[]
 		{
-			("Pulling", "BowPull"),
-			("Pulled", "BowHold"),
-			("Shooting", "BowShoot")
+			("Pulling", "BowPull", "BowPullCrouched"),
+			("Pulled", "BowHold", "BowHoldCrouched"),
+			("Shooting", "BowShoot", "BowShootCrouched")
 		};
 
 		bool anyBowAnimation = false;
-		foreach ((string _, string animationName) in bowAnimations)
+		foreach ((string _, string animationName, string _) in bowAnimations)
 			anyBowAnimation |= _animationPlayer.HasAnimation(RuntimeLibraryPrefix + animationName);
 
 		if (!anyBowAnimation)
@@ -272,7 +352,7 @@ public partial class AnimatedEntity : Entity
 		};
 		blendTree.AddNode("BowState", bowTransition);
 
-		foreach ((string state, string animationName) in bowAnimations)
+		foreach ((string state, string animationName, string crouchedAnimationName) in bowAnimations)
 		{
 			StringName animationPath = RuntimeLibraryPrefix + animationName;
 			if (!_animationPlayer.HasAnimation(animationPath))
@@ -283,8 +363,20 @@ public partial class AnimatedEntity : Entity
 			_bowStates.Add(state);
 			bowTransition.AddInput(state);
 
-			string clipName = $"BowClip_{state}";
-			blendTree.AddNode(clipName, new AnimationNodeAnimation { Animation = animationPath });
+			string stateOutput = AddBowAimBlendSpace(blendTree, state, animationPath, false);
+			StringName crouchedAnimationPath = RuntimeLibraryPrefix + crouchedAnimationName;
+			if (_animationPlayer.HasAnimation(crouchedAnimationPath))
+			{
+				string crouchedOutput = AddBowAimBlendSpace(
+					blendTree, state, crouchedAnimationPath, true);
+				string variantBlendName = $"BowVariant_{state}";
+				var variantBlend = new AnimationNodeBlend2 { Sync = true };
+				blendTree.AddNode(variantBlendName, variantBlend);
+				blendTree.ConnectNode(variantBlendName, 0, stateOutput);
+				blendTree.ConnectNode(variantBlendName, 1, crouchedOutput);
+				_bowCrouchStates.Add(state);
+				stateOutput = variantBlendName;
+			}
 
 			if (state == "Pulling")
 			{
@@ -294,7 +386,7 @@ public partial class AnimatedEntity : Entity
 				_bowPullLength = (float)animation.Length;
 				blendTree.AddNode("BowPullSeek", new AnimationNodeTimeSeek());
 				blendTree.AddNode("BowPullScale", new AnimationNodeTimeScale());
-				blendTree.ConnectNode("BowPullSeek", 0, clipName);
+				blendTree.ConnectNode("BowPullSeek", 0, stateOutput);
 				blendTree.ConnectNode("BowPullScale", 0, "BowPullSeek");
 				blendTree.ConnectNode("BowState", inputIndex, "BowPullScale");
 			}
@@ -302,7 +394,7 @@ public partial class AnimatedEntity : Entity
 			{
 				if (state == "Shooting")
 					_bowShootLength = (float)animation.Length;
-				blendTree.ConnectNode("BowState", inputIndex, clipName);
+				blendTree.ConnectNode("BowState", inputIndex, stateOutput);
 			}
 		}
 
@@ -319,9 +411,94 @@ public partial class AnimatedEntity : Entity
 		blendTree.ConnectNode("Bow", 1, "BowState");
 		blendTree.ConnectNode("output", 0, "Bow");
 		AddUpperBodyFilter(bow, "BowPull");
+		AddUpperBodyFilter(bow, "BowPullCrouched");
 		AddUpperBodyFilter(bow, "BowHold");
+		AddUpperBodyFilter(bow, "BowHoldCrouched");
 		AddUpperBodyFilter(bow, "BowShoot");
+		AddUpperBodyFilter(bow, "BowShootCrouched");
 		_bowAvailable = true;
+		ApplyBowAimPitch();
+	}
+
+	private string AddBowAimBlendSpace(
+		AnimationNodeBlendTree blendTree,
+		string state,
+		StringName sourcePath,
+		bool crouched)
+	{
+		string variant = crouched ? "Crouched" : "Standing";
+		string nodeName = $"BowAim_{state}_{variant}";
+		string animationPrefix = $"BowAim_{state}_{variant}";
+		Animation source = _animationPlayer.GetAnimation(sourcePath);
+		AnimationLibrary library = _animationPlayer.GetAnimationLibrary(RuntimeLibraryName);
+		var blendSpace = new AnimationNodeBlendSpace1D
+		{
+			MinSpace = -MaxBowAimPitch,
+			MaxSpace = MaxBowAimPitch,
+			BlendMode = AnimationNodeBlendSpace1D.BlendModeEnum.Interpolated
+		};
+
+		AddBowAimBlendPoint(blendSpace, library, source, animationPrefix, "Down", -MaxBowAimPitch);
+		AddBowAimBlendPoint(blendSpace, library, source, animationPrefix, "Level", 0.0f);
+		AddBowAimBlendPoint(blendSpace, library, source, animationPrefix, "Up", MaxBowAimPitch);
+		blendTree.AddNode(nodeName, blendSpace);
+		_bowAimNodes.Add(nodeName);
+		return nodeName;
+	}
+
+	private void AddBowAimBlendPoint(
+		AnimationNodeBlendSpace1D blendSpace,
+		AnimationLibrary library,
+		Animation source,
+		string animationPrefix,
+		string suffix,
+		float pitch)
+	{
+		string animationName = $"{animationPrefix}_{suffix}";
+		Animation aimAnimation = source.Duplicate(true) as Animation;
+		if (aimAnimation == null)
+		{
+			GD.PushError($"Could not duplicate bow animation for aim pitch: {animationName}.");
+			return;
+		}
+
+		ApplyPitchToUpperBodyBone(aimAnimation, pitch, animationName);
+		library.AddAnimation(animationName, aimAnimation);
+		blendSpace.AddBlendPoint(
+			new AnimationNodeAnimation { Animation = RuntimeLibraryPrefix + animationName },
+			pitch);
+	}
+
+	private void ApplyPitchToUpperBodyBone(Animation animation, float pitch, string animationName)
+	{
+		int selectedTrack = -1;
+		int selectedPriority = -1;
+		for (int track = 0; track < animation.GetTrackCount(); track++)
+		{
+			if (animation.TrackGetType(track) != Animation.TrackType.Rotation3D ||
+				!IsUpperBodyTrack(animation.TrackGetPath(track).ToString()))
+				continue;
+
+			int priority = GetUpperBodyBoneRaisePriority(animation.TrackGetPath(track).ToString());
+			if (priority <= selectedPriority)
+				continue;
+
+			selectedTrack = track;
+			selectedPriority = priority;
+		}
+
+		if (selectedTrack < 0)
+		{
+			GD.PushWarning($"Bow aim animation '{animationName}' has no upper-body rotation track.");
+			return;
+		}
+
+		Quaternion pitchRotation = new(Vector3.Forward, pitch);
+		for (int key = 0; key < animation.TrackGetKeyCount(selectedTrack); key++)
+		{
+			Quaternion rotation = animation.TrackGetKeyValue(selectedTrack, key).AsQuaternion();
+			animation.TrackSetKeyValue(selectedTrack, key, rotation * pitchRotation);
+		}
 	}
 
 	private void AddUpperBodyFilter(AnimationNode filteredNode, string animationName)
@@ -371,7 +548,11 @@ public partial class AnimatedEntity : Entity
 	private bool _attackWasActive;
 	private bool _bowAvailable;
 	private readonly System.Collections.Generic.List<string> _bowStates = new();
+	private readonly System.Collections.Generic.List<string> _bowCrouchStates = new();
+	private readonly System.Collections.Generic.List<string> _bowAimNodes = new();
 	private float _bowBlend;
+	private float _bowCrouchBlend;
+	private float _replicatedBowAimPitch;
 	private float _bowStateTime;
 	private float _bowPullLength;
 	private float _bowShootLength;
@@ -400,6 +581,17 @@ public partial class AnimatedEntity : Entity
 		{
 			_replicatedBowPullDuration = value;
 			UpdateBowPullSpeed();
+		}
+	}
+
+	[Export]
+	public float ReplicatedBowAimPitch
+	{
+		get => _replicatedBowAimPitch;
+		set
+		{
+			_replicatedBowAimPitch = Mathf.Clamp(value, -MaxBowAimPitch, MaxBowAimPitch);
+			ApplyBowAimPitch();
 		}
 	}
 
@@ -458,9 +650,12 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
 		AddUpperBodyAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1");
 		AddUpperBodyAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2");
-		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull", turnBowBodyRight: true);
-		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true, true);
-		AddUpperBodyAnimation(runtimeLibrary, BowShootAnimationScene, "BowShoot", turnBowBodyRight: true);
+		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull",
+			turnBowBodyRight: true, crouchedTargetName: "BowPullCrouched");
+		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true,
+			true, "BowHoldCrouched");
+		AddUpperBodyAnimation(runtimeLibrary, BowShootAnimationScene, "BowShoot",
+			turnBowBodyRight: true, crouchedTargetName: "BowShootCrouched");
 		LogBowDebug($"Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
 			$"tree={_animationTree?.GetPath().ToString() ?? "<not-built>"}, " +
 			$"pull={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowPull")}, " +
@@ -724,12 +919,33 @@ public partial class AnimatedEntity : Entity
 
 		float target = (idle || shootFinished) ? 0f : 1f;
 		float step = BlendDuration > 0.0 ? (float)(delta / BlendDuration) : 1f;
+		float crouchTarget =
+			_replicatedAnimation == "CrouchedIdle" || _replicatedAnimation == "CrouchedWalk"
+				? 1f
+				: 0f;
+		float crouchBlend = Mathf.MoveToward(_bowCrouchBlend, crouchTarget, step);
+		if (!Mathf.IsEqualApprox(crouchBlend, _bowCrouchBlend))
+		{
+			_bowCrouchBlend = crouchBlend;
+			foreach (string state in _bowCrouchStates)
+				_animationTree.Set($"parameters/BowVariant_{state}/blend_amount", _bowCrouchBlend);
+		}
+
 		float blend = Mathf.MoveToward(_bowBlend, target, step);
 		if (!Mathf.IsEqualApprox(blend, _bowBlend))
 		{
 			_bowBlend = blend;
 			_animationTree.Set("parameters/Bow/blend_amount", _bowBlend);
 		}
+	}
+
+	private void ApplyBowAimPitch()
+	{
+		if (_animationTree == null || !_bowAvailable)
+			return;
+
+		foreach (string nodeName in _bowAimNodes)
+			_animationTree.Set($"parameters/{nodeName}/blend_position", -_replicatedBowAimPitch);
 	}
 
 	public void PlayIdle() => SetAnimationState("Idle");

@@ -38,6 +38,9 @@ properties/5/replication_mode = 2
 properties/6/path = NodePath(".:ReplicatedBowState")
 properties/6/spawn = true
 properties/6/replication_mode = 2
+properties/7/path = NodePath(".:ReplicatedBowAimPitch")
+properties/7/spawn = true
+properties/7/replication_mode = 2
 
 [node name="AnimatedEntity" unique_id=1252529603 node_paths=PackedStringArray("Health") instance=ExtResource("1_entity")]
 script = ExtResource("2_uiq6r")
