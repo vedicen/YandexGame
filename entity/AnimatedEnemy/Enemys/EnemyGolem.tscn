@@ -8,4 +8,3 @@ ModelScene = ExtResource("2_ct6y0")
 Attack2AnimationScene = null
 CrouchedIdleAnimationScene = null
 CrouchedWalkAnimationScene = null
-ReplicatedAttack = ""

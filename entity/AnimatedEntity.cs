@@ -21,6 +21,14 @@ public partial class AnimatedEntity : Entity
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
 	[Export] public float HealthBarHeight { get; set; } = 2.2f;
 
+	[ExportGroup("Hitboxes")]
+	[Export(PropertyHint.Range, "0.01,1.0,0.01")]
+	public float HeadHitboxRadius { get; set; } = 0.208f;
+	[Export(PropertyHint.Range, "0.01,1.0,0.01")]
+	public float FootHitboxRadius { get; set; } = 0.13f;
+	[Export(PropertyHint.Range, "0.01,1.0,0.01")]
+	public float DefaultHitboxRadius { get; set; } = 0.169f;
+
 	private float _modelBaseRotationY;
 	private float _replicatedModelFacing;
 
@@ -418,6 +426,9 @@ public partial class AnimatedEntity : Entity
 		for (int i = 0; i < _skeleton.GetBoneCount(); i++)
 		{
 			string boneName = _skeleton.GetBoneName(i).ToString();
+			if (!BoneHitbox.ShouldCreateForBone(boneName))
+				continue;
+
 			var attachment = new BoneAttachment3D
 			{
 				Name = $"HitboxAttachment_{i}",
@@ -428,9 +439,18 @@ public partial class AnimatedEntity : Entity
 			{
 				Name = $"Hitbox_{i}"
 			};
-			hitbox.Initialize(this, boneName);
+			hitbox.Initialize(this, boneName, GetBoneHitboxRadius(boneName));
 			attachment.AddChild(hitbox);
 		}
+	}
+
+	private float GetBoneHitboxRadius(string boneName)
+	{
+		if (boneName.Contains("head", System.StringComparison.OrdinalIgnoreCase))
+			return HeadHitboxRadius;
+		if (boneName.Contains("foot", System.StringComparison.OrdinalIgnoreCase))
+			return FootHitboxRadius;
+		return DefaultHitboxRadius;
 	}
 
 	private static Skeleton3D FindSkeleton(Node node)

@@ -19,6 +19,8 @@ background_mode = 2
 sky = SubResource("Sky_2puwf")
 glow_enabled = true
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_eg6r0"]
+
 [node name="BaseScene" type="Node3D" unique_id=944606836]
 script = ExtResource("1_gf1bn")
 PlayerScene = ExtResource("2_ha2ph")
@@ -36,7 +38,7 @@ use_collision = true
 
 [node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D" unique_id=1413355325]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3190918, 0)
-size = Vector3(18.84961, 0.3618164, 18.622803)
+size = Vector3(70.0293, 0.3618164, 76.819336)
 
 [node name="SpawnPoints" type="Node3D" parent="." unique_id=2083836684]
 
@@ -67,10 +69,12 @@ spawn_path = NodePath("../Enemies")
 
 [node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("4_osw8o")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6664872, 1.3076003, 2.3353438)
-HealthBarHeight = 2.2
 
 [node name="entity" parent="." unique_id=1924824913 instance=ExtResource("7_pickup")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.29363656, 0.2711612, 0.48576897)
 
 [node name="Chest" parent="." unique_id=1261187228 instance=ExtResource("6_chest")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.9688804, 0.4, 5.77059)
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=905667666]
+navigation_mesh = SubResource("NavigationMesh_eg6r0")

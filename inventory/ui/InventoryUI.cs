@@ -2,82 +2,96 @@ using Godot;
 
 public partial class InventoryUI : CanvasLayer
 {
+    [Export] public PackedScene InventoryGridScene { get; set; }
+
     public Player Player;
+
     private Control _root;
     private HBoxContainer _grids;
+    private EquipmentSlot _equipmentSlot;
+    private DropZone _dropZone;
     private Chest _chest;
     private bool _dirty;
     private Label _moneyLabel;
+
     public override void _Ready()
     {
         Layer = 10;
-        _root = new PanelContainer();
-        _root.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.035f, 0.05f, 0.08f, 0.96f) });
-        AddChild(_root);
-        _root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        var margin = new MarginContainer();
-        foreach (var side in new[] { "left", "right", "top", "bottom" }) margin.AddThemeConstantOverride("margin_" + side, 18);
-        _root.AddChild(margin);
-        var box = new VBoxContainer();
-        margin.AddChild(box);
-        box.AddChild(new Label { Text = "ИНВЕНТАРЬ    •    ЛКМ: перенос    •    ПКМ: использовать    •    Tab / Esc: закрыть" });
-        _moneyLabel = new Label { Text = $"Деньги: {Player.Money}" };
-        box.AddChild(_moneyLabel);
+        _root = GetNode<Control>("Root");
+        _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/Scroll/Content/Grids");
+        _equipmentSlot = GetNode<EquipmentSlot>("Root/Panel/Margin/VBox/Scroll/Content/EquipmentSlot");
+        _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
+        _dropZone = GetNode<DropZone>("Root/Panel/Margin/VBox/DropZone");
+
+        _dropZone.Player = Player;
+        _equipmentSlot.Bind(Player);
+        _moneyLabel.Text = $"Деньги: {Player.Money}";
         Player.MoneyChanged += UpdateMoney;
-        var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        box.AddChild(scroll);
-        _grids = new HBoxContainer();
-        _grids.AddThemeConstantOverride("separation", 24);
-        scroll.AddChild(_grids);
-        box.AddChild(new DropZone { Player = Player, Text = "↓  Перетащите сюда стак из рюкзака, чтобы выбросить",
-            CustomMinimumSize = new Vector2(0, 56), MouseFilter = Control.MouseFilterEnum.Stop,
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-        var close = new Button { Text = "Закрыть" };
-        close.Pressed += Player.CloseInventory;
-        box.AddChild(close);
         Player.Inventory.Changed += MarkDirty;
-        Player.EquipmentInventory.Changed += MarkDirty;
+        GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Pressed += Player.CloseInventory;
         _root.Hide();
     }
+
     private void MarkDirty() => _dirty = true;
     private void UpdateMoney(int amount) => _moneyLabel.Text = $"Деньги: {amount}";
+
     public void Open(Chest chest)
     {
-        if (_chest != null) _chest.Inventory.Changed -= MarkDirty;
+        if (_chest != null)
+            _chest.Inventory.Changed -= MarkDirty;
+
         _chest = chest;
-        if (_chest != null) _chest.Inventory.Changed += MarkDirty;
+        if (_chest != null)
+            _chest.Inventory.Changed += MarkDirty;
+
         _root.Show();
         MarkDirty();
     }
+
     public void Close()
     {
-        if (_chest != null && GodotObject.IsInstanceValid(_chest)) _chest.Inventory.Changed -= MarkDirty;
+        if (_chest != null && GodotObject.IsInstanceValid(_chest))
+            _chest.Inventory.Changed -= MarkDirty;
+
         _chest = null;
         _root.Hide();
     }
+
     public override void _ExitTree()
     {
-        Player.Inventory.Changed -= MarkDirty;
-        Player.EquipmentInventory.Changed -= MarkDirty;
-        Player.MoneyChanged -= UpdateMoney;
-        if (GodotObject.IsInstanceValid(_chest)) _chest.Inventory.Changed -= MarkDirty;
+        if (Player != null && GodotObject.IsInstanceValid(Player))
+        {
+            Player.Inventory.Changed -= MarkDirty;
+            Player.MoneyChanged -= UpdateMoney;
+        }
+
+        if (GodotObject.IsInstanceValid(_chest))
+            _chest.Inventory.Changed -= MarkDirty;
     }
+
     public override void _Process(double delta)
     {
-        if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging()) return;
+        if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging())
+            return;
+
         _dirty = false;
-        foreach (var child in _grids.GetChildren()) { _grids.RemoveChild(child); child.QueueFree(); }
+        foreach (Node child in _grids.GetChildren())
+        {
+            _grids.RemoveChild(child);
+            child.QueueFree();
+        }
+
         AddGrid("Рюкзак", Player.Inventory);
-        AddGrid("Оружие", Player.EquipmentInventory);
-        if (_chest != null) AddGrid("Сундук", _chest.Inventory);
+        if (_chest != null)
+            AddGrid("Сундук", _chest.Inventory);
     }
+
     private void AddGrid(string title, InventoryComponent inventory)
     {
-        var column = new VBoxContainer();
-        _grids.AddChild(column);
-        column.AddChild(new Label { Text = $"{title} • {inventory.MaxSlots} слотов" });
-        var grid = new GridContainer { Columns = 4 };
-        column.AddChild(grid);
-        for (int i = 0; i < inventory.Slots.Count; i++) grid.AddChild(new ItemUI { Player = Player, Inventory = inventory, Index = i });
+        InventoryGrid grid = InventoryGridScene.Instantiate<InventoryGrid>();
+        grid.Title = title;
+        grid.Inventory = inventory;
+        grid.Player = Player;
+        _grids.AddChild(grid);
     }
 }

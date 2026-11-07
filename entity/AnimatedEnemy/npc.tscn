@@ -12,9 +12,6 @@ TradeItemIds = Array[int]([1, 2, 3])
 ModelTurnSpeed = 10.0
 ReplicatedModelFacing = 0.0
 
-[node name="EnemyAIComponent" parent="." index="2" unique_id=1704726324]
-TargetGroup = ""
-
 [node name="CSGBox3D" type="CSGBox3D" parent="." index="5" unique_id=1332501817]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21948242, 0)
 size = Vector3(1, 1.4389648, 1)

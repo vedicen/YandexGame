@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="9_inventory"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="10_equipment_inventory"]
+[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
 
 [sub_resource type="Resource" id="PotionStack"]
 script = ExtResource("7_swhyu")
@@ -23,6 +24,7 @@ metadata/_custom_type_script = "uid://bllff2lc6g00k"
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
 StartingMoney = 500
+InventoryUIScene = ExtResource("11_inventory_ui")
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
 JumpVelocity = 4.5

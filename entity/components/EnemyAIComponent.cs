@@ -1,13 +1,15 @@
 using Godot;
+using System.Collections.Generic;
 
 public partial class EnemyAIComponent : Node
 {
 	[Export] public float Speed { get; set; } = 3.0f;
 	[Export] public float StopDistance { get; set; } = 1.5f;
 	[Export] public float TurnSpeed { get; set; } = 8.0f;
-	[Export] public string TargetGroup { get; set; } = "players";
+	[Export] public Area3D DetectionArea { get; set; }
 
 	private AnimatedEntity _enemy;
+	private readonly List<Node3D> _targetsInRange = new();
 
 	public override void _Ready()
 	{
@@ -16,6 +18,27 @@ public partial class EnemyAIComponent : Node
 		{
 			GD.PushError("EnemyAIComponent must be a child of an AnimatedEntity.");
 			SetPhysicsProcess(false);
+			return;
+		}
+
+		DetectionArea ??= GetNodeOrNull<Area3D>("../DetectionArea");
+		if (DetectionArea == null)
+		{
+			GD.PushError($"EnemyAIComponent '{GetPath()}' requires a DetectionArea.");
+			SetPhysicsProcess(false);
+			return;
+		}
+
+		DetectionArea.BodyEntered += OnBodyEntered;
+		DetectionArea.BodyExited += OnBodyExited;
+	}
+
+	public override void _ExitTree()
+	{
+		if (GodotObject.IsInstanceValid(DetectionArea))
+		{
+			DetectionArea.BodyEntered -= OnBodyEntered;
+			DetectionArea.BodyExited -= OnBodyExited;
 		}
 	}
 
@@ -24,7 +47,7 @@ public partial class EnemyAIComponent : Node
 		if (_enemy == null || !HasAuthority())
 			return;
 
-		Node3D target = FindNearestTarget();
+		Node3D target = FindNearestTargetInRange();
 		Vector3 velocity = _enemy.Velocity;
 
 		if (!_enemy.IsOnFloor())
@@ -63,15 +86,30 @@ public partial class EnemyAIComponent : Node
 		_enemy.MoveAndSlide();
 	}
 
-	private Node3D FindNearestTarget()
+	private void OnBodyEntered(Node3D body)
+	{
+		if (body is Player && !_targetsInRange.Contains(body))
+			_targetsInRange.Add(body);
+	}
+
+	private void OnBodyExited(Node3D body)
+	{
+		_targetsInRange.Remove(body);
+	}
+
+	private Node3D FindNearestTargetInRange()
 	{
 		Node3D nearestTarget = null;
 		float nearestDistanceSquared = float.MaxValue;
 
-		foreach (Node node in GetTree().GetNodesInGroup(TargetGroup))
+		for (int i = _targetsInRange.Count - 1; i >= 0; i--)
 		{
-			if (node is not Node3D candidate || candidate == _enemy)
+			Node3D candidate = _targetsInRange[i];
+			if (!GodotObject.IsInstanceValid(candidate) || !candidate.IsInsideTree())
+			{
+				_targetsInRange.RemoveAt(i);
 				continue;
+			}
 
 			float distanceSquared = _enemy.GlobalPosition.DistanceSquaredTo(candidate.GlobalPosition);
 			if (distanceSquared >= nearestDistanceSquared)

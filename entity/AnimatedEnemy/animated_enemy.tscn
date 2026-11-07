@@ -5,9 +5,21 @@
 [ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://animations/enemy models/GolemIdle.fbx" id="3_imrdp"]
 [ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_detection"]
+radius = 10.0
+
 [node name="AnimatedEnemy" unique_id=757652966 instance=ExtResource("0_entity")]
 script = ExtResource("1_script")
 ModelScene = ExtResource("3_imrdp")
 
-[node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324]
+[node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324 node_paths=PackedStringArray("DetectionArea")]
 script = ExtResource("8_ai")
+DetectionArea = NodePath("../DetectionArea")
+
+[node name="DetectionArea" type="Area3D" parent="." index="7"]
+position = Vector3(0, 1, 0)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DetectionArea"]
+shape = SubResource("SphereShape3D_detection")

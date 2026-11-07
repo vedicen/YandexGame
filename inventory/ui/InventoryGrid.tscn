@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inventory/ui/InventoryGrid.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://inventory/ui/ItemUI.tscn" id="2_item"]
+
+[node name="InventoryGrid" type="VBoxContainer"]
+script = ExtResource("1_script")
+ItemScene = ExtResource("2_item")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Инвентарь"
+
+[node name="Slots" type="GridContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 4

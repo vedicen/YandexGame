@@ -9,6 +9,7 @@ public partial class Player : AnimatedEntity
     public PlayerStateMachine States { get; private set; }
     public InventoryUI InventoryUI { get; private set; }
     public EquipmentComponent Equipment { get; private set; }
+    [Export] public PackedScene InventoryUIScene { get; set; }
     
     private Chest _openChest;
     private TradingStand _tradingStand;
@@ -81,7 +82,14 @@ public partial class Player : AnimatedEntity
         if (playerInputComponent.HasInputAuthority)
         {
             _camera.Current = true;
-            InventoryUI = new InventoryUI { Player = this };
+            if (InventoryUIScene == null)
+            {
+                GD.PushError("Player requires an InventoryUIScene.");
+                return;
+            }
+
+            InventoryUI = InventoryUIScene.Instantiate<InventoryUI>();
+            InventoryUI.Player = this;
             AddChild(InventoryUI);
             Callable.From(() => InventoryService.Instance?.RequestSnapshot()).CallDeferred();
         }

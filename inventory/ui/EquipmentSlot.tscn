@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inventory/ui/EquipmentSlot.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://inventory/ui/ItemUI.tscn" id="2_item"]
+
+[node name="EquipmentSlot" type="VBoxContainer"]
+script = ExtResource("1_script")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+text = "Оружие"
+
+[node name="WeaponItem" parent="." instance=ExtResource("2_item")]
+layout_mode = 2
+
+[editable path="WeaponItem"]

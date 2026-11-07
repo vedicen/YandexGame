@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://cqddsy6sq22a4"]
+
+[ext_resource type="Script" uid="uid://cxxschykywvgb" path="res://inventory/ui/InventoryUI.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://inventory/ui/InventoryGrid.tscn" id="2_grid"]
+[ext_resource type="Script" uid="uid://dqof51s1y14bt" path="res://inventory/ui/DropZone.cs" id="3_drop_zone"]
+[ext_resource type="PackedScene" path="res://inventory/ui/EquipmentSlot.tscn" id="4_equipment_slot"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.035, 0.05, 0.08, 0.96)
+
+[node name="InventoryUI" type="CanvasLayer" unique_id=1616606305]
+layer = 10
+script = ExtResource("1_script")
+InventoryGridScene = ExtResource("2_grid")
+
+[node name="Root" type="Control" parent="." unique_id=297071502]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Root" unique_id=1003668524]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="Root/Panel" unique_id=854553498]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Root/Panel/Margin" unique_id=430216621]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Root/Panel/Margin/VBox" unique_id=1237117483]
+layout_mode = 2
+text = "ИНВЕНТАРЬ    •    ЛКМ: перенос    •    ПКМ: использовать    •    Tab / Esc: закрыть"
+
+[node name="MoneyLabel" type="Label" parent="Root/Panel/Margin/VBox" unique_id=517788685]
+layout_mode = 2
+text = "Деньги: 0"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox" unique_id=2081671602]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Content" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Scroll" unique_id=1989173522]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="EquipmentSlot" parent="Root/Panel/Margin/VBox/Scroll/Content" unique_id=1752905461 instance=ExtResource("4_equipment_slot")]
+layout_mode = 2
+
+[node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Scroll/Content" unique_id=1861324895]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="DropZone" type="Label" parent="Root/Panel/Margin/VBox" unique_id=82816438]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+mouse_filter = 0
+text = "↓  Перетащите сюда стак из рюкзака, чтобы выбросить"
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("3_drop_zone")
+
+[node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox" unique_id=1590783734]
+layout_mode = 2
+text = "Закрыть"
