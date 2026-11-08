@@ -99,7 +99,7 @@ public partial class ItemUI : PanelContainer
         if (Inventory == null || !IsStackDrag(data))
             return false;
 
-        if (Inventory == Player?.EquipmentInventory)
+        if (Inventory == Player?.Equipment)
         {
             var drag = data.AsGodotDictionary();
             return drag.ContainsKey("is_weapon") && drag["is_weapon"].AsBool();

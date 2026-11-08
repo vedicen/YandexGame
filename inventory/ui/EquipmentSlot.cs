@@ -14,21 +14,21 @@ public partial class EquipmentSlot : VBoxContainer
     public void Bind(Player player)
     {
         if (_player != null && GodotObject.IsInstanceValid(_player))
-            _player.EquipmentInventory.Changed -= UpdateSlot;
+            _player.Equipment.Changed -= UpdateSlot;
 
         _player = player;
-        _player.EquipmentInventory.Changed += UpdateSlot;
+        _player.Equipment.Changed += UpdateSlot;
         UpdateSlot();
     }
 
     public override void _ExitTree()
     {
         if (_player != null && GodotObject.IsInstanceValid(_player))
-            _player.EquipmentInventory.Changed -= UpdateSlot;
+            _player.Equipment.Changed -= UpdateSlot;
     }
 
     private void UpdateSlot()
     {
-        _item.Bind(_player, _player.EquipmentInventory, 0);
+        _item.Bind(_player, _player.Equipment, 0);
     }
 }

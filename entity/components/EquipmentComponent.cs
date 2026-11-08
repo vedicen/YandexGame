@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-public partial class EquipmentComponent : Node
+public partial class EquipmentComponent : InventoryComponent
 {
     public enum Slot
     {
@@ -25,6 +25,7 @@ public partial class EquipmentComponent : Node
 
     public override void _Ready()
     {
+        base._Ready();
         Callable.From(InitializePendingEquipment).CallDeferred();
     }
 

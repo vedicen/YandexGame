@@ -66,7 +66,6 @@ public partial class AnimatedEntity : Entity
 	private Skeleton3D _skeleton;
 	private CombatStatsComponent _combatStats;
 	public InventoryComponent Inventory { get; private set; }
-	public InventoryComponent EquipmentInventory { get; private set; }
 	public EquipmentComponent Equipment => _equipmentComponent;
 	public CombatStatsComponent CombatStats => _combatStats;
 	public Weapon EquippedWeapon => _equipmentComponent?.EquippedWeapon;
@@ -633,14 +632,13 @@ public partial class AnimatedEntity : Entity
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
 		Inventory = GetNodeOrNull<InventoryComponent>("InventoryComponent");
-		EquipmentInventory = GetNodeOrNull<InventoryComponent>("EquipmentInventory");
-		if (Inventory == null || EquipmentInventory == null)
+		if (Inventory == null || _equipmentComponent == null)
 		{
-			GD.PushError($"AnimatedEntity '{Name}' requires InventoryComponent and EquipmentInventory children.");
+			GD.PushError($"AnimatedEntity '{Name}' requires InventoryComponent and EquipmentComponent children.");
 			return;
 		}
 
-		EquipmentInventory.Changed += OnEquipmentInventoryChanged;
+		_equipmentComponent.Changed += OnEquipmentChanged;
 		_combatStats = GetNodeOrNull<CombatStatsComponent>("CombatStatsComponent");
 		AddToGroup("animated_entities");
 		if (Health != null)
@@ -655,14 +653,14 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
-		if (EquipmentInventory.Valid(0) && EquipmentInventory.Slots[0] == null && StartingWeapon != null)
+		if (_equipmentComponent.Valid(0) && _equipmentComponent.Slots[0] == null && StartingWeapon != null)
 		{
-			EquipmentInventory.Slots[0] = new Stack { Item = StartingWeapon, ItemCount = 1 };
-			EquipmentInventory.NotifyChanged();
+			_equipmentComponent.Slots[0] = new Stack { Item = StartingWeapon, ItemCount = 1 };
+			_equipmentComponent.NotifyChanged();
 		}
 		else
 		{
-			OnEquipmentInventoryChanged();
+			OnEquipmentChanged();
 		}
 		GenerateBoneHitboxes();
 		EquipDefaultFootwear();
@@ -703,10 +701,10 @@ public partial class AnimatedEntity : Entity
 		ApplyBowState(_replicatedBowState);
 	}
 
-	private void OnEquipmentInventoryChanged()
+	private void OnEquipmentChanged()
 	{
-		Stack weaponStack = EquipmentInventory?.Valid(0) == true
-			? EquipmentInventory.Slots[0]
+		Stack weaponStack = _equipmentComponent?.Valid(0) == true
+			? _equipmentComponent.Slots[0]
 			: null;
 		if (weaponStack == null)
 		{
@@ -762,7 +760,7 @@ public partial class AnimatedEntity : Entity
 
 	public bool TryEquipWeaponFromInventory(int inventorySlot)
 	{
-		if (Inventory == null || EquipmentInventory?.Valid(0) != true ||
+		if (Inventory == null || _equipmentComponent?.Valid(0) != true ||
 			!Inventory.Valid(inventorySlot) ||
 			Inventory.Slots[inventorySlot]?.Item is not Weapon weapon)
 			return false;
@@ -773,21 +771,21 @@ public partial class AnimatedEntity : Entity
 			return false;
 		}
 
-		return Inventory.Transfer(inventorySlot, EquipmentInventory, 0);
+		return Inventory.Transfer(inventorySlot, _equipmentComponent, 0);
 	}
 
 	public bool TryStowEquippedRangedWeaponWithoutAmmo()
 	{
 		if (EquippedWeapon is not RangedWeapon bow ||
 			HasProjectileInInventory(bow.RequiredProjectile) ||
-			Inventory == null || EquipmentInventory?.Valid(0) != true ||
+			Inventory == null || _equipmentComponent?.Valid(0) != true ||
 			!Inventory.CanAdd(bow, 1))
 			return false;
 
 		if (Inventory.Add(bow, 1) != 0)
 			return false;
-		EquipmentInventory.Slots[0] = null;
-		EquipmentInventory.NotifyChanged();
+		_equipmentComponent.Slots[0] = null;
+		_equipmentComponent.NotifyChanged();
 		return true;
 	}
 
@@ -904,8 +902,8 @@ public partial class AnimatedEntity : Entity
 
 	public override void _ExitTree()
 	{
-		if (GodotObject.IsInstanceValid(EquipmentInventory))
-			EquipmentInventory.Changed -= OnEquipmentInventoryChanged;
+		if (GodotObject.IsInstanceValid(_equipmentComponent))
+			_equipmentComponent.Changed -= OnEquipmentChanged;
 		if (Health != null)
 		{
 			Health.HealthChanged -= UpdateHealthBar;
@@ -1115,6 +1113,13 @@ public partial class AnimatedEntity : Entity
 	public void PlayRun() => SetAnimationState("Run");
 	public void PlayJumping() => SetAnimationState("Jumping");
 	public void PlayRunWithSword() => SetAnimationState("RunWithSword");
+	public void PlayRunForEquippedWeapon()
+	{
+		if (EquippedWeapon is MeleeWeapon && _animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "RunWithSword") == true)
+			PlayRunWithSword();
+		else
+			PlayRun();
+	}
 	public void PlayCrouchedIdle() => SetAnimationState(
 		_animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "CrouchedIdle") == true
 			? "CrouchedIdle"

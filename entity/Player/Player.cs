@@ -59,7 +59,7 @@ public partial class Player : AnimatedEntity
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
         GD.Print($"[BowDebug] Player ready: player={Name}, inputAuthority={playerInputComponent?.HasInputAuthority}, " +
             $"inputEnabled={playerInputComponent?.IsInputEnabled}, inventorySlots={Inventory?.Slots?.Count ?? 0}, " +
-            $"equipmentSlots={EquipmentInventory?.Slots?.Count ?? 0}.");
+            $"equipmentSlots={Equipment?.Slots?.Count ?? 0}.");
         Money = StartingMoney;
         States = new PlayerStateMachine { Name = "States" };
         AddChild(States);
@@ -194,7 +194,7 @@ public partial class Player : AnimatedEntity
         }
         else if (running)
         {
-            PlayRun();
+            PlayRunForEquippedWeapon();
         }
         else
         {

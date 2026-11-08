@@ -5,6 +5,9 @@ public partial class AnimatedEnemy : AnimatedEntity
 {
     private static uint _nextLootChestId;
 
+    public EnemyInventoryManager InventoryManager =>
+        GetNodeOrNull<EnemyInventoryManager>("EnemyInventoryManager");
+
     public override void OnDied()
     {
         if (!Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer())
@@ -17,9 +20,9 @@ public partial class AnimatedEnemy : AnimatedEntity
     {
         var loot = new List<Stack>();
         AddInventoryLoot(Inventory, loot);
-        AddInventoryLoot(EquipmentInventory, loot);
+        AddInventoryLoot(Equipment, loot);
         GD.Print($"[Loot] Enemy died: {Name}, inventory slots={Inventory?.Slots?.Count ?? 0}, " +
-            $"equipment slots={EquipmentInventory?.Slots?.Count ?? 0}, loot stacks={loot.Count}.");
+            $"equipment slots={Equipment?.Slots?.Count ?? 0}, loot stacks={loot.Count}.");
         if (loot.Count == 0)
         {
             GD.PushWarning($"[Loot] No loot to spawn for '{Name}'.");

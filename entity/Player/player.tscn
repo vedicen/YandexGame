@@ -11,7 +11,10 @@
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
 
-[sub_resource type="Resource" id="Resource_xqki4"]
+[sub_resource type="Resource" id="Resource_vjnli"]
+script = ExtResource("7_swhyu")
+Item = ExtResource("9_rt8ta")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="Resource" id="PotionStack"]
 script = ExtResource("7_swhyu")
@@ -29,11 +32,6 @@ script = ExtResource("7_swhyu")
 Item = ExtResource("9_8uuv0")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
-[sub_resource type="Resource" id="Resource_vjnli"]
-script = ExtResource("7_swhyu")
-Item = ExtResource("9_rt8ta")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
 InventoryUIScene = ExtResource("11_inventory_ui")
@@ -48,7 +46,6 @@ MaxPitch = 60.0
 Race = 1
 Skills = Array[int]([])
 ModelScene = ExtResource("3_xqki4")
-Task = SubResource("Resource_xqki4")
 
 [node name="PlayerInputComponent" parent="." index="1" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
 
@@ -102,11 +99,11 @@ grow_vertical = 2
 mouse_filter = 2
 mouse_behavior_recursive = 1
 
+[node name="EquipmentComponent" parent="." index="4" unique_id=2078828129]
+Slots = Array[ExtResource("7_swhyu")]([SubResource("Resource_vjnli")])
+
 [node name="HealthComponent" parent="." index="7" unique_id=1182051469]
 MaxHealth = 1000.0
 
 [node name="InventoryComponent" parent="." index="9" unique_id=209800001]
 Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb")])
-
-[node name="EquipmentInventory" parent="." index="10" unique_id=209800002]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("Resource_vjnli")])

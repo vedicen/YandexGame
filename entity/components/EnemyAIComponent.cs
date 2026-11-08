@@ -432,10 +432,7 @@ public partial class EnemyAIComponent : Node
             direction.Z * MoveSpeed);
         _owner.FaceMoveDirection(direction);
 
-        if (_owner.EquippedWeapon is MeleeWeapon)
-            _owner.PlayRunWithSword();
-        else
-            _owner.PlayRun();
+        _owner.PlayRunForEquippedWeapon();
     }
 
     private void TryAttack(Entity target)

@@ -315,32 +315,47 @@ public partial class InventoryService : Node
         Item item = pickup.Slot.Item;
         if (item is Weapon weapon)
         {
-            if (!entity.IsWeaponUpgrade(weapon) || !entity.Inventory.CanAdd(item, 1))
-                return false;
-
-            if (entity.Inventory.Add(item, 1) != 0)
-                return false;
-
-            int weaponSlot = -1;
-            for (int i = 0; i < entity.Inventory.Slots.Count; i++)
-                if (entity.Inventory.Slots[i]?.Item == item)
-                {
-                    weaponSlot = i;
-                    break;
-                }
-
-            if (weaponSlot < 0 || !entity.TryEquipWeaponFromInventory(weaponSlot))
+            if (entity is AnimatedEnemy enemy)
             {
-                if (weaponSlot >= 0)
+                EnemyInventoryManager manager = enemy.InventoryManager;
+                if (manager == null)
                 {
-                    entity.Inventory.Slots[weaponSlot] = null;
-                    entity.Inventory.NotifyChanged();
+                    GD.PushError($"InventoryService: '{enemy.Name}' has no EnemyInventoryManager.");
+                    return false;
                 }
-                GD.PushError($"InventoryService: failed to equip picked-up weapon '{item.DisplayName}' for '{entity.Name}'.");
-                return false;
-            }
 
-            pickup.Slot.ItemCount--;
+                if (!manager.TryHandleWeaponPickup(pickup))
+                    return false;
+            }
+            else
+            {
+                if (!entity.IsWeaponUpgrade(weapon) || !entity.Inventory.CanAdd(item, 1))
+                    return false;
+
+                if (entity.Inventory.Add(item, 1) != 0)
+                    return false;
+
+                int weaponSlot = -1;
+                for (int i = 0; i < entity.Inventory.Slots.Count; i++)
+                    if (entity.Inventory.Slots[i]?.Item == item)
+                    {
+                        weaponSlot = i;
+                        break;
+                    }
+
+                if (weaponSlot < 0 || !entity.TryEquipWeaponFromInventory(weaponSlot))
+                {
+                    if (weaponSlot >= 0)
+                    {
+                        entity.Inventory.Slots[weaponSlot] = null;
+                        entity.Inventory.NotifyChanged();
+                    }
+                    GD.PushError($"InventoryService: failed to equip picked-up weapon '{item.DisplayName}' for '{entity.Name}'.");
+                    return false;
+                }
+
+                pickup.Slot.ItemCount--;
+            }
         }
         else
         {
@@ -349,7 +364,7 @@ public partial class InventoryService : Node
             if (pickup.Slot.ItemCount == previousCount)
                 return false;
 
-            if (item is WeaponProjectile)
+            if (item is WeaponProjectile && entity is not AnimatedEnemy)
                 entity.TryAutoEquipRangedWeaponWithAmmo();
         }
 
@@ -409,7 +424,7 @@ public partial class InventoryService : Node
     private InventoryComponent Resolve(Player player, string path)
     {
         if (path == player.Inventory.GetPath().ToString()) return player.Inventory;
-        if (path == player.EquipmentInventory.GetPath().ToString()) return player.EquipmentInventory;
+        if (path == player.Equipment.GetPath().ToString()) return player.Equipment;
         if (_sessions.TryGetValue(player.GetMultiplayerAuthority(), out var chestPath))
         {
             var chest = GetNodeOrNull<Chest>(chestPath);
@@ -446,8 +461,8 @@ public partial class InventoryService : Node
             case "move":
                 var destination = Resolve(player, target);
                 if (destination == null || !destination.Valid(to)) return;
-                bool sourceIsWeaponSlot = inventory == player.EquipmentInventory;
-                bool targetIsWeaponSlot = destination == player.EquipmentInventory;
+                bool sourceIsWeaponSlot = inventory == player.Equipment;
+                bool targetIsWeaponSlot = destination == player.Equipment;
                 Item movingItem = slot.Item;
                 Item targetItem = destination.Slots[to]?.Item;
                 if (sourceIsWeaponSlot && movingItem is not Weapon ||
@@ -462,7 +477,7 @@ public partial class InventoryService : Node
                 inventory.NotifyChanged();
                 break;
             case "drop":
-                if (inventory != player.Inventory && inventory != player.EquipmentInventory) return;
+                if (inventory != player.Inventory && inventory != player.Equipment) return;
                 var pickup = GD.Load<PackedScene>("res://entity/interact/PickUp_obj.tscn").Instantiate<PickUpObj>();
                 pickup.Name = $"Drop_{++_nextDrop}";
                 pickup.Slot = slot.Copy();

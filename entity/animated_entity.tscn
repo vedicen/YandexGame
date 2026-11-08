@@ -10,14 +10,13 @@
 [ext_resource type="PackedScene" uid="uid://bqlht5i28pma4" path="res://animations/Crouch Idle.fbx" id="8_oxu6r"]
 [ext_resource type="PackedScene" uid="uid://ihix5qbmp1lc" path="res://animations/Crouched Walking.fbx" id="9_vqaqr"]
 [ext_resource type="PackedScene" uid="uid://hofg8ek5b7mo" path="res://animations/Jumping.fbx" id="10_jumping"]
-[ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/equipment_component.cs" id="10_yrrmq"]
+[ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/EquipmentComponent.cs" id="10_yrrmq"]
 [ext_resource type="Script" uid="uid://btyu6mcn5yv45" path="res://entity/components/CombatStatsComponent.cs" id="11_combat"]
 [ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="12_2dmw2"]
 [ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="13_bow_pull"]
 [ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="14_bow_hold"]
 [ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="15_bow_shoot"]
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="16_inventory"]
-[ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="17_equipment_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_animated_entity"]
 properties/0/path = NodePath(".:position")
@@ -47,6 +46,8 @@ properties/7/replication_mode = 2
 
 [node name="AnimatedEntity" unique_id=1252529603 node_paths=PackedStringArray("Health") instance=ExtResource("1_entity")]
 script = ExtResource("2_uiq6r")
+Race = 0
+Skills = null
 ModelScene = null
 StartingWeapon = null
 IdleAnimationScene = ExtResource("3_osnle")
@@ -93,5 +94,3 @@ script = ExtResource("11_combat")
 replication_config = SubResource("SceneReplicationConfig_animated_entity")
 
 [node name="InventoryComponent" parent="." index="6" unique_id=209800001 instance=ExtResource("16_inventory")]
-
-[node name="EquipmentInventory" parent="." index="7" unique_id=209800002 instance=ExtResource("17_equipment_inventory")]

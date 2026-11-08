@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="4_nlck5"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="6_g0di7"]
 [ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]
+[ext_resource type="Script" uid="uid://bc15irb83uw7d" path="res://entity/components/EnemyInventoryManager.cs" id="9_inventory_manager"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_detection"]
 radius = 15.0
@@ -39,3 +40,6 @@ shape = SubResource("SphereShape3D_detection")
 
 [node name="InventoryComponent" parent="." index="9" unique_id=209800001]
 Slots = Array[ExtResource("6_g0di7")]([SubResource("Resource_g0di7")])
+
+[node name="EnemyInventoryManager" type="Node" parent="." index="10" unique_id=693652271]
+script = ExtResource("9_inventory_manager")
