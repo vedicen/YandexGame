@@ -50,6 +50,12 @@ public partial class SwordTrail : MeshInstance3D
 
     }
 
+    public void SetTrailShader(Shader shader)
+    {
+        if (shader != null && MaterialOverride is ShaderMaterial material)
+            material.Shader = shader;
+    }
+
     public void BeginTrail()
     {
 

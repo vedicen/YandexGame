@@ -4,6 +4,7 @@ using Godot;
 public partial class WeaponScene : Node3D
 {
     [Export] public PackedScene ModelScene { get; set; }
+    public Shader TrailShader { get; set; }
 
     [Export] public NodePath BladeBasePath { get; set; }
         = new("BladeBase");
@@ -55,7 +56,7 @@ public partial class WeaponScene : Node3D
             return;
         }
         _trail.Configure(bladeBase, bladeTip);
-        _trail.Configure(bladeBase, bladeTip);
+        _trail.SetTrailShader(TrailShader);
     }
 
     public void ConfigureCombat(

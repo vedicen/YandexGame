@@ -101,7 +101,7 @@ spawn_path = NodePath("../Enemies")
 
 [node name="EnemyGolem" parent="Enemies" unique_id=757652966 instance=ExtResource("4_osw8o")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.301863, 1.3076003, -9.85594)
-Skills = Array[int]([2])
+Skills = Array[int]([2, 1])
 
 [node name="CollisionShape3D" parent="Enemies/EnemyGolem" index="0" unique_id=772218702]
 script = null

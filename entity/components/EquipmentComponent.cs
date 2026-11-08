@@ -289,6 +289,8 @@ public partial class EquipmentComponent : InventoryComponent
 
         WeaponScene instance = weaponScene.Instantiate<WeaponScene>();
         instance.ModelScene = weapon.WeaponModel;
+        if (weapon is MeleeWeapon meleeWeapon)
+            instance.TrailShader = meleeWeapon.TrailShader;
         instance.Position = weapon.EquipPosition;
         instance.RotationDegrees = weapon.EquipRotationDegrees;
         instance.Scale = weapon.EquipScale;

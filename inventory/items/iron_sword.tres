@@ -1,13 +1,16 @@
 [gd_resource type="Resource" script_class="Sword" format=3 uid="uid://qid0evaa6tng"]
 
 [ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="1_sword"]
-[ext_resource type="PackedScene" path="res://inventory/models/sword_model.tscn" id="2_model"]
+[ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_model"]
+[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/fireslash.gdshader" id="2_xrspx"]
 
 [resource]
 script = ExtResource("1_sword")
+TrailShader = ExtResource("2_xrspx")
 WeaponModel = ExtResource("2_model")
 DisplayName = "Железный меч"
 Description = "Простой одноручный меч из железа. Надёжный и недорогой."
 Model = ExtResource("2_model")
 MaxStackSize = 1
 Weight = 2.0
+Rarity = 3
