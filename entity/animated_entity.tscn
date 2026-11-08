@@ -16,6 +16,8 @@
 [ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="13_bow_pull"]
 [ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="14_bow_hold"]
 [ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="15_bow_shoot"]
+[ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="16_inventory"]
+[ext_resource type="PackedScene" path="res://inventory/equipment_inventory.tscn" id="17_equipment_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_animated_entity"]
 properties/0/path = NodePath(".:position")
@@ -89,3 +91,7 @@ script = ExtResource("11_combat")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="5" unique_id=110891255]
 replication_config = SubResource("SceneReplicationConfig_animated_entity")
+
+[node name="InventoryComponent" parent="." index="6" unique_id=209800001 instance=ExtResource("16_inventory")]
+
+[node name="EquipmentInventory" parent="." index="7" unique_id=209800002 instance=ExtResource("17_equipment_inventory")]

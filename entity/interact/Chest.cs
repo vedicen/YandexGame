@@ -8,5 +8,14 @@ public partial class Chest : interact_obj
         base._Ready();
         Inventory = GetNode<InventoryComponent>("InventoryComponent");
     }
-    public override void interact(Player player) => InventoryService.Instance?.Send("open", player, GetPath());
+    public override void interact(Player player)
+    {
+        if (InventoryService.Instance == null)
+        {
+            GD.PushError("Cannot open chest: InventoryService is unavailable.");
+            return;
+        }
+
+        InventoryService.Instance.Send("open", player, GetPath());
+    }
 }

@@ -40,7 +40,7 @@ public partial class SwordTrail : MeshInstance3D
             Shader = GD.Load<Shader>("res://VFX/SlashTrail.gdshader")
         };
 
-        GD.Print($"[SwordTrail] Ready: {GetPath()}");
+
     }
 
     public void Configure(Node3D bladeBase, Node3D bladeTip)
@@ -48,14 +48,11 @@ public partial class SwordTrail : MeshInstance3D
         _bladeBase = bladeBase;
         _bladeTip = bladeTip;
 
-        GD.Print(
-            $"[SwordTrail] Configure: Base={_bladeBase != null}, Tip={_bladeTip != null}"
-        );
     }
 
     public void BeginTrail()
     {
-        GD.Print("[SwordTrail] BeginTrail called");
+
 
         if (_bladeBase == null || _bladeTip == null)
         {
@@ -68,12 +65,12 @@ public partial class SwordTrail : MeshInstance3D
 
         AddPoint();
 
-        GD.Print($"[SwordTrail] Recording started: {_points.Count} points");
+
     }
 
     public void EndTrail()
     {
-        GD.Print("[SwordTrail] EndTrail");
+
         _recording = false;
     }
 
@@ -114,8 +111,8 @@ public partial class SwordTrail : MeshInstance3D
         while (_points.Count > MaxPoints)
             _points.RemoveAt(0);
 
-        if (_recording)
-            GD.Print($"[SwordTrail] Point added: {_points.Count}");
+
+
     }
 
     private void UpdateAges(float delta)
@@ -199,6 +196,6 @@ public partial class SwordTrail : MeshInstance3D
             arrays
         );
 
-        GD.Print($"[SwordTrail] Mesh generated: {count} points");
+
     }
 }

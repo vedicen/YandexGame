@@ -3,459 +3,340 @@ using System.Collections.Generic;
 
 public partial class EnemyAIComponent : Node
 {
-	[Export] public float Speed { get; set; } = 3.0f;
-	[Export] public float StopDistance { get; set; } = 0.4f;
-	[Export] public float MeleeAttackRange { get; set; } = 1.2f;
-	[Export] public float MeleeAttackCooldown { get; set; } = 1.2f;
-	[Export] public float RangedMinimumDistance { get; set; } = 10.0f;
-	[Export] public float RangedAttackRange { get; set; } = 20.0f;
-	[Export] public float RangedChargeTime { get; set; } = 0.8f;
-	[Export] public float RangedAttackCooldown { get; set; } = 2.0f;
-	[Export] public float RangedShotRecoveryTime { get; set; } = 0.8f;
-	[Export] public float RangedAimLowerOffset { get; set; } = 1.5f;
-	[Export] public float TurnSpeed { get; set; } = 8.0f;
-	[Export] public Area3D DetectionArea { get; set; }
-	[Export] public bool DebugLogging { get; set; }
+    [Export] public Area3D DetectionArea { get; set; }
+    [Export] public float MoveSpeed { get; set; } = 3.5f;
+    [Export] public float CollectionRange { get; set; } = 1.25f;
+    [Export] public float AttackRange { get; set; } = 1.6f;
+    [Export] public double RescanInterval { get; set; } = 0.5;
 
-	private AnimatedEntity _enemy;
-	private NavigationAgent3D _navigationAgent;
-	private readonly List<Node3D> _targetsInRange = new();
-	private float _meleeAttackCooldown;
-	private float _rangedAttackCooldown;
-	private float _rangedChargeElapsed;
-	private float _rangedChargeDuration;
-	private float _rangedShotRecoveryRemaining;
-	private int _nextProjectileId;
-	private float _locomotionChangeCooldown;
-	private string _lastLocomotionAnimation = "";
-	private Vector3 _lastNavigationTarget;
-	private bool _hasNavigationTarget;
-	private float _debugTimer;
-	private bool _loggedNoAuthority;
+    private AnimatedEntity _owner;
+    private NavigationAgent3D _navigationAgent;
+    private double _rescanTimer;
+    private double _attackCooldown;
+    private AITask _activeTask;
 
-	public override void _Ready()
-	{
-		_enemy = GetParent() as AnimatedEntity;
-		if (_enemy == null)
-		{
-			GD.PushError("EnemyAIComponent must be a child of an AnimatedEntity.");
-			SetPhysicsProcess(false);
-			return;
-		}
+    private readonly List<AITask> _tasks = new();
 
-		_enemy.SetPhysicsProcess(false);
+    public IReadOnlyList<AITask> Tasks => _tasks;
 
-		if (Speed <= 0f)
-			GD.PushWarning($"[EnemyAI] {_enemy.Name}: Speed = {Speed}. Враг не сможет двигаться (проверь значение в инспекторе).");
+    public override void _Ready()
+    {
+        _owner = GetParent() as AnimatedEntity;
+        if (_owner == null)
+        {
+            GD.PushError("EnemyAIComponent must be a child of AnimatedEntity.");
+            return;
+        }
 
-		DetectionArea ??= GetNodeOrNull<Area3D>("../DetectionArea");
-		if (DetectionArea == null)
-		{
-			GD.PushError($"EnemyAIComponent '{GetPath()}' requires a DetectionArea.");
-			SetPhysicsProcess(false);
-			return;
-		}
+        if (DetectionArea == null)
+        {
+            GD.PushError("DetectionArea is not assigned.");
+            return;
+        }
 
-		DetectionArea.BodyEntered += OnBodyEntered;
-		DetectionArea.BodyExited += OnBodyExited;
-		_navigationAgent = GetNodeOrNull<NavigationAgent3D>("../NavigationAgent3D");
-		if (_navigationAgent != null)
-		{
-			_navigationAgent.PathDesiredDistance = 0.5f;
-			_navigationAgent.TargetDesiredDistance = StopDistance;
-		}
-	}
+        _navigationAgent = _owner.GetNodeOrNull<NavigationAgent3D>("NavigationAgent3D");
+        if (_navigationAgent == null)
+            GD.PushWarning($"Enemy '{_owner.Name}' has no NavigationAgent3D; AI will move directly toward tasks.");
 
-	public override void _ExitTree()
-	{
-		if (GodotObject.IsInstanceValid(DetectionArea))
-		{
-			DetectionArea.BodyEntered -= OnBodyEntered;
-			DetectionArea.BodyExited -= OnBodyExited;
-		}
-	}
+        DetectionArea.BodyEntered += OnBodyEntered;
+    }
 
-	public override void _PhysicsProcess(double delta)
-	{
-		if (_enemy == null)
-			return;
+    public override void _ExitTree()
+    {
+        if (DetectionArea != null && IsInstanceValid(DetectionArea))
+            DetectionArea.BodyEntered -= OnBodyEntered;
 
-		if (!HasAuthority())
-		{
-			if (DebugLogging && !_loggedNoAuthority)
-			{
-				_loggedNoAuthority = true;
-				GD.Print($"[EnemyAI] {_enemy.Name}: нет авторитета на этом пире " +
-					$"(server={Multiplayer.IsServer()}, authority={_enemy.GetMultiplayerAuthority()}, " +
-					$"local={Multiplayer.GetUniqueId()}). AI здесь не работает.");
-			}
-			return;
-		}
+        ReleaseActiveTask(completed: false);
+    }
 
-		_meleeAttackCooldown = Mathf.Max(0, _meleeAttackCooldown - (float)delta);
-		_rangedAttackCooldown = Mathf.Max(0, _rangedAttackCooldown - (float)delta);
-		_locomotionChangeCooldown = Mathf.Max(0, _locomotionChangeCooldown - (float)delta);
-		Node3D target = FindNearestTargetInRange();
-		bool hasMeleeWeapon = _enemy.EquippedWeapon is MeleeWeapon;
-		RangedWeapon rangedWeapon = _enemy.EquippedWeapon as RangedWeapon;
-		Vector3 velocity = _enemy.Velocity;
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_owner == null || DetectionArea == null || !IsServerAuthority())
+            return;
 
-		if (!_enemy.IsOnFloor())
-			velocity += _enemy.GetGravity() * (float)delta;
+        _attackCooldown = Mathf.Max(0.0, _attackCooldown - delta);
 
-		float distance = -1f;
-		bool inMeleeRange = false;
-		bool inRangedAttackRange = false;
-		bool shouldStop = true;
-		string navInfo = "n/a";
+        _rescanTimer -= delta;
+        if (_rescanTimer <= 0.0)
+        {
+            _rescanTimer = RescanInterval;
+            RescanTargets();
+        }
 
-		if (target == null)
-		{
-			StopHorizontalMovement(ref velocity, (float)delta);
-			CancelRangedCharge();
-			UpdateLocomotionAnimation("Idle");
-		}
-		else
-		{
-			Vector3 offset = target.GlobalPosition - _enemy.GlobalPosition;
-			offset.Y = 0;
-			distance = offset.Length();
-			inMeleeRange = hasMeleeWeapon && distance <= MeleeAttackRange;
-			inRangedAttackRange = rangedWeapon != null &&
-				distance >= RangedMinimumDistance &&
-				distance <= RangedAttackRange;
-			shouldStop = distance <= StopDistance || inMeleeRange;
+        if (!IsTaskTargetValid(_activeTask))
+        {
+            ReleaseActiveTask(completed: false);
+            StopMoving();
+            return;
+        }
 
-			if (rangedWeapon != null)
-			{
-				if (distance < RangedMinimumDistance)
-				{
-					Vector3 retreatDirection = -offset.Normalized();
-					velocity.X = retreatDirection.X * Speed;
-					velocity.Z = retreatDirection.Z * Speed;
-					shouldStop = false;
-					CancelRangedCharge();
-				}
-				else if (distance > RangedAttackRange)
-				{
-					Vector3 direction = GetMovementDirection(target, offset, out navInfo);
-					velocity.X = direction.X * Speed;
-					velocity.Z = direction.Z * Speed;
-					shouldStop = false;
-					CancelRangedCharge();
-				}
-				else
-				{
-					StopHorizontalMovement(ref velocity, (float)delta);
-					shouldStop = true;
-					ProcessRangedAttack(rangedWeapon, target, (float)delta);
-				}
-			}
-			else if (shouldStop)
-			{
-				StopHorizontalMovement(ref velocity, (float)delta);
-			}
-			else
-			{
-				Vector3 direction = GetMovementDirection(target, offset, out navInfo);
-				velocity.X = direction.X * Speed;
-				velocity.Z = direction.Z * Speed;
-			}
+        ProcessActiveTask(delta);
+    }
 
-			if (distance > 0.001f)
-			{
-				Vector3 direction = offset.Normalized();
-				float targetRotation = Mathf.Atan2(-direction.X, -direction.Z);
-				Vector3 rotation = _enemy.Rotation;
-				rotation.Y = Mathf.LerpAngle(rotation.Y, targetRotation,
-					Mathf.Clamp(TurnSpeed * (float)delta, 0, 1));
-				_enemy.Rotation = rotation;
-			}
+    private void OnBodyEntered(Node3D body)
+    {
+        if (body is Entity && IsServerAuthority())
+            RescanTargets();
+    }
 
-			if (rangedWeapon == null && inMeleeRange)
-			{
-				if (string.IsNullOrEmpty(_enemy.ReplicatedAttack) && _meleeAttackCooldown <= 0)
-				{
-					_enemy.PlayAttack1();
-					_meleeAttackCooldown = MeleeAttackCooldown;
-				}
-			}
+    private void RescanTargets()
+    {
+        AnimatedEntity hostile = FindVisibleHostile();
+        if (hostile != null)
+        {
+            if (_activeTask?.Data.Type != TaskData.TaskTypes.Kill ||
+                !ReferenceEquals(_activeTask.Target, hostile))
+            {
+                ReleaseActiveTask(completed: false);
+                AssignKillTask(hostile);
+            }
 
-			UpdateLocomotionAnimation(shouldStop ? "Idle" : "Run");
-		}
+            return;
+        }
 
-		Vector3 positionBefore = _enemy.GlobalPosition;
-		_enemy.Velocity = velocity;
-		_enemy.MoveAndSlide();
+        if (_activeTask != null)
+            return;
 
-		if (DebugLogging)
-		{
-			_debugTimer -= (float)delta;
-			if (_debugTimer <= 0f)
-			{
-				_debugTimer = 0.5f;
-				float moved = positionBefore.DistanceTo(_enemy.GlobalPosition);
-				string collisions = "none";
-				int collisionCount = _enemy.GetSlideCollisionCount();
-				if (collisionCount > 0)
-				{
-					var parts = new List<string>();
-					for (int i = 0; i < collisionCount; i++)
-					{
-						KinematicCollision3D collision = _enemy.GetSlideCollision(i);
-						Node collider = collision.GetCollider() as Node;
-						parts.Add($"{(collider != null ? collider.GetPath().ToString() : "?")} " +
-							$"(layer={(collider is CollisionObject3D co ? co.CollisionLayer : 0)}, normal={collision.GetNormal()})");
-					}
-					collisions = string.Join("; ", parts);
-				}
-				GD.Print($"[EnemyAI] {_enemy.Name}: target={(target != null ? target.Name.ToString() : "<none>")}, " +
-					$"dist={distance:F2}, melee={hasMeleeWeapon}, ranged={rangedWeapon != null}, " +
-					$"inMeleeRange={inMeleeRange}, inRangedRange={inRangedAttackRange}, shouldStop={shouldStop}, " +
-					$"Speed={Speed}, vel={_enemy.Velocity}, moved={moved:F4}, onFloor={_enemy.IsOnFloor()}, " +
-					$"pos={_enemy.GlobalPosition}, nav=[{navInfo}], " +
-					$"layer={_enemy.CollisionLayer}, mask={_enemy.CollisionMask}, collisions=[{collisions}].");
-			}
-		}
-	}
+        Entity taskTarget = FindAvailableCollectionTask();
+        if (taskTarget != null)
+            TryAcceptCollectionTask(taskTarget);
+    }
 
-	private void ProcessRangedAttack(RangedWeapon weapon, Node3D target, float delta)
-	{
-		if (!weapon.HasValidConfiguration)
-		{
-			GD.PushWarning($"[EnemyAI] {_enemy.Name}: ranged weapon '{weapon.DisplayName}' is misconfigured.");
-			CancelRangedCharge();
-			return;
-		}
+    private AnimatedEntity FindVisibleHostile()
+    {
+        AnimatedEntity closest = null;
+        float closestDistanceSquared = float.MaxValue;
 
-		if (_enemy.ReplicatedBowState == "Shooting")
-		{
-			_rangedShotRecoveryRemaining -= delta;
-			if (_rangedShotRecoveryRemaining <= 0)
-				_enemy.BroadcastBowAnimationState("Idle");
-			return;
-		}
+        foreach (Node3D body in DetectionArea.GetOverlappingBodies())
+        {
+            if (body is not AnimatedEntity target ||
+                ReferenceEquals(target, _owner) ||
+                !IsAlive(target) ||
+                _owner.Race == TaskData.Races.None ||
+                target.Race == TaskData.Races.None ||
+                target.Race == _owner.Race)
+                continue;
 
-		if (_enemy.ReplicatedBowState == "Idle")
-		{
-			if (_rangedAttackCooldown > 0)
-				return;
+            float distanceSquared = _owner.GlobalPosition.DistanceSquaredTo(target.GlobalPosition);
+            if (distanceSquared < closestDistanceSquared)
+            {
+                closest = target;
+                closestDistanceSquared = distanceSquared;
+            }
+        }
 
-			_rangedChargeDuration = Mathf.Clamp(
-				Mathf.Max(RangedChargeTime, weapon.MinChargeTime),
-				weapon.MinChargeTime,
-				weapon.MaxChargeTime);
-			_rangedChargeElapsed = 0;
-			_enemy.BroadcastBowAnimationState("Pulling", _rangedChargeDuration);
-			return;
-		}
+        return closest;
+    }
 
-		if (_enemy.ReplicatedBowState is not ("Pulling" or "Pulled"))
-			return;
+    private Entity FindAvailableCollectionTask()
+    {
+        Entity closest = null;
+        float closestDistanceSquared = float.MaxValue;
 
-		_rangedChargeElapsed += delta;
-		if (_enemy.ReplicatedBowState == "Pulling" &&
-			_rangedChargeElapsed >= _rangedChargeDuration * 0.85f)
-			_enemy.BroadcastBowAnimationState("Pulled");
+        foreach (Node3D body in DetectionArea.GetOverlappingBodies())
+        {
+            if (body is not Entity target ||
+                ReferenceEquals(target, _owner) ||
+                target.CurrentTaskOwner != null)
+                continue;
 
-		if (_rangedChargeElapsed < _rangedChargeDuration)
-			return;
+            TaskData data = target.GetTask();
+            if (data == null ||
+                data.State != TaskData.TaskStates.Required ||
+                data.Type != TaskData.TaskTypes.Collect ||
+                !HasRequiredRace(data) ||
+                !HasRequiredSkills(data))
+                continue;
 
-		Vector3 origin = _enemy.EquippedWeaponScene != null
-			? _enemy.EquippedWeaponScene.GlobalPosition + Vector3.Up * 0.1f
-			: _enemy.GlobalPosition + Vector3.Up * 1.35f;
-		Vector3 targetPosition = target.GlobalPosition + Vector3.Up * (1.0f - RangedAimLowerOffset);
-		Vector3 direction = (targetPosition - origin).Normalized();
-		float pitch = Mathf.Atan2(direction.Y, new Vector2(direction.X, direction.Z).Length());
-		_enemy.ReplicatedBowAimPitch = pitch;
-		_enemy.BroadcastBowAnimationState("Shooting");
-		SpawnRangedProjectile(weapon, origin, direction, GetRangedDamage(weapon, _rangedChargeDuration));
-		_rangedAttackCooldown = Mathf.Max(0, RangedAttackCooldown);
-		_rangedShotRecoveryRemaining = Mathf.Max(0.1f, RangedShotRecoveryTime);
-		_rangedChargeElapsed = 0;
-		_rangedChargeDuration = 0;
-	}
+            float distanceSquared = _owner.GlobalPosition.DistanceSquaredTo(target.GlobalPosition);
+            if (distanceSquared < closestDistanceSquared)
+            {
+                closest = target;
+                closestDistanceSquared = distanceSquared;
+            }
+        }
 
-	private void UpdateLocomotionAnimation(string animation)
-	{
-		if (_lastLocomotionAnimation == animation || _locomotionChangeCooldown > 0)
-			return;
+        return closest;
+    }
 
-		if (animation == "Run")
-			_enemy.PlayRun();
-		else
-			_enemy.PlayIdle();
+    private void TryAcceptCollectionTask(Entity target)
+    {
+        if (!IsInstanceValid(target) || target.CurrentTaskOwner != null)
+            return;
 
-		_lastLocomotionAnimation = animation;
-		_locomotionChangeCooldown = 1.0f;
-	}
+        TaskData data = target.GetTask();
+        if (data == null ||
+            data.State != TaskData.TaskStates.Required ||
+            data.Type != TaskData.TaskTypes.Collect ||
+            !HasRequiredRace(data) ||
+            !HasRequiredSkills(data))
+            return;
 
-	private float GetRangedDamage(RangedWeapon weapon, float chargeTime)
-	{
-		float charge = Mathf.Clamp(chargeTime, weapon.MinChargeTime, weapon.MaxChargeTime);
-		if (charge >= weapon.MaxChargeTime)
-			return weapon.Damage;
+        target.CurrentTaskOwner = _owner;
+        data.State = TaskData.TaskStates.InProgress;
+        SetActiveTask(new AITask(target, data));
+        GD.Print($"{_owner.Name} accepted collection task from {target.Name}");
+    }
 
-		float chargePercent = Mathf.Clamp(
-			(charge - weapon.MinChargeTime) / (weapon.MaxChargeTime - weapon.MinChargeTime),
-			0,
-			1);
-		return weapon.Damage * (0.5f + 0.5f * chargePercent);
-	}
+    private void AssignKillTask(AnimatedEntity target)
+    {
+        var data = new TaskData
+        {
+            Type = TaskData.TaskTypes.Kill,
+            State = TaskData.TaskStates.InProgress
+        };
 
-	private void SpawnRangedProjectile(
-		RangedWeapon weapon,
-		Vector3 origin,
-		Vector3 direction,
-		float damage)
-	{
-		string projectileName = $"{_enemy.Name}_Arrow_{++_nextProjectileId}";
-		if (Multiplayer.HasMultiplayerPeer())
-		{
-			Rpc(nameof(SpawnEnemyProjectile), projectileName, weapon.ResourcePath,
-				weapon.RequiredProjectile.ResourcePath, origin, direction, damage);
-			return;
-		}
+        SetActiveTask(new AITask(target, data));
+        GD.Print($"{_owner.Name} assigned kill task for {target.Name}");
+    }
 
-		WeaponProjectileScene projectile = weapon.SpawnProjectile(
-			_enemy, _enemy.GetTree().CurrentScene, projectileName,
-			weapon.RequiredProjectile, origin, direction, damage);
-		if (projectile == null)
-			GD.PushError($"[EnemyAI] {_enemy.Name}: failed to spawn ranged projectile.");
-	}
+    private void SetActiveTask(AITask task)
+    {
+        _activeTask = task;
+        _tasks.Clear();
+        _tasks.Add(task);
+        if (_navigationAgent != null)
+            _navigationAgent.TargetPosition = task.Target.GlobalPosition;
+        UpdateNavigationTarget();
+    }
 
-	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
-		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-	private void SpawnEnemyProjectile(
-		string projectileName,
-		string weaponPath,
-		string projectilePath,
-		Vector3 origin,
-		Vector3 direction,
-		float damage)
-	{
-		if (Multiplayer.HasMultiplayerPeer() &&
-			Multiplayer.GetRemoteSenderId() != 0 &&
-			Multiplayer.GetRemoteSenderId() != 1)
-			return;
+    private void ReleaseActiveTask(bool completed)
+    {
+        if (_activeTask == null)
+            return;
 
-		RangedWeapon weapon = GD.Load<RangedWeapon>(weaponPath);
-		WeaponProjectile projectileResource = GD.Load<WeaponProjectile>(projectilePath);
-		if (weapon == null || projectileResource == null)
-		{
-			GD.PushError($"[EnemyAI] {_enemy.Name}: failed to load projectile resources " +
-				$"(weapon='{weaponPath}', projectile='{projectilePath}').");
-			return;
-		}
+        Entity target = _activeTask.Target;
+        TaskData data = _activeTask.Data;
+        bool isCollection = data.Type == TaskData.TaskTypes.Collect;
 
-		WeaponProjectileScene projectile = weapon.SpawnProjectile(
-			_enemy, _enemy.GetTree().CurrentScene, projectileName,
-			projectileResource, origin, direction, damage);
-		if (projectile == null)
-			GD.PushError($"[EnemyAI] {_enemy.Name}: failed to spawn replicated projectile '{projectileName}'.");
-	}
+        if (IsInstanceValid(target) && isCollection)
+        {
+            if (ReferenceEquals(target.CurrentTaskOwner, _owner))
+                target.CurrentTaskOwner = null;
 
-	private void CancelRangedCharge()
-	{
-		if (_enemy.ReplicatedBowState is not ("Pulling" or "Pulled"))
-			return;
+            data.State = completed
+                ? TaskData.TaskStates.Completed
+                : TaskData.TaskStates.Required;
+        }
 
-		_rangedChargeElapsed = 0;
-		_rangedChargeDuration = 0;
-		_enemy.BroadcastBowAnimationState("Idle");
-	}
+        _activeTask = null;
+        _tasks.Clear();
+    }
 
-	private Vector3 GetMovementDirection(Node3D target, Vector3 directOffset, out string info)
-	{
-		Vector3 direct = directOffset.Normalized();
+    private void ProcessActiveTask(double delta)
+    {
+        Entity target = _activeTask.Target;
+        Vector3 offset = target.GlobalPosition - _owner.GlobalPosition;
+        Vector3 horizontalOffset = new(offset.X, 0.0f, offset.Z);
+        float range = _activeTask.Data.Type == TaskData.TaskTypes.Kill
+            ? AttackRange
+            : CollectionRange;
 
-		if (_navigationAgent == null)
-		{
-			info = "no agent, direct";
-			return direct;
-		}
+        if (horizontalOffset.Length() <= range)
+        {
+            StopMoving();
+            _owner.FaceMoveDirection(horizontalOffset);
 
-		Vector3 targetPosition = target.GlobalPosition;
-		if (!_hasNavigationTarget ||
-			_lastNavigationTarget.DistanceSquaredTo(targetPosition) > 0.0625f)
-		{
-			_navigationAgent.TargetPosition = targetPosition;
-			_lastNavigationTarget = targetPosition;
-			_hasNavigationTarget = true;
-		}
+            if (_activeTask.Data.Type == TaskData.TaskTypes.Kill)
+                TryAttack(target);
+            else
+                CompleteCollectionTask(target);
 
-		if (NavigationServer3D.MapGetIterationId(_navigationAgent.GetNavigationMap()) == 0)
-		{
-			info = "map not ready, direct";
-			return direct;
-		}
+            return;
+        }
 
-		Vector3 nextPosition = _navigationAgent.GetNextPathPosition();
-		int pathLength = _navigationAgent.GetCurrentNavigationPath().Length;
-		bool reachable = _navigationAgent.IsTargetReachable();
-		info = $"pathLen={pathLength}, reachable={reachable}, finished={_navigationAgent.IsNavigationFinished()}";
+        UpdateNavigationTarget();
+        Vector3 nextPosition = _navigationAgent?.GetNextPathPosition() ?? target.GlobalPosition;
+        Vector3 direction = nextPosition - _owner.GlobalPosition;
+        direction.Y = 0.0f;
+        if (direction.LengthSquared() < 0.001f)
+        {
+            direction = horizontalOffset;
+        }
 
-		// Нет пути или цель недостижима по навмешу - идём напрямую, чтобы враг не стоял на месте.
-		if (pathLength <= 1 || !reachable)
-		{
-			info += ", direct";
-			return direct;
-		}
+        direction = direction.Normalized();
+        _owner.Velocity = new Vector3(
+            direction.X * MoveSpeed,
+            _owner.Velocity.Y,
+            direction.Z * MoveSpeed);
+        _owner.FaceMoveDirection(direction);
 
-		Vector3 pathOffset = nextPosition - _enemy.GlobalPosition;
-		pathOffset.Y = 0;
-		if (pathOffset.LengthSquared() > 0.0001f)
-			return pathOffset.Normalized();
+        if (_owner.EquippedWeapon is MeleeWeapon)
+            _owner.PlayRunWithSword();
+        else
+            _owner.PlayRun();
+    }
 
-		info += ", direct";
-		return direct;
-	}
+    private void TryAttack(Entity target)
+    {
+        if (_owner.EquippedWeapon is not MeleeWeapon ||
+            !string.IsNullOrEmpty(_owner.ReplicatedAttack) ||
+            _attackCooldown > 0.0 ||
+            target is not AnimatedEntity)
+            return;
 
-	private void OnBodyEntered(Node3D body)
-	{
-		if (body is Player && !_targetsInRange.Contains(body))
-			_targetsInRange.Add(body);
-	}
+        _owner.PlayAttack1();
+        _attackCooldown = 1.0;
+    }
 
-	private void OnBodyExited(Node3D body)
-	{
-		_targetsInRange.Remove(body);
-	}
+    private void CompleteCollectionTask(Entity target)
+    {
+        ReleaseActiveTask(completed: true);
+        target.QueueFree();
+        GD.Print($"{_owner.Name} collected {target.Name}");
+    }
 
-	private Node3D FindNearestTargetInRange()
-	{
-		Node3D nearestTarget = null;
-		float nearestDistanceSquared = float.MaxValue;
+    private void UpdateNavigationTarget()
+    {
+        if (_navigationAgent != null &&
+            IsTaskTargetValid(_activeTask) &&
+            _navigationAgent.TargetPosition.DistanceSquaredTo(_activeTask.Target.GlobalPosition) > 0.25f)
+        {
+            _navigationAgent.TargetPosition = _activeTask.Target.GlobalPosition;
+        }
+    }
 
-		for (int i = _targetsInRange.Count - 1; i >= 0; i--)
-		{
-			Node3D candidate = _targetsInRange[i];
-			if (!GodotObject.IsInstanceValid(candidate) || !candidate.IsInsideTree())
-			{
-				_targetsInRange.RemoveAt(i);
-				continue;
-			}
+    private bool IsTaskTargetValid(AITask task)
+    {
+        if (task == null || !IsInstanceValid(task.Target) || task.Target.IsQueuedForDeletion())
+            return false;
 
-			float distanceSquared = _enemy.GlobalPosition.DistanceSquaredTo(candidate.GlobalPosition);
-			if (distanceSquared >= nearestDistanceSquared)
-				continue;
+        if (task.Data.Type == TaskData.TaskTypes.Kill)
+            return task.Target is AnimatedEntity && IsAlive(task.Target);
 
-			nearestDistanceSquared = distanceSquared;
-			nearestTarget = candidate;
-		}
+        return task.Data.Type == TaskData.TaskTypes.Collect &&
+            task.Data.State == TaskData.TaskStates.InProgress;
+    }
 
-		return nearestTarget;
-	}
+    private static bool IsAlive(Entity entity) =>
+        entity.Health == null || entity.Health.CurrentHealth > 0.0f;
 
-	private void StopHorizontalMovement(ref Vector3 velocity, float delta)
-	{
-		velocity.X = Mathf.MoveToward(velocity.X, 0, Speed * delta);
-		velocity.Z = Mathf.MoveToward(velocity.Z, 0, Speed * delta);
-	}
+    private void StopMoving()
+    {
+        _owner.Velocity = new Vector3(0.0f, _owner.Velocity.Y, 0.0f);
+        _owner.PlayIdle();
+    }
 
-	private bool HasAuthority()
-	{
-		return !Multiplayer.HasMultiplayerPeer() ||
-			(Multiplayer.IsServer() && _enemy.GetMultiplayerAuthority() == Multiplayer.GetUniqueId());
-	}
+    private bool HasRequiredRace(TaskData data) =>
+        data.RequiredRace == TaskData.Races.None || _owner.Race == data.RequiredRace;
+
+    private bool HasRequiredSkills(TaskData data)
+    {
+        if (data.RequiredSkills == null || data.RequiredSkills.Count == 0)
+            return true;
+
+        if (_owner.Skills == null)
+            return false;
+
+        foreach (TaskData.Skills skill in data.RequiredSkills)
+        {
+            if (!_owner.Skills.Contains(skill))
+                return false;
+        }
+
+        return true;
+    }
+
+    private bool IsServerAuthority() =>
+        !Multiplayer.HasMultiplayerPeer() || Multiplayer.IsServer();
 }

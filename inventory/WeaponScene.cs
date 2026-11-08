@@ -54,9 +54,8 @@ public partial class WeaponScene : Node3D
             );
             return;
         }
-
         _trail.Configure(bladeBase, bladeTip);
-        BeginSwing();
+        _trail.Configure(bladeBase, bladeTip);
     }
 
     public void ConfigureCombat(

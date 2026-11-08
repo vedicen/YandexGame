@@ -302,6 +302,67 @@ public partial class InventoryService : Node
         if (player != null) Execute(action, player, source, from, target, to, revision);
     }
     private bool Near(Player player, Node3D obj) => GodotObject.IsInstanceValid(obj) && player.GlobalPosition.DistanceTo(obj.GlobalPosition) <= 3.5f;
+
+    public bool PickupForEntity(AnimatedEntity entity, PickUpObj pickup)
+    {
+        if (!IsServer || !GodotObject.IsInstanceValid(entity) || !entity.IsInsideTree() ||
+            !GodotObject.IsInstanceValid(pickup) || !pickup.IsInsideTree() ||
+            pickup.IsQueuedForDeletion() || pickup.Slot?.Item == null ||
+            entity.Inventory == null ||
+            entity.GlobalPosition.DistanceTo(pickup.GlobalPosition) > 3.5f)
+            return false;
+
+        Item item = pickup.Slot.Item;
+        if (item is Weapon weapon)
+        {
+            if (!entity.IsWeaponUpgrade(weapon) || !entity.Inventory.CanAdd(item, 1))
+                return false;
+
+            if (entity.Inventory.Add(item, 1) != 0)
+                return false;
+
+            int weaponSlot = -1;
+            for (int i = 0; i < entity.Inventory.Slots.Count; i++)
+                if (entity.Inventory.Slots[i]?.Item == item)
+                {
+                    weaponSlot = i;
+                    break;
+                }
+
+            if (weaponSlot < 0 || !entity.TryEquipWeaponFromInventory(weaponSlot))
+            {
+                if (weaponSlot >= 0)
+                {
+                    entity.Inventory.Slots[weaponSlot] = null;
+                    entity.Inventory.NotifyChanged();
+                }
+                GD.PushError($"InventoryService: failed to equip picked-up weapon '{item.DisplayName}' for '{entity.Name}'.");
+                return false;
+            }
+
+            pickup.Slot.ItemCount--;
+        }
+        else
+        {
+            int previousCount = pickup.Slot.ItemCount;
+            pickup.Slot.ItemCount = entity.Inventory.Add(item, previousCount);
+            if (pickup.Slot.ItemCount == previousCount)
+                return false;
+
+            if (item is WeaponProjectile)
+                entity.TryAutoEquipRangedWeaponWithAmmo();
+        }
+
+        if (pickup.Slot.ItemCount <= 0)
+        {
+            pickup.GetParent().RemoveChild(pickup);
+            pickup.QueueFree();
+        }
+
+        Publish();
+        return true;
+    }
+
     private InventoryComponent Resolve(Player player, string path)
     {
         if (path == player.Inventory.GetPath().ToString()) return player.Inventory;
@@ -371,7 +432,8 @@ public partial class InventoryService : Node
         }
         Publish();
     }
-    private SlotData Encode(Stack slot) => slot == null ? null : new() { Item = slot.Item.ResourcePath, Count = slot.ItemCount };
+    private SlotData Encode(Stack slot) =>
+        slot?.Item == null ? null : new() { Item = slot.Item.ResourcePath, Count = slot.ItemCount };
     private Stack Decode(SlotData slot) => slot == null ? null : new() { Item = GD.Load<Item>(slot.Item), ItemCount = slot.Count };
     public void Publish(bool increment = true)
     {

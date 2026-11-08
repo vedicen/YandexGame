@@ -1,10 +1,15 @@
 using Godot;
+using System;
 
 public partial class AnimatedEntity : Entity
 {
 	private const string RuntimeLibraryName = "entity_runtime";
 	private const string RuntimeLibraryPrefix = RuntimeLibraryName + "/";
 	private static readonly float MaxBowAimPitch = Mathf.DegToRad(45.0f);
+
+	[ExportGroup("AI")]
+    [Export] public TaskData.Races Race { get; set; } = TaskData.Races.None;
+    [Export] public Godot.Collections.Array<TaskData.Skills> Skills { get; set; } = null;
 
 	[ExportGroup("Model")]
 	[Export] public PackedScene ModelScene { get; set; }
@@ -60,6 +65,9 @@ public partial class AnimatedEntity : Entity
 	private EquipmentComponent _equipmentComponent;
 	private Skeleton3D _skeleton;
 	private CombatStatsComponent _combatStats;
+	public InventoryComponent Inventory { get; private set; }
+	public InventoryComponent EquipmentInventory { get; private set; }
+	public EquipmentComponent Equipment => _equipmentComponent;
 	public CombatStatsComponent CombatStats => _combatStats;
 	public Weapon EquippedWeapon => _equipmentComponent?.EquippedWeapon;
 	public WeaponScene EquippedWeaponScene => _equipmentComponent?.GetEquippedWeaponScene();
@@ -624,6 +632,15 @@ public partial class AnimatedEntity : Entity
 	{
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
+		Inventory = GetNodeOrNull<InventoryComponent>("InventoryComponent");
+		EquipmentInventory = GetNodeOrNull<InventoryComponent>("EquipmentInventory");
+		if (Inventory == null || EquipmentInventory == null)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' requires InventoryComponent and EquipmentInventory children.");
+			return;
+		}
+
+		EquipmentInventory.Changed += OnEquipmentInventoryChanged;
 		_combatStats = GetNodeOrNull<CombatStatsComponent>("CombatStatsComponent");
 		AddToGroup("animated_entities");
 		if (Health != null)
@@ -638,8 +655,15 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
-		if (StartingWeapon != null)
-			EnsureEquipmentComponent().EquipWeapon(StartingWeapon);
+		if (EquipmentInventory.Valid(0) && EquipmentInventory.Slots[0] == null && StartingWeapon != null)
+		{
+			EquipmentInventory.Slots[0] = new Stack { Item = StartingWeapon, ItemCount = 1 };
+			EquipmentInventory.NotifyChanged();
+		}
+		else
+		{
+			OnEquipmentInventoryChanged();
+		}
 		GenerateBoneHitboxes();
 		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);
@@ -678,6 +702,117 @@ public partial class AnimatedEntity : Entity
 		ApplyAttack(_replicatedAttack);
 		ApplyBowState(_replicatedBowState);
 	}
+
+	private void OnEquipmentInventoryChanged()
+	{
+		Stack weaponStack = EquipmentInventory?.Valid(0) == true
+			? EquipmentInventory.Slots[0]
+			: null;
+		if (weaponStack == null)
+		{
+			EnsureEquipmentComponent().EquipWeapon(null);
+			return;
+		}
+
+		if (weaponStack.Item is not Weapon weapon)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' equipment slot only accepts Weapon items.");
+			return;
+		}
+
+		EnsureEquipmentComponent().EquipWeapon(weapon);
+	}
+
+	public bool HasProjectileInInventory(WeaponProjectile requiredProjectile)
+	{
+		if (requiredProjectile == null || Inventory?.Slots == null)
+			return false;
+
+		foreach (Stack stack in Inventory.Slots)
+			if (stack?.Item is WeaponProjectile projectile &&
+				(projectile == requiredProjectile || projectile.ResourcePath == requiredProjectile.ResourcePath) &&
+				stack.ItemCount > 0)
+				return true;
+
+		return false;
+	}
+
+	public bool TryConsumeProjectileFromInventory(WeaponProjectile requiredProjectile)
+	{
+		if (requiredProjectile == null || Inventory?.Slots == null)
+			return false;
+
+		for (int i = 0; i < Inventory.Slots.Count; i++)
+		{
+			Stack stack = Inventory.Slots[i];
+			if (stack?.Item is not WeaponProjectile projectile ||
+				(projectile != requiredProjectile && projectile.ResourcePath != requiredProjectile.ResourcePath) ||
+				stack.ItemCount <= 0)
+				continue;
+
+			stack.ItemCount--;
+			if (stack.ItemCount == 0)
+				Inventory.Slots[i] = null;
+			Inventory.NotifyChanged();
+			return true;
+		}
+
+		return false;
+	}
+
+	public bool TryEquipWeaponFromInventory(int inventorySlot)
+	{
+		if (Inventory == null || EquipmentInventory?.Valid(0) != true ||
+			!Inventory.Valid(inventorySlot) ||
+			Inventory.Slots[inventorySlot]?.Item is not Weapon weapon)
+			return false;
+
+		if (weapon.WeaponModel == null)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' cannot equip weapon '{weapon.DisplayName}' without a model.");
+			return false;
+		}
+
+		return Inventory.Transfer(inventorySlot, EquipmentInventory, 0);
+	}
+
+	public bool TryStowEquippedRangedWeaponWithoutAmmo()
+	{
+		if (EquippedWeapon is not RangedWeapon bow ||
+			HasProjectileInInventory(bow.RequiredProjectile) ||
+			Inventory == null || EquipmentInventory?.Valid(0) != true ||
+			!Inventory.CanAdd(bow, 1))
+			return false;
+
+		if (Inventory.Add(bow, 1) != 0)
+			return false;
+		EquipmentInventory.Slots[0] = null;
+		EquipmentInventory.NotifyChanged();
+		return true;
+	}
+
+	public void TryAutoEquipRangedWeaponWithAmmo()
+	{
+		if (Inventory?.Slots == null)
+			return;
+
+		Weapon heldWeapon = EquippedWeapon;
+
+		for (int i = 0; i < Inventory.Slots.Count; i++)
+		{
+			if (Inventory.Slots[i]?.Item is not RangedWeapon bow ||
+				bow.WeaponModel == null ||
+				!HasProjectileInInventory(bow.RequiredProjectile) ||
+				(heldWeapon != null && bow.Rarity <= heldWeapon.Rarity))
+				continue;
+
+			if (TryEquipWeaponFromInventory(i))
+				return;
+		}
+	}
+
+	public bool IsWeaponUpgrade(Weapon weapon) =>
+		weapon != null && (EquippedWeapon == null || weapon.Rarity > EquippedWeapon.Rarity);
 
 	private EquipmentComponent EnsureEquipmentComponent()
 	{
@@ -769,6 +904,8 @@ public partial class AnimatedEntity : Entity
 
 	public override void _ExitTree()
 	{
+		if (GodotObject.IsInstanceValid(EquipmentInventory))
+			EquipmentInventory.Changed -= OnEquipmentInventoryChanged;
 		if (Health != null)
 		{
 			Health.HealthChanged -= UpdateHealthBar;
@@ -916,7 +1053,11 @@ public partial class AnimatedEntity : Entity
 
 		_attackWasActive = false;
 		GD.Print($"[Combat] Attack animation finished: entity={Name}, attack={_replicatedAttack}.");
-		GetWeaponDamageZone()?.EndSwing();
+		WeaponScene weaponScene = EquippedWeaponScene;
+		if (weaponScene != null)
+			weaponScene.EndSwing();
+		else
+			GetWeaponDamageZone()?.EndSwing();
 		if (!Multiplayer.HasMultiplayerPeer() || GetMultiplayerAuthority() == Multiplayer.GetUniqueId())
 			ReplicatedAttack = "";
 		else
@@ -1188,7 +1329,13 @@ public partial class AnimatedEntity : Entity
 		if (damageZone == null)
 			GD.PushWarning($"[Combat] Cannot start attack: entity '{GetPath()}' has no WeaponDamageZone under it.");
 		else
-			damageZone.BeginSwing();
+		{
+			WeaponScene weaponScene = EquippedWeaponScene;
+			if (weaponScene != null)
+				weaponScene.BeginSwing();
+			else
+				damageZone.BeginSwing();
+		}
 	}
 
 	private WeaponDamageZone GetWeaponDamageZone()

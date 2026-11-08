@@ -4,11 +4,10 @@ using System.Collections.Generic;
 
 public partial class Player : AnimatedEntity
 {
-    public InventoryComponent Inventory { get; private set; }
-    public InventoryComponent EquipmentInventory { get; private set; }
+    protected override bool HandlesMovement => true;
+
     public PlayerStateMachine States { get; private set; }
     public InventoryUI InventoryUI { get; private set; }
-    public EquipmentComponent Equipment { get; private set; }
     [Export] public PackedScene InventoryUIScene { get; set; }
     
     private Chest _openChest;
@@ -58,11 +57,6 @@ public partial class Player : AnimatedEntity
         base._Ready();
         
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
-        EnsureEquipmentComponent();
-        Inventory = GetNode<InventoryComponent>("InventoryComponent");
-        EquipmentInventory = GetNode<InventoryComponent>("EquipmentInventory");
-        EquipmentInventory.Changed += OnEquipmentInventoryChanged;
-        OnEquipmentInventoryChanged();
         GD.Print($"[BowDebug] Player ready: player={Name}, inputAuthority={playerInputComponent?.HasInputAuthority}, " +
             $"inputEnabled={playerInputComponent?.IsInputEnabled}, inventorySlots={Inventory?.Slots?.Count ?? 0}, " +
             $"equipmentSlots={EquipmentInventory?.Slots?.Count ?? 0}.");
@@ -139,12 +133,6 @@ public partial class Player : AnimatedEntity
             -Mathf.DegToRad(45.0f),
             Mathf.DegToRad(45.0f));
 
-    }
-
-    public override void _ExitTree()
-    {
-        if (GodotObject.IsInstanceValid(EquipmentInventory))
-            EquipmentInventory.Changed -= OnEquipmentInventoryChanged;
     }
 
     public override void _PhysicsProcess(double delta)
@@ -272,7 +260,7 @@ public partial class Player : AnimatedEntity
                 return;
             }
 
-            if (!HasProjectile(bow.RequiredProjectile))
+            if (!HasProjectileInInventory(bow.RequiredProjectile))
             {
                 GD.PushWarning($"[BowDebug] Required projectile not found: player={Name}, " +
                     $"required={bow.RequiredProjectile.ResourcePath}, inventory={DescribeInventory()}.");
@@ -353,21 +341,6 @@ public partial class Player : AnimatedEntity
         BroadcastBowAnimationState("Idle");
     }
 
-    private bool HasProjectile(WeaponProjectile requiredProjectile)
-    {
-        if (requiredProjectile == null || Inventory == null)
-            return false;
-
-        foreach (Stack stack in Inventory.Slots)
-            if (stack?.Item is WeaponProjectile projectile &&
-                (projectile == requiredProjectile ||
-                 projectile.ResourcePath == requiredProjectile.ResourcePath) &&
-                stack.ItemCount > 0)
-                return true;
-
-        return false;
-    }
-
     private string DescribeInventory()
     {
         if (Inventory?.Slots == null)
@@ -418,7 +391,7 @@ public partial class Player : AnimatedEntity
             rejectionReason = "projectile origin or direction is invalid";
         else if (origin.DistanceTo(GlobalPosition) > 5.0f)
             rejectionReason = "projectile origin is too far from the player";
-        else if (!HasProjectile(bow.RequiredProjectile))
+        else if (!HasProjectileInInventory(bow.RequiredProjectile))
             rejectionReason = $"required projectile '{bow.RequiredProjectile?.ResourcePath ?? "<null>"}' is not in inventory";
 
         if (rejectionReason != null)
@@ -428,7 +401,7 @@ public partial class Player : AnimatedEntity
             return;
         }
 
-        if (!TryConsumeProjectile(bow.RequiredProjectile))
+        if (!TryConsumeProjectileFromInventory(bow.RequiredProjectile))
         {
             GD.PushWarning($"[BowDebug] Could not consume required projectile for player={Name}.");
             RejectBowShot(sender);
@@ -468,30 +441,6 @@ public partial class Player : AnimatedEntity
             else
                 GD.Print($"[BowDebug] Projectile spawned: player={Name}, name={projectileName}, position={instance.GlobalPosition}.");
         }
-    }
-
-    private bool TryConsumeProjectile(WeaponProjectile requiredProjectile)
-    {
-        if (Inventory == null || requiredProjectile == null)
-            return false;
-
-        for (int i = 0; i < Inventory.Slots.Count; i++)
-        {
-            Stack stack = Inventory.Slots[i];
-            if (stack?.Item is not WeaponProjectile projectile ||
-                (projectile != requiredProjectile &&
-                 projectile.ResourcePath != requiredProjectile.ResourcePath) ||
-                stack.ItemCount <= 0)
-                continue;
-
-            stack.ItemCount--;
-            if (stack.ItemCount == 0)
-                Inventory.Slots[i] = null;
-            Inventory.NotifyChanged();
-            return true;
-        }
-
-        return false;
     }
 
     private void RejectBowShot(long peerId)
@@ -698,7 +647,9 @@ public partial class Player : AnimatedEntity
     {
 
         if (!States.CanMove || !GodotObject.IsInstanceValid(current_interact_obj)) return;
-        if (current_interact_obj.disable_input_on_interact && !BeginInteraction(current_interact_obj)) return;
+        if (current_interact_obj.disable_input_on_interact &&
+            current_interact_obj is not Chest &&
+            !BeginInteraction(current_interact_obj)) return;
         current_interact_obj.interact(this);
     }
 
@@ -760,6 +711,8 @@ public partial class Player : AnimatedEntity
         _openChest = chest;
         if (chest != null)
         {
+            if (playerInputComponent?.HasInputAuthority == true)
+                BeginInteraction(chest);
             States.Transition(PlayerStateMachine.State.Chest);
             InventoryUI?.Open(chest);
         }
@@ -827,57 +780,6 @@ public partial class Player : AnimatedEntity
         if (Money == amount) return;
         Money = amount;
         MoneyChanged?.Invoke(Money);
-    }
-
-    private void OnEquipmentInventoryChanged()
-    {
-        Stack weaponStack = EquipmentInventory?.Valid(0) == true
-            ? EquipmentInventory.Slots[0]
-            : null;
-        GD.Print($"[Combat] Equipment slot changed: player={Name}, " +
-            $"item={weaponStack?.Item?.DisplayName ?? "<empty>"}, count={weaponStack?.ItemCount ?? 0}.");
-        if (weaponStack == null)
-        {
-            EquipmentComponent equipment = EnsureEquipmentComponent();
-            if (StartingWeapon != null)
-            {
-                if (equipment.EquippedWeapon != StartingWeapon)
-                    equipment.EquipWeapon(StartingWeapon);
-            }
-            else
-            {
-                equipment.EquipWeapon(null);
-            }
-            return;
-        }
-
-        if (weaponStack.Item is not Weapon weapon)
-        {
-            GD.PushError($"Player '{Name}' weapon slot only accepts Weapon items.");
-            return;
-        }
-
-        GD.Print($"[BowDebug] Equipment inventory resolved: player={Name}, " +
-            $"weaponType={weapon.GetType().Name}, weaponPath={weapon.ResourcePath}.");
-        GD.Print($"[Combat] Equipping weapon from slot: player={Name}, weapon={weapon.DisplayName}, " +
-            $"model={(weapon.WeaponModel?.ResourcePath ?? "<missing>")}.");
-        EnsureEquipmentComponent().EquipWeapon(weapon);
-    }
-
-    private EquipmentComponent EnsureEquipmentComponent()
-    {
-        if (GodotObject.IsInstanceValid(Equipment))
-            return Equipment;
-
-        Equipment = GetNodeOrNull<EquipmentComponent>("EquipmentComponent") ??
-            FindChild("EquipmentComponent", true, false) as EquipmentComponent;
-        if (Equipment != null)
-            return Equipment;
-
-        GD.PushWarning($"Player '{Name}' scene has no EquipmentComponent; adding one at runtime.");
-        Equipment = new EquipmentComponent { Name = "EquipmentComponent" };
-        AddChild(Equipment);
-        return Equipment;
     }
 
     public void EndTrading(TradingStand stand)
