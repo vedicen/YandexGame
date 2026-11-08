@@ -76,6 +76,14 @@ public partial class ItemUI : PanelContainer
     public override void _Process(double delta) { if (_pivot != null) _pivot.RotateY((float)delta * 0.8f); }
     public override void _GuiInput(InputEvent ev)
     {
+        if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true } &&
+            Inventory != null && Player != null && InventoryService.Instance != null)
+        {
+            InventoryService.Instance.Send("quick_move", Player, Inventory.GetPath(), Index);
+            AcceptEvent();
+            return;
+        }
+
         if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } && Inventory != null)
         {
             InventoryService.Instance.Send("use", Player, Inventory.GetPath(), Index);

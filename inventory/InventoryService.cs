@@ -458,6 +458,50 @@ public partial class InventoryService : Node
         var slot = inventory.Slots[from];
         switch (action)
         {
+            case "quick_move":
+                InventoryComponent quickMoveTarget;
+                if (inventory == player.Inventory)
+                {
+                    if (slot.Item is Weapon)
+                    {
+                        if (!player.Equipment.Valid(0) ||
+                            player.Equipment.Slots[0]?.Item is not null and not Weapon ||
+                            !inventory.Transfer(from, player.Equipment, 0))
+                            return;
+
+                        break;
+                    }
+
+                    if (!_sessions.TryGetValue(peer, out string openChestPath))
+                        return;
+
+                    var openChest = GetNodeOrNull<Chest>(openChestPath);
+                    if (openChest == null || !Near(player, openChest))
+                        return;
+
+                    quickMoveTarget = openChest.Inventory;
+                }
+                else if (inventory == player.Equipment)
+                {
+                    quickMoveTarget = player.Inventory;
+                }
+                else
+                {
+                    quickMoveTarget = player.Inventory;
+                }
+
+                if (!quickMoveTarget.CanAdd(slot.Item, 1))
+                    return;
+
+                int remainingCount = quickMoveTarget.Add(slot.Item, slot.ItemCount);
+                if (remainingCount == slot.ItemCount)
+                    return;
+
+                slot.ItemCount = remainingCount;
+                if (remainingCount == 0)
+                    inventory.Slots[from] = null;
+                inventory.NotifyChanged();
+                break;
             case "move":
                 var destination = Resolve(player, target);
                 if (destination == null || !destination.Valid(to)) return;
