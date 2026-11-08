@@ -1,7 +1,7 @@
 using Godot;
 using System.Collections.Generic;
 
-public partial class WeaponProjectileScene : Area3D
+public partial class WeaponProjectileScene : Entity
 {
     private const float TrailLifetime = 0.35f;
     private const float TrailWidth = 0.08f;
@@ -22,7 +22,6 @@ public partial class WeaponProjectileScene : Area3D
     private AnimatedEntity _attacker;
     private WeaponProjectile _projectile;
     private Vector3 _direction;
-    private float _speed;
     private float _damage;
     private float _lifetime;
     private bool _initialized;
@@ -30,6 +29,10 @@ public partial class WeaponProjectileScene : Area3D
     private MeshInstance3D _trailInstance;
     private ArrayMesh _trailMesh;
     private readonly List<TrailPoint> _trailPoints = new();
+    private Basis _orientationOffset = Basis.Identity;
+    private bool _orientationOffsetCaptured;
+
+    protected override bool HandlesMovement => true;
 
     public void Initialize(
         AnimatedEntity attacker,
@@ -55,8 +58,8 @@ public partial class WeaponProjectileScene : Area3D
         _attacker = attacker;
         _projectile = projectile;
         _direction = direction.Normalized();
-        _speed = speed;
         _damage = damage;
+        Velocity = _direction * speed;
 
         Node3D model = projectile.Model.Instantiate<Node3D>();
         if (model == null)
@@ -73,11 +76,10 @@ public partial class WeaponProjectileScene : Area3D
 
     public override void _Ready()
     {
+        base._Ready();
         CollisionLayer = 0;
-        CollisionMask = (1u << 0) | (1u << 1);
-        Monitoring = true;
-        Monitorable = false;
-        AreaEntered += OnAreaEntered;
+        CollisionMask = 0;
+        GetNode<Area3D>("Hitbox").AreaEntered += OnAreaEntered;
     }
 
     public override void _PhysicsProcess(double delta)
@@ -85,8 +87,13 @@ public partial class WeaponProjectileScene : Area3D
         if (!_initialized)
             return;
 
+        base._PhysicsProcess(delta);
+
         Vector3 previousPosition = GlobalPosition;
-        Vector3 nextPosition = previousPosition + _direction * _speed * (float)delta;
+        Vector3 displacement = Velocity * (float)delta;
+        Vector3 nextPosition = previousPosition + displacement;
+        if (Velocity.LengthSquared() > 0.0001f)
+            AlignToDirection(Velocity.Normalized());
         AddTrailPoint(nextPosition);
 
         if (IsServerAuthority())
@@ -112,6 +119,22 @@ public partial class WeaponProjectileScene : Area3D
         if (GodotObject.IsInstanceValid(this) && !IsQueuedForDeletion())
             GlobalPosition = nextPosition;
     }
+
+    private void AlignToDirection(Vector3 direction)
+    {
+        if (!_orientationOffsetCaptured)
+        {
+            Basis initialAim = Basis.LookingAt(_direction, GetAimUp(_direction));
+            _orientationOffset = initialAim.Inverse() * GlobalBasis;
+            _orientationOffsetCaptured = true;
+        }
+
+        GlobalBasis = Basis.LookingAt(direction, GetAimUp(direction)) * _orientationOffset;
+        _direction = direction;
+    }
+
+    private static Vector3 GetAimUp(Vector3 direction) =>
+        Mathf.Abs(direction.Dot(Vector3.Up)) > 0.999f ? Vector3.Forward : Vector3.Up;
 
     public override void _Process(double delta)
     {

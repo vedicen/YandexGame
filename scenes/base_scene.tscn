@@ -25,13 +25,19 @@ glow_enabled = true
 
 [sub_resource type="Resource" id="Resource_ct6y0"]
 script = ExtResource("8_oelfw")
-ItemCount = 73
+ItemCount = 18
 Item = ExtResource("7_vjnli")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="Resource" id="Resource_yfdfb"]
 script = ExtResource("8_oelfw")
 Item = ExtResource("9_oelfw")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_1stcl"]
+script = ExtResource("8_oelfw")
+ItemCount = 35
+Item = ExtResource("7_vjnli")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_oelfw"]
@@ -97,8 +103,11 @@ spawn_path = NodePath("../Enemies")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.301863, 1.3076003, -9.85594)
 Skills = Array[int]([2])
 
+[node name="CollisionShape3D" parent="Enemies/EnemyGolem" index="0" unique_id=772218702]
+script = null
+
 [node name="InventoryComponent" parent="Enemies/EnemyGolem" index="9" unique_id=209800001]
-Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_ct6y0"), SubResource("Resource_yfdfb")])
+Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_ct6y0"), SubResource("Resource_yfdfb"), SubResource("Resource_1stcl")])
 
 [node name="LootChestSpawner" type="MultiplayerSpawner" parent="." unique_id=153940311]
 _spawnable_scenes = PackedStringArray("uid://cbelhyrwa5v86", "res://entity/interact/DeadChestLoot.tscn")

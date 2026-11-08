@@ -2,6 +2,18 @@ using Godot;
 
 public partial class EnemyCombatAIComponent : Node
 {
+    private const float MaxBowAimPitch = Mathf.Pi / 4.0f;
+    private const float GravityEpsilon = 0.0001f;
+    private const float BowTargetHeightOffset = -0.25f;
+    private const double CombatStateTransitionInterval = 0.5;
+
+    private enum CombatState
+    {
+        None,
+        Running,
+        Shooting
+    }
+
     [Export] public float MoveSpeed { get; set; } = 3.5f;
     [Export] public float MeleeAttackRange { get; set; } = 1.6f;
     [Export] public float BowMinRange { get; set; } = 10.0f;
@@ -14,6 +26,8 @@ public partial class EnemyCombatAIComponent : Node
     private Weapon _chargingWeapon;
     private double _attackCooldown;
     private double _bowChargeTime;
+    private double _timeSinceCombatStateChange = CombatStateTransitionInterval;
+    private CombatState _combatState;
 
     public override void _Ready()
     {
@@ -38,6 +52,7 @@ public partial class EnemyCombatAIComponent : Node
             return;
 
         _attackCooldown = Mathf.Max(0.0, _attackCooldown - delta);
+        _timeSinceCombatStateChange += delta;
         if (!ReferenceEquals(_target, target))
         {
             StopCombat();
@@ -72,6 +87,8 @@ public partial class EnemyCombatAIComponent : Node
         _target = null;
         _chargingWeapon = null;
         _attackCooldown = 0.0;
+        _combatState = CombatState.None;
+        _timeSinceCombatStateChange = CombatStateTransitionInterval;
         _owner?.BroadcastBowAnimationState("Idle");
     }
 
@@ -113,9 +130,26 @@ public partial class EnemyCombatAIComponent : Node
             return;
         }
 
-        StopMoving();
+        StopMoving(updateAnimation: false);
+        if (!TryChangeCombatState(CombatState.Shooting))
+        {
+            CancelBowCharge();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_owner.ReplicatedAttack))
+            _owner.PlayIdle();
+
         _owner.FaceMoveDirection(horizontalOffset);
-        AimBowAt(target.GlobalPosition + Vector3.Up);
+        Vector3 targetPosition = target.GlobalPosition + Vector3.Up * BowTargetHeightOffset;
+        if (!TryGetBallisticDirection(bow, targetPosition, out Vector3 shotDirection))
+        {
+            _owner.ReplicatedBowAimPitch = 0.0f;
+            CancelBowCharge();
+            return;
+        }
+
+        AimBowAt(shotDirection);
 
         if (!_owner.HasProjectileInInventory(bow.RequiredProjectile))
         {
@@ -137,7 +171,7 @@ public partial class EnemyCombatAIComponent : Node
         if (_bowChargeTime < bow.MaxChargeTime)
             return;
 
-        if (_owner.TryFireBowAt(target.GlobalPosition + Vector3.Up, (float)_bowChargeTime))
+        if (_owner.TryFireBowAt(targetPosition, (float)_bowChargeTime, shotDirection))
         {
             _attackCooldown = AttackCooldown;
             _chargingWeapon = null;
@@ -149,14 +183,69 @@ public partial class EnemyCombatAIComponent : Node
         }
     }
 
-    private void AimBowAt(Vector3 targetPosition)
+    private bool TryGetBallisticDirection(
+        RangedWeapon bow,
+        Vector3 targetPosition,
+        out Vector3 direction)
     {
-        Vector3 aimDirection = targetPosition - (_owner.GlobalPosition + Vector3.Up * 1.35f);
-        Vector3 horizontalDirection = new(aimDirection.X, 0.0f, aimDirection.Z);
-        float pitch = horizontalDirection.LengthSquared() > 0.0001f
-            ? Mathf.Atan2(aimDirection.Y, horizontalDirection.Length())
-            : 0.0f;
-        _owner.ReplicatedBowAimPitch = Mathf.Clamp(pitch, -Mathf.DegToRad(45.0f), Mathf.DegToRad(45.0f));
+        Vector3 originDirection = targetPosition - _owner.GlobalPosition;
+        if (originDirection.LengthSquared() <= 0.0001f)
+        {
+            direction = Vector3.Zero;
+            return false;
+        }
+
+        originDirection = originDirection.Normalized();
+        WeaponScene bowScene = _owner.EquippedWeaponScene;
+        Vector3 origin = bowScene != null
+            ? bowScene.GlobalPosition + originDirection * 0.25f
+            : _owner.GlobalPosition + Vector3.Up * 1.35f + originDirection * 0.8f;
+
+        Vector3 displacement = targetPosition - origin;
+        Vector3 horizontalDisplacement = new(displacement.X, 0.0f, displacement.Z);
+        float horizontalDistance = horizontalDisplacement.Length();
+        if (horizontalDistance <= 0.0001f)
+        {
+            direction = displacement.Normalized();
+            return direction.LengthSquared() > 0.0001f;
+        }
+
+        float gravity = Mathf.Abs(_owner.GetGravity().Y);
+        if (gravity <= GravityEpsilon)
+        {
+            direction = displacement.Normalized();
+            return true;
+        }
+
+        float speed = bow.ProjectileSpeed;
+        float speedSquared = speed * speed;
+        float verticalDistance = displacement.Y;
+        float discriminant = speedSquared * speedSquared -
+            gravity * (gravity * horizontalDistance * horizontalDistance +
+                2.0f * verticalDistance * speedSquared);
+        float pitch = MaxBowAimPitch;
+        if (discriminant >= 0.0f)
+        {
+            float sqrtDiscriminant = Mathf.Sqrt(discriminant);
+            float denominator = gravity * horizontalDistance;
+            float lowPitch = Mathf.Atan((speedSquared - sqrtDiscriminant) / denominator);
+            float highPitch = Mathf.Atan((speedSquared + sqrtDiscriminant) / denominator);
+            if (Mathf.Abs(lowPitch) <= MaxBowAimPitch)
+                pitch = lowPitch;
+            else if (Mathf.Abs(highPitch) <= MaxBowAimPitch)
+                pitch = highPitch;
+        }
+
+        Vector3 horizontalDirection = horizontalDisplacement / horizontalDistance;
+        direction = (horizontalDirection * Mathf.Cos(pitch) + Vector3.Up * Mathf.Sin(pitch)).Normalized();
+        return true;
+    }
+
+    private void AimBowAt(Vector3 shotDirection)
+    {
+        Vector3 horizontalDirection = new(shotDirection.X, 0.0f, shotDirection.Z);
+        float pitch = Mathf.Atan2(shotDirection.Y, horizontalDirection.Length());
+        _owner.ReplicatedBowAimPitch = Mathf.Clamp(pitch, -MaxBowAimPitch, MaxBowAimPitch);
     }
 
     private void MoveToward(Vector3 targetPosition)
@@ -200,14 +289,28 @@ public partial class EnemyCombatAIComponent : Node
             _owner.Velocity.Y,
             direction.Z * MoveSpeed);
         _owner.FaceMoveDirection(direction);
-        _owner.PlayRunForEquippedWeapon();
+        if (TryChangeCombatState(CombatState.Running))
+            _owner.PlayRunForEquippedWeapon();
     }
 
-    private void StopMoving()
+    private void StopMoving(bool updateAnimation = true)
     {
         _owner.Velocity = new Vector3(0.0f, _owner.Velocity.Y, 0.0f);
-        if (string.IsNullOrEmpty(_owner.ReplicatedAttack))
+        if (updateAnimation && string.IsNullOrEmpty(_owner.ReplicatedAttack))
             _owner.PlayIdle();
+    }
+
+    private bool TryChangeCombatState(CombatState nextState)
+    {
+        if (_combatState == nextState)
+            return true;
+
+        if (_timeSinceCombatStateChange < CombatStateTransitionInterval)
+            return false;
+
+        _combatState = nextState;
+        _timeSinceCombatStateChange = 0.0;
+        return true;
     }
 
     private void CancelBowCharge()

@@ -758,7 +758,7 @@ public partial class AnimatedEntity : Entity
 		return false;
 	}
 
-	public bool TryFireBowAt(Vector3 targetPosition, float chargeTime)
+	public bool TryFireBowAt(Vector3 targetPosition, float chargeTime, Vector3? flightDirection = null)
 	{
 		if (Multiplayer.HasMultiplayerPeer() && !Multiplayer.IsServer())
 			return false;
@@ -780,7 +780,7 @@ public partial class AnimatedEntity : Entity
 		Vector3 origin = bowScene != null
 			? bowScene.GlobalPosition + originDirection * 0.25f
 			: GlobalPosition + Vector3.Up * 1.35f + originDirection * 0.8f;
-		Vector3 direction = targetPosition - origin;
+		Vector3 direction = flightDirection ?? targetPosition - origin;
 		if (direction.LengthSquared() <= 0.0001f)
 		{
 			GD.PushError($"AnimatedEntity '{Name}' cannot fire: target position is too close to the projectile origin.");
