@@ -6,7 +6,6 @@ public partial class EnemyAIComponent : Node
     [Export] public Area3D DetectionArea { get; set; }
     [Export] public float MoveSpeed { get; set; } = 3.5f;
     [Export] public float CollectionRange { get; set; } = 1.25f;
-    [Export] public float AttackRange { get; set; } = 1.6f;
     // Сколько мс игнорировать предмет после неудачного подбора
     [Export] public int PickupRetryDelayMs { get; set; } = 5000;
     [Export] public double RescanInterval { get; set; } = 0.5;
@@ -29,8 +28,8 @@ public partial class EnemyAIComponent : Node
 
     private AnimatedEntity _owner;
     private NavigationAgent3D _navigationAgent;
+    private EnemyCombatAIComponent _combatAI;
     private double _rescanTimer;
-    private double _attackCooldown;
     private AITask _activeTask;
 
     private readonly List<AITask> _tasks = new();
@@ -63,6 +62,9 @@ public partial class EnemyAIComponent : Node
         }
 
         _navigationAgent = _owner.GetNodeOrNull<NavigationAgent3D>("NavigationAgent3D");
+        _combatAI = _owner.GetNodeOrNull<EnemyCombatAIComponent>("EnemyCombatAIComponent");
+        if (_combatAI == null)
+            GD.PushError($"Enemy '{_owner.Name}' requires an EnemyCombatAIComponent child.");
         if (_navigationAgent == null)
             GD.PushWarning($"Enemy '{_owner.Name}' has no NavigationAgent3D; AI will move directly toward tasks.");
 
@@ -92,8 +94,6 @@ public partial class EnemyAIComponent : Node
             ReleaseActiveTask(completed: false);
             return;
         }
-
-        _attackCooldown = Mathf.Max(0.0, _attackCooldown - delta);
 
         _rescanTimer -= delta;
         if (_rescanTimer <= 0.0)
@@ -370,6 +370,7 @@ public partial class EnemyAIComponent : Node
 
     private void ReleaseActiveTask(bool completed)
     {
+        _combatAI?.StopCombat();
         if (_activeTask == null)
             return;
 
@@ -396,21 +397,28 @@ public partial class EnemyAIComponent : Node
     private void ProcessActiveTask(double delta)
     {
         Entity target = _activeTask.Target;
+        bool isKill = _activeTask.Data.Type == TaskData.TaskTypes.Kill;
+        if (isKill)
+        {
+            if (target is AnimatedEntity combatTarget)
+                _combatAI?.ProcessTarget(combatTarget, delta);
+            else
+                StopMoving();
+            return;
+        }
+
         Vector3 offset = target.GlobalPosition - _owner.GlobalPosition;
         Vector3 horizontalOffset = new(offset.X, 0.0f, offset.Z);
-        bool isKill = _activeTask.Data.Type == TaskData.TaskTypes.Kill;
         bool isLoot = _activeTask.Data.Type == TaskData.TaskTypes.Loot;
 
-        float range = isKill ? AttackRange : CollectionRange;
+        float range = CollectionRange;
 
         if (horizontalOffset.Length() <= range)
         {
             StopMoving();
             _owner.FaceMoveDirection(horizontalOffset);
 
-            if (isKill)
-                TryAttack(target);
-            else if (isLoot)
+            if (isLoot)
                 LootChest(target);
             else if (_activeTask.Data.Type == TaskData.TaskTypes.Collect)
                 CompleteCollectionTask(target);
@@ -433,19 +441,6 @@ public partial class EnemyAIComponent : Node
         _owner.FaceMoveDirection(direction);
 
         _owner.PlayRunForEquippedWeapon();
-    }
-
-    private void TryAttack(Entity target)
-    {
-        if (_owner.EquippedWeapon is not MeleeWeapon ||
-            _owner.Skills?.Contains(TaskData.Skills.MeleeCombat) != true ||
-            !string.IsNullOrEmpty(_owner.ReplicatedAttack) ||
-            _attackCooldown > 0.0 ||
-            target is not AnimatedEntity)
-            return;
-
-        _owner.PlayAttack1();
-        _attackCooldown = 1.0;
     }
 
     private void CompleteCollectionTask(Entity target)

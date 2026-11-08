@@ -758,6 +758,98 @@ public partial class AnimatedEntity : Entity
 		return false;
 	}
 
+	public bool TryFireBowAt(Vector3 targetPosition, float chargeTime)
+	{
+		if (Multiplayer.HasMultiplayerPeer() && !Multiplayer.IsServer())
+			return false;
+
+		if (EquippedWeapon is not RangedWeapon bow || !bow.HasValidConfiguration)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' cannot fire: no valid ranged weapon is equipped.");
+			return false;
+		}
+
+		if (!float.IsFinite(chargeTime) || chargeTime < bow.MinChargeTime)
+		{
+			GD.PushWarning($"AnimatedEntity '{Name}' cannot fire: charge time {chargeTime} is below the weapon minimum.");
+			return false;
+		}
+
+		Vector3 originDirection = (targetPosition - GlobalPosition).Normalized();
+		WeaponScene bowScene = EquippedWeaponScene;
+		Vector3 origin = bowScene != null
+			? bowScene.GlobalPosition + originDirection * 0.25f
+			: GlobalPosition + Vector3.Up * 1.35f + originDirection * 0.8f;
+		Vector3 direction = targetPosition - origin;
+		if (direction.LengthSquared() <= 0.0001f)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' cannot fire: target position is too close to the projectile origin.");
+			return false;
+		}
+
+		if (!TryConsumeProjectileFromInventory(bow.RequiredProjectile))
+			return false;
+
+		float clampedCharge = Mathf.Clamp(chargeTime, bow.MinChargeTime, bow.MaxChargeTime);
+		float chargePercent = Mathf.Clamp(
+			(clampedCharge - bow.MinChargeTime) / (bow.MaxChargeTime - bow.MinChargeTime),
+			0.0f,
+			1.0f);
+		float damage = bow.Damage * (0.5f + 0.5f * chargePercent);
+		string projectileName = $"{Name}_Arrow_{Time.GetTicksMsec()}";
+
+		BroadcastBowAnimationState("Shooting");
+		InventoryService.Instance?.Publish();
+		if (Multiplayer.HasMultiplayerPeer())
+		{
+			Rpc(nameof(SpawnNpcBowProjectile), projectileName, bow.ResourcePath,
+				bow.RequiredProjectile.ResourcePath, origin, direction.Normalized(), damage);
+			return true;
+		}
+
+		WeaponProjectileScene instance = bow.SpawnProjectile(
+			this, GetTree().CurrentScene, projectileName, bow.RequiredProjectile,
+			origin, direction.Normalized(), damage);
+		if (instance == null)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' failed to spawn projectile '{projectileName}'.");
+			return false;
+		}
+
+		return true;
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
+		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void SpawnNpcBowProjectile(
+		string projectileName,
+		string weaponResourcePath,
+		string projectileResourcePath,
+		Vector3 origin,
+		Vector3 direction,
+		float damage)
+	{
+		if (Multiplayer.HasMultiplayerPeer())
+		{
+			long sender = Multiplayer.GetRemoteSenderId();
+			if (sender != 0 && sender != 1)
+				return;
+		}
+
+		RangedWeapon bow = GD.Load<RangedWeapon>(weaponResourcePath);
+		WeaponProjectile projectile = GD.Load<WeaponProjectile>(projectileResourcePath);
+		if (bow == null || projectile == null)
+		{
+			GD.PushError($"AnimatedEntity '{Name}' failed to load projectile resources for '{projectileName}'.");
+			return;
+		}
+
+		WeaponProjectileScene instance = bow.SpawnProjectile(
+			this, GetTree().CurrentScene, projectileName, projectile, origin, direction, damage);
+		if (instance == null)
+			GD.PushError($"AnimatedEntity '{Name}' failed to spawn replicated projectile '{projectileName}'.");
+	}
+
 	public bool TryEquipWeaponFromInventory(int inventorySlot)
 	{
 		if (Inventory == null || _equipmentComponent?.Valid(0) != true ||
