@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://cjdwje5hhgwk4"]
+
+[ext_resource type="PackedScene" uid="uid://cbelhyrwa5v86" path="res://entity/interact/chest.tscn" id="1_iagwe"]
+[ext_resource type="Script" uid="uid://b3l2mwb25kpek" path="res://entity/interact/DeadChestLoot.cs" id="2_1en20"]
+
+[node name="DeadChestLoot" unique_id=815436020 instance=ExtResource("1_iagwe")]
+script = ExtResource("2_1en20")

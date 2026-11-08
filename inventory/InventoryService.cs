@@ -363,6 +363,49 @@ public partial class InventoryService : Node
         return true;
     }
 
+    public bool LootChestForEntity(AnimatedEntity entity, Chest chest)
+    {
+        if (!IsServer || !GodotObject.IsInstanceValid(entity) || !entity.IsInsideTree() ||
+            !GodotObject.IsInstanceValid(chest) || !chest.IsInsideTree() ||
+            chest.IsQueuedForDeletion() || chest.Inventory?.Slots == null ||
+            entity.Inventory == null ||
+            entity.GlobalPosition.DistanceTo(chest.GlobalPosition) > 3.5f)
+            return false;
+
+        TaskData task = chest.Task;
+        if (task?.Type != TaskData.TaskTypes.Loot ||
+            task.State != TaskData.TaskStates.InProgress ||
+            !ReferenceEquals(chest.CurrentTaskOwner, entity) ||
+            task.RequiredRace != TaskData.Races.None &&
+                (entity.Race == TaskData.Races.None || task.RequiredRace == entity.Race))
+            return false;
+
+        bool changed = false;
+        for (int i = 0; i < chest.Inventory.Slots.Count; i++)
+        {
+            Stack stack = chest.Inventory.Slots[i];
+            if (stack?.Item == null || stack.ItemCount <= 0)
+                continue;
+
+            int previousCount = stack.ItemCount;
+            int remainingCount = entity.Inventory.Add(stack.Item, previousCount);
+            if (remainingCount == previousCount)
+                continue;
+
+            stack.ItemCount = remainingCount;
+            if (remainingCount == 0)
+                chest.Inventory.Slots[i] = null;
+            changed = true;
+        }
+
+        if (!changed)
+            return false;
+
+        chest.Inventory.NotifyChanged();
+        Publish();
+        return true;
+    }
+
     private InventoryComponent Resolve(Player player, string path)
     {
         if (path == player.Inventory.GetPath().ToString()) return player.Inventory;

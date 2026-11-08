@@ -102,6 +102,9 @@ grow_vertical = 2
 mouse_filter = 2
 mouse_behavior_recursive = 1
 
+[node name="HealthComponent" parent="." index="7" unique_id=1182051469]
+MaxHealth = 1000.0
+
 [node name="InventoryComponent" parent="." index="9" unique_id=209800001]
 Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb")])
 

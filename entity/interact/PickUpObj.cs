@@ -3,11 +3,26 @@ using Godot;
 public partial class PickUpObj : interact_obj
 {
     [Export] public Stack Slot { get; set; }
+    [Export] public bool AIGatherable { get; set; }
+
     public override void _Ready()
     {
         base._Ready();
         AddToGroup("pickups");
         Slot = Slot?.Copy();
+
+        if (AIGatherable && Task == null)
+        {
+            Task = new TaskData
+            {
+                Type = TaskData.TaskTypes.Collect,
+                RequiredSkills = new Godot.Collections.Array<TaskData.Skills>
+                {
+                    TaskData.Skills.Gathering
+                }
+            };
+        }
+
         if (Slot?.Item != null)
             interaction_name = Slot.Item.DisplayName;
 

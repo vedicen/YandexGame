@@ -14,7 +14,7 @@ public partial class Entity : CharacterBody3D
 
 	public TaskData GetTask()
 	{
-		return Task;
+		return Task?.State == TaskData.TaskStates.Required ? Task : null;
 	}
 
 	protected virtual bool HandlesMovement => false;
@@ -44,7 +44,7 @@ public partial class Entity : CharacterBody3D
 		}
 	}
 
-	protected virtual void OnDied()
+	public virtual void OnDied()
 
 	{
 		QueueFree(); // Удаляем объект из сцены при смерти
