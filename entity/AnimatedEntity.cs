@@ -88,7 +88,7 @@ public partial class AnimatedEntity : Entity
 		}
 	}
 
-	private void AddUpperBodyAnimation(
+	private bool AddUpperBodyAnimation(
 		AnimationLibrary library,
 		PackedScene sourceScene,
 		string targetName,
@@ -97,7 +97,7 @@ public partial class AnimatedEntity : Entity
 		string crouchedTargetName = null)
 	{
 		if (sourceScene == null)
-			return;
+			return false;
 
 		Node sourceRoot = sourceScene.Instantiate();
 		AnimationPlayer sourcePlayer = FindAnimationPlayer(sourceRoot);
@@ -105,7 +105,7 @@ public partial class AnimatedEntity : Entity
 		{
 			GD.PushWarning($"Animation source for '{targetName}' has no AnimationPlayer.");
 			sourceRoot.Free();
-			return;
+			return false;
 		}
 
 		foreach (StringName sourceName in sourcePlayer.GetAnimationList())
@@ -119,7 +119,7 @@ public partial class AnimatedEntity : Entity
 			{
 				sourceRoot.Free();
 				GD.PushWarning($"Animation source for '{targetName}' could not be duplicated.");
-				return;
+				return false;
 			}
 
 			attackAnimation.LoopMode = loop
@@ -137,14 +137,14 @@ public partial class AnimatedEntity : Entity
 			{
 				sourceRoot.Free();
 				GD.PushWarning($"Bow animation '{targetName}' has no upper-body rotation track to turn.");
-				return;
+				return false;
 			}
 
 			if (!hasUpperBodyTrack)
 			{
 				sourceRoot.Free();
 				GD.PushWarning($"Animation source for '{targetName}' has no recognizable upper-body bone tracks.");
-				return;
+				return false;
 			}
 
 			Animation crouchedAnimation = null;
@@ -156,7 +156,7 @@ public partial class AnimatedEntity : Entity
 				{
 					sourceRoot.Free();
 					GD.PushWarning($"Bow animation '{targetName}' has no upper-body rotation track to raise.");
-					return;
+					return false;
 				}
 			}
 
@@ -164,11 +164,25 @@ public partial class AnimatedEntity : Entity
 			if (crouchedTargetName != null)
 				library.AddAnimation(crouchedTargetName, crouchedAnimation);
 			sourceRoot.Free();
-			return;
+			return true;
 		}
 
 		GD.PushWarning($"Animation source for '{targetName}' has no playable animation.");
 		sourceRoot.Free();
+		return false;
+	}
+
+	private void AddWeaponAttackAnimation(
+		AnimationLibrary library,
+		PackedScene entityAnimation,
+		string targetName,
+		PackedScene weaponAnimation)
+	{
+		if (weaponAnimation != null &&
+			AddUpperBodyAnimation(library, weaponAnimation, targetName))
+			return;
+
+		AddUpperBodyAnimation(library, entityAnimation, targetName);
 	}
 
 	private bool RotateFirstUpperBodyBoneRight(Animation animation, string animationName)
@@ -303,19 +317,19 @@ public partial class AnimatedEntity : Entity
 
 		blendTree.AddNode("AttackClip", attackClip);
 
-		var attack = new AnimationNodeOneShot
+		_attackNode = new AnimationNodeOneShot
 		{
 			FadeInTime = (float)BlendDuration,
 			FadeOutTime = (float)BlendDuration,
 			BreakLoopAtEnd = true,
 			FilterEnabled = true
 		};
-		blendTree.AddNode("Attack", attack);
+		blendTree.AddNode("Attack", _attackNode);
 		blendTree.ConnectNode("Attack", 0, "Locomotion");
 		blendTree.ConnectNode("Attack", 1, "AttackClip");
 
-		AddUpperBodyFilter(attack, "Attack1");
-		AddUpperBodyFilter(attack, "Attack2");
+		AddUpperBodyFilter(_attackNode, "Attack1");
+		AddUpperBodyFilter(_attackNode, "Attack2");
 
 		BuildBowNodes(blendTree);
 
@@ -558,6 +572,8 @@ public partial class AnimatedEntity : Entity
 	private AnimationPlayer _animationPlayer;
 	private AnimationTree _animationTree;
 	private Node3D _modelRoot;
+	private AnimationLibrary _runtimeAnimationLibrary;
+	private AnimationNodeOneShot _attackNode;
 	private string[] _availableAnimationNames = System.Array.Empty<string>();
 	private bool _attackWasActive;
 	private bool _bowAvailable;
@@ -673,6 +689,7 @@ public partial class AnimatedEntity : Entity
 
 		var runtimeLibrary = new AnimationLibrary();
 		_animationPlayer.AddAnimationLibrary(RuntimeLibraryName, runtimeLibrary);
+		_runtimeAnimationLibrary = runtimeLibrary;
 		AddAnimation(runtimeLibrary, IdleAnimationScene, "Idle");
 		AddAnimation(runtimeLibrary, WalkAnimationScene, "Walk");
 		AddAnimation(runtimeLibrary, RunAnimationScene, "Run");
@@ -680,8 +697,10 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, RunWithSwordAnimationScene, "RunWithSword");
 		AddAnimation(runtimeLibrary, CrouchedIdleAnimationScene, "CrouchedIdle");
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
-		AddUpperBodyAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1");
-		AddUpperBodyAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2");
+		AddWeaponAttackAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1",
+			EquippedWeapon?.Attack1AnimationScene);
+		AddWeaponAttackAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2",
+			EquippedWeapon?.Attack2AnimationScene);
 		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull",
 			turnBowBodyRight: true, crouchedTargetName: "BowPullCrouched");
 		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true,
@@ -709,6 +728,7 @@ public partial class AnimatedEntity : Entity
 		if (weaponStack == null)
 		{
 			EnsureEquipmentComponent().EquipWeapon(null);
+			RefreshWeaponAttackAnimations();
 			return;
 		}
 
@@ -719,6 +739,34 @@ public partial class AnimatedEntity : Entity
 		}
 
 		EnsureEquipmentComponent().EquipWeapon(weapon);
+		RefreshWeaponAttackAnimations();
+	}
+
+	private void RefreshWeaponAttackAnimations()
+	{
+		if (_runtimeAnimationLibrary == null)
+			return;
+
+		Weapon weapon = EquippedWeapon;
+		ReplaceWeaponAttackAnimation("Attack1", Attack1AnimationScene, weapon?.Attack1AnimationScene);
+		ReplaceWeaponAttackAnimation("Attack2", Attack2AnimationScene, weapon?.Attack2AnimationScene);
+	}
+
+	private void ReplaceWeaponAttackAnimation(
+		string targetName,
+		PackedScene entityAnimation,
+		PackedScene weaponAnimation)
+	{
+		if (_runtimeAnimationLibrary.HasAnimation(targetName))
+			_runtimeAnimationLibrary.RemoveAnimation(targetName);
+
+		AddWeaponAttackAnimation(
+			_runtimeAnimationLibrary,
+			entityAnimation,
+			targetName,
+			weaponAnimation);
+		if (_attackNode != null)
+			AddUpperBodyFilter(_attackNode, targetName);
 	}
 
 	public bool HasProjectileInInventory(WeaponProjectile requiredProjectile)
