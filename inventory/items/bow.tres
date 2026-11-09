@@ -4,9 +4,16 @@
 [ext_resource type="PackedScene" uid="uid://chp3ubiab22fp" path="res://inventory/models/bow_model.tscn" id="2_bow_model"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="3_arrow"]
 [ext_resource type="PackedScene" uid="uid://dheqd547wkyuh" path="res://inventory/weapon_projectile.tscn" id="4_projectile_scene"]
+[ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="5_bow_pull"]
+[ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="6_bow_hold"]
+[ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="7_bow_shoot"]
 
 [resource]
 script = ExtResource("1_bow")
+HeldProjectileRotationDegrees = Vector3(90, 0, 0)
+BowPullAnimationScene = ExtResource("5_bow_pull")
+BowHoldAnimationScene = ExtResource("6_bow_hold")
+BowShootAnimationScene = ExtResource("7_bow_shoot")
 ProjectileSpeed = 30.01
 RequiredProjectile = ExtResource("3_arrow")
 ProjectileScene = ExtResource("4_projectile_scene")

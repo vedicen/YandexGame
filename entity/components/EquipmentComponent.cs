@@ -332,6 +332,14 @@ public partial class EquipmentComponent : InventoryComponent
         return null;
     }
 
+    public Node3D GetRightHandAttachment()
+    {
+        if (!Initialize())
+            return null;
+
+        return _slots.TryGetValue(Slot.Weapon, out Node3D attachment) ? attachment : null;
+    }
+
     private void BindMeshes(Node node)
     {
         if (node is MeshInstance3D mesh)

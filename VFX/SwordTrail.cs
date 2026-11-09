@@ -8,6 +8,9 @@ public partial class SwordTrail : MeshInstance3D
     [Export] public float MinPointDistance { get; set; } = 0.005f;
     [Export] public int MaxPoints { get; set; } = 48;
 
+    private const float MaxSegmentLength = 0.1f;
+    private const int MaxInterpolatedPoints = 8;
+
     private struct TrailPoint
     {
         public Vector3 Base;
@@ -67,16 +70,16 @@ public partial class SwordTrail : MeshInstance3D
         }
 
         _points.Clear();
+        _mesh.ClearSurfaces();
         _recording = true;
 
         AddPoint();
-
-
     }
 
     public void EndTrail()
     {
-
+        if (_recording)
+            AddPoint();
         _recording = false;
     }
 
@@ -99,26 +102,33 @@ public partial class SwordTrail : MeshInstance3D
         Vector3 basePosition = _bladeBase.GlobalPosition;
         Vector3 tipPosition = _bladeTip.GlobalPosition;
 
-        if (_points.Count > 0)
+        if (_points.Count == 0)
         {
-            TrailPoint last = _points[^1];
-
-            float distance = Mathf.Max(
-                basePosition.DistanceTo(last.Base),
-                tipPosition.DistanceTo(last.Tip)
-            );
-
-            if (distance < MinPointDistance)
-                return;
+            _points.Add(new TrailPoint(basePosition, tipPosition));
+            return;
         }
 
-        _points.Add(new TrailPoint(basePosition, tipPosition));
+        TrailPoint previous = _points[^1];
+        float distance = Mathf.Max(
+            basePosition.DistanceTo(previous.Base),
+            tipPosition.DistanceTo(previous.Tip));
+        if (distance < MinPointDistance)
+            return;
+
+        int subdivisions = Mathf.Min(
+            Mathf.CeilToInt(distance / MaxSegmentLength),
+            MaxInterpolatedPoints);
+
+        for (int i = 1; i <= subdivisions; i++)
+        {
+            float weight = (float)i / subdivisions;
+            _points.Add(new TrailPoint(
+                previous.Base.Lerp(basePosition, weight),
+                previous.Tip.Lerp(tipPosition, weight)));
+        }
 
         while (_points.Count > MaxPoints)
             _points.RemoveAt(0);
-
-
-
     }
 
     private void UpdateAges(float delta)

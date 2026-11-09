@@ -27,9 +27,6 @@ public partial class AnimatedEntity : Entity
 	[Export] public PackedScene Attack2AnimationScene { get; set; }
 	[Export] public PackedScene CrouchedIdleAnimationScene { get; set; }
 	[Export] public PackedScene CrouchedWalkAnimationScene { get; set; }
-	[Export] public PackedScene BowPullAnimationScene { get; set; }
-	[Export] public PackedScene BowHoldAnimationScene { get; set; }
-	[Export] public PackedScene BowShootAnimationScene { get; set; }
 	[Export] public float RunMultiplier { get; set; } = 1.5f;
 	[Export] public double BlendDuration { get; set; } = 0.2;
 	[Export] public float ModelTurnSpeed { get; set; } = 10.0f;
@@ -272,6 +269,14 @@ public partial class AnimatedEntity : Entity
 
 	private void BuildAnimationTree()
 	{
+		if (_animationTree != null)
+		{
+			_animationTree.Active = false;
+			_modelRoot.RemoveChild(_animationTree);
+			_animationTree.Free();
+			_animationTree = null;
+		}
+
 		var blendTree = new AnimationNodeBlendTree();
 		var locomotion = new AnimationNodeTransition
 		{
@@ -697,16 +702,12 @@ public partial class AnimatedEntity : Entity
 		AddAnimation(runtimeLibrary, RunWithSwordAnimationScene, "RunWithSword");
 		AddAnimation(runtimeLibrary, CrouchedIdleAnimationScene, "CrouchedIdle");
 		AddAnimation(runtimeLibrary, CrouchedWalkAnimationScene, "CrouchedWalk");
+		MeleeWeapon meleeWeapon = EquippedWeapon as MeleeWeapon;
 		AddWeaponAttackAnimation(runtimeLibrary, Attack1AnimationScene, "Attack1",
-			EquippedWeapon?.Attack1AnimationScene);
+			meleeWeapon?.Attack1AnimationScene);
 		AddWeaponAttackAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2",
-			EquippedWeapon?.Attack2AnimationScene);
-		AddUpperBodyAnimation(runtimeLibrary, BowPullAnimationScene, "BowPull",
-			turnBowBodyRight: true, crouchedTargetName: "BowPullCrouched");
-		AddUpperBodyAnimation(runtimeLibrary, BowHoldAnimationScene, "BowHold", true,
-			true, "BowHoldCrouched");
-		AddUpperBodyAnimation(runtimeLibrary, BowShootAnimationScene, "BowShoot",
-			turnBowBodyRight: true, crouchedTargetName: "BowShootCrouched");
+			meleeWeapon?.Attack2AnimationScene);
+		AddRangedWeaponAnimations(runtimeLibrary, EquippedWeapon as RangedWeapon);
 		LogBowDebug($"Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
 			$"tree={_animationTree?.GetPath().ToString() ?? "<not-built>"}, " +
 			$"pull={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowPull")}, " +
@@ -727,8 +728,11 @@ public partial class AnimatedEntity : Entity
 			: null;
 		if (weaponStack == null)
 		{
-			EnsureEquipmentComponent().EquipWeapon(null);
-			RefreshWeaponAttackAnimations();
+			if (EquippedWeapon != null)
+			{
+				EnsureEquipmentComponent().EquipWeapon(null);
+				RefreshWeaponAttackAnimations();
+			}
 			return;
 		}
 
@@ -738,18 +742,62 @@ public partial class AnimatedEntity : Entity
 			return;
 		}
 
+		if (IsSameWeaponResource(EquippedWeapon, weapon))
+			return;
+
 		EnsureEquipmentComponent().EquipWeapon(weapon);
 		RefreshWeaponAttackAnimations();
 	}
+
+	private static bool IsSameWeaponResource(Weapon current, Weapon next) =>
+		ReferenceEquals(current, next) ||
+		(current != null && next != null &&
+			!string.IsNullOrEmpty(current.ResourcePath) &&
+			current.ResourcePath == next.ResourcePath);
 
 	private void RefreshWeaponAttackAnimations()
 	{
 		if (_runtimeAnimationLibrary == null)
 			return;
 
-		Weapon weapon = EquippedWeapon;
-		ReplaceWeaponAttackAnimation("Attack1", Attack1AnimationScene, weapon?.Attack1AnimationScene);
-		ReplaceWeaponAttackAnimation("Attack2", Attack2AnimationScene, weapon?.Attack2AnimationScene);
+		MeleeWeapon meleeWeapon = EquippedWeapon as MeleeWeapon;
+		ReplaceWeaponAttackAnimation("Attack1", Attack1AnimationScene, meleeWeapon?.Attack1AnimationScene);
+		ReplaceWeaponAttackAnimation("Attack2", Attack2AnimationScene, meleeWeapon?.Attack2AnimationScene);
+		AddRangedWeaponAnimations(_runtimeAnimationLibrary, EquippedWeapon as RangedWeapon);
+
+		if (_animationTree != null)
+		{
+			BuildAnimationTree();
+			ApplyAnimation(_replicatedAnimation);
+			if (_replicatedBowState != "Idle")
+				ApplyBowState(_replicatedBowState);
+		}
+	}
+
+	private void AddRangedWeaponAnimations(AnimationLibrary library, RangedWeapon rangedWeapon)
+	{
+		var obsoleteAnimations = new System.Collections.Generic.List<StringName>();
+		foreach (StringName animationName in library.GetAnimationList())
+		{
+			string name = animationName.ToString();
+			if (name is "BowPull" or "BowPullCrouched" or
+				"BowHold" or "BowHoldCrouched" or
+				"BowShoot" or "BowShootCrouched" ||
+				name.StartsWith("BowAim_", System.StringComparison.Ordinal))
+				obsoleteAnimations.Add(animationName);
+		}
+		foreach (StringName animationName in obsoleteAnimations)
+			library.RemoveAnimation(animationName);
+
+		if (rangedWeapon == null)
+			return;
+
+		AddUpperBodyAnimation(library, rangedWeapon.BowPullAnimationScene, "BowPull",
+			turnBowBodyRight: true, crouchedTargetName: "BowPullCrouched");
+		AddUpperBodyAnimation(library, rangedWeapon.BowHoldAnimationScene, "BowHold", true,
+			true, "BowHoldCrouched");
+		AddUpperBodyAnimation(library, rangedWeapon.BowShootAnimationScene, "BowShoot",
+			turnBowBodyRight: true, crouchedTargetName: "BowShootCrouched");
 	}
 
 	private void ReplaceWeaponAttackAnimation(
@@ -1302,7 +1350,33 @@ public partial class AnimatedEntity : Entity
 			return;
 		}
 
-		ReplicatedAttack = animationName;
+		if (!Multiplayer.HasMultiplayerPeer())
+			ReceiveAttackAnimation(animationName);
+		else
+			Rpc(nameof(ReceiveAttackAnimation), animationName);
+	}
+
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
+		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void ReceiveAttackAnimation(string animationName)
+	{
+		if (Multiplayer.HasMultiplayerPeer() &&
+			Multiplayer.GetRemoteSenderId() != 0 &&
+			Multiplayer.GetRemoteSenderId() != GetMultiplayerAuthority())
+		{
+			GD.PushWarning($"Rejected attack animation RPC: entity={Name}, attack={animationName}, " +
+				$"sender={Multiplayer.GetRemoteSenderId()}, authority={GetMultiplayerAuthority()}.");
+			return;
+		}
+
+		if (animationName is not ("Attack1" or "Attack2"))
+		{
+			GD.PushWarning($"Rejected unknown attack animation '{animationName}'.");
+			return;
+		}
+
+		_replicatedAttack = animationName;
+		ApplyAttack(animationName);
 	}
 
 	private void AddAnimation(AnimationLibrary library, PackedScene sourceScene, string targetName)
@@ -1353,6 +1427,9 @@ public partial class AnimatedEntity : Entity
 
 	private void ApplyBowState(string state)
 	{
+		if (EquippedWeapon is Bow bow)
+			bow.UpdateHeldProjectile(this, state);
+
 		if (_animationPlayer == null || _animationTree == null)
 		{
 			GD.PushWarning($"[BowDebug] Cannot apply bow state '{state}' to {Name}: " +

@@ -3,6 +3,11 @@ using Godot;
 [GlobalClass]
 public partial class RangedWeapon : Weapon
 {
+    [ExportGroup("Bow Animations")]
+    [Export] public PackedScene BowPullAnimationScene { get; set; }
+    [Export] public PackedScene BowHoldAnimationScene { get; set; }
+    [Export] public PackedScene BowShootAnimationScene { get; set; }
+
     [Export(PropertyHint.Range, "0.01,1000,0.1")]
     public float ProjectileSpeed { get; set; } = 25.0f;
 

@@ -13,9 +13,6 @@
 [ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/EquipmentComponent.cs" id="10_yrrmq"]
 [ext_resource type="Script" uid="uid://btyu6mcn5yv45" path="res://entity/components/CombatStatsComponent.cs" id="11_combat"]
 [ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="12_2dmw2"]
-[ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="13_bow_pull"]
-[ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="14_bow_hold"]
-[ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="15_bow_shoot"]
 [ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="16_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_animated_entity"]
@@ -59,9 +56,6 @@ Attack1AnimationScene = ExtResource("7_m785b")
 Attack2AnimationScene = ExtResource("7_m785b")
 CrouchedIdleAnimationScene = ExtResource("8_oxu6r")
 CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
-BowPullAnimationScene = ExtResource("13_bow_pull")
-BowHoldAnimationScene = ExtResource("14_bow_hold")
-BowShootAnimationScene = ExtResource("15_bow_shoot")
 RunMultiplier = 1.5
 BlendDuration = 0.2
 ModelTurnSpeed = 10.0
