@@ -3,23 +3,27 @@ using System;
 
 public partial class PlayerStateMachine : Node
 {
-    public enum State { Locomotion, Inventory, Chest, Trading, Disabled }
+    public enum State { Locomotion, Inventory, Chest, Trading, BuildMenu, Building, Disabled }
     public enum Motion { Idle, Walking, Running, Crouching, CrouchWalking, Airborne }
     public State Current { get; private set; }
     public State Previous { get; private set; }
     public Motion MovementState { get; private set; }
-    public bool CanMove => Current == State.Locomotion;
+    public bool CanMove => Current is State.Locomotion or State.Building;
     public bool CanLook => CanMove;
-    public bool CanAttack => CanMove;
+    public bool CanAttack => Current == State.Locomotion;
     public event Action<State> Changed;
     public event Action<Motion> MovementChanged;
     public bool Transition(State next)
     {
         if (Current == next || Current == State.Disabled && next != State.Locomotion) return false;
+        State previous = Current;
         Exit(Current);
         Previous = Current;
         Current = next;
         Enter(next);
+        GD.Print($"[BuildDebug][State] {previous} -> {Current}; canMove={CanMove}, canLook={CanLook}, " +
+            $"inputEnabled={(GetParent() as Player)?.playerInputComponent?.IsInputEnabled}, " +
+            $"mouseMode={Input.MouseMode}.");
         Changed?.Invoke(next);
         return true;
     }
@@ -37,8 +41,14 @@ public partial class PlayerStateMachine : Node
     private void Enter(State state)
     {
         var player = GetParent<Player>();
+        // BuildMenu disables movement by state; selecting a recipe returns gameplay input.
+        // This also clears any stale input lock left by an interrupted interaction.
+        if (state == State.Building && player.playerInputComponent?.HasInputAuthority == true)
+            player.playerInputComponent.SetInputEnabled(true);
         if (!CanMove) { player.Velocity = Vector3.Zero; player.PlayIdle(); UpdateMotion(true, false, false); }
         if (player.playerInputComponent?.HasInputAuthority == true)
-            Input.MouseMode = CanMove ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
+            Input.MouseMode = CanMove || Current == State.Building
+                ? Input.MouseModeEnum.Captured
+                : Input.MouseModeEnum.Visible;
     }
 }

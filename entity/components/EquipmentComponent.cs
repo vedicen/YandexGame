@@ -22,6 +22,7 @@ public partial class EquipmentComponent : InventoryComponent
     private readonly Dictionary<Slot, PackedScene> _pendingEquipment = new();
     private bool _initialized;
     [Export] public Weapon EquippedWeapon{ get; set; } = null;
+    public HandItem EquippedHandItem { get; private set; }
 
     public override void _Ready()
     {
@@ -183,9 +184,16 @@ public partial class EquipmentComponent : InventoryComponent
             _pendingWeapon = null;
             EquipWeaponNow(weapon);
         }
+        if (_pendingHandItem != null)
+        {
+            HandItem item = _pendingHandItem;
+            _pendingHandItem = null;
+            EquipHandItemNow(item);
+        }
     }
 
     private Weapon _pendingWeapon;
+    private HandItem _pendingHandItem;
 
     public void Equip(Slot slot, PackedScene clothingScene)
     {
@@ -248,18 +256,22 @@ public partial class EquipmentComponent : InventoryComponent
             Unequip(Slot.Weapon);
             Unequip(Slot.RangedWeapon);
             EquippedWeapon = null;
+            EquippedHandItem = null;
             _pendingWeapon = null;
+            _pendingHandItem = null;
             return;
         }
 
         
-        if (weapon.WeaponModel == null)
+        if (weapon.Model == null)
         {
-            GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no WeaponModel.");
+			GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no Model.");
             return;
         }
 
         EquippedWeapon = weapon;
+        EquippedHandItem = weapon;
+        _pendingHandItem = null;
         if (!Initialize())
         {
             _pendingWeapon = weapon;
@@ -288,7 +300,7 @@ public partial class EquipmentComponent : InventoryComponent
         }
 
         WeaponScene instance = weaponScene.Instantiate<WeaponScene>();
-        instance.ModelScene = weapon.WeaponModel;
+		instance.ModelScene = weapon.Model;
         if (weapon is MeleeWeapon meleeWeapon)
             instance.TrailShader = meleeWeapon.TrailShader;
         instance.Position = weapon.EquipPosition;
@@ -300,7 +312,55 @@ public partial class EquipmentComponent : InventoryComponent
         slotNode.AddChild(instance);
         _equipped[weaponSlot] = instance;
         EquippedWeapon = weapon;
+        EquippedHandItem = weapon;
        
+    }
+
+    public void EquipHandItem(HandItem item)
+    {
+        if (item == null)
+        {
+            EquipWeapon(null);
+            return;
+        }
+        if (item is Weapon weapon)
+        {
+            EquipWeapon(weapon);
+            return;
+        }
+        if (item.Model == null)
+        {
+			GD.PushError($"EquipmentComponent: Hand item '{item.DisplayName}' has no Model.");
+            return;
+        }
+        if (!Initialize())
+        {
+            EquippedHandItem = item;
+            EquippedWeapon = null;
+            _pendingWeapon = null;
+            _pendingHandItem = item;
+            Callable.From(InitializePendingEquipment).CallDeferred();
+            return;
+        }
+        ApplyPendingEquipment();
+        EquipHandItemNow(item);
+    }
+
+    private void EquipHandItemNow(HandItem item)
+    {
+        if (!_slots.TryGetValue(Slot.Weapon, out Node3D slotNode))
+            return;
+        Unequip(Slot.Weapon);
+        Unequip(Slot.RangedWeapon);
+        Node3D model = item.Model.Instantiate<Node3D>();
+        model.Position = item.EquipPosition;
+        model.RotationDegrees = item.EquipRotationDegrees;
+        model.Scale = item.EquipScale;
+        slotNode.AddChild(model);
+        if (_skeleton != null) BindMeshes(model);
+        _equipped[Slot.Weapon] = model;
+        EquippedHandItem = item;
+        EquippedWeapon = null;
     }
 
     public WeaponScene GetEquippedWeaponScene()

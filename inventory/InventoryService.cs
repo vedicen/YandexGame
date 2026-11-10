@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 // One server-owned service at a stable scene path. Clients send intent, never item data.
@@ -60,6 +61,105 @@ public partial class InventoryService : Node
     {
         if (IsServer) Publish(); else RpcId(1, nameof(Request), "sync", "", -1, "", -1, Revision);
     }
+
+    public void RequestBuild(Player player, BuildingRecipe recipe, Vector3 position, float rotationY)
+    {
+        GD.Print($"[BuildDebug][Service] request received locally; server={IsServer}, " +
+            $"player={player?.Name ?? "<null>"}, recipe={recipe?.DisplayName ?? "<null>"}, " +
+            $"position={position}, rotationY={rotationY}.");
+        if (recipe == null || player == null)
+        {
+            GD.PushWarning("[BuildDebug][Service] Build request ignored: player or recipe is null.");
+            return;
+        }
+        if (IsServer)
+            ProcessBuild(player, recipe.ResourcePath, position, rotationY);
+        else
+            RpcId(1, nameof(RequestBuildRpc), recipe.ResourcePath, position, rotationY);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestBuildRpc(string recipePath, Vector3 position, float rotationY)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        Player player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        if (player != null) ProcessBuild(player, recipePath, position, rotationY);
+    }
+
+    private void ProcessBuild(Player player, string recipePath, Vector3 position, float rotationY)
+    {
+        GD.Print($"[BuildDebug][Service] processing; server={IsServer}, player={player?.Name ?? "<null>"}, " +
+            $"recipePath={recipePath}, playerPosition={player?.GlobalPosition}, buildPosition={position}.");
+        if (!GodotObject.IsInstanceValid(player) || !player.IsInsideTree() ||
+            player.Equipment?.EquippedHandItem is not Hammer hammer ||
+            player.GlobalPosition.DistanceTo(position) > 6.0f ||
+            !float.IsFinite(rotationY))
+        {
+            GD.PushWarning("[BuildDebug][Service] Build request rejected: invalid player, hammer, distance, or rotation.");
+            return;
+        }
+
+        BuildingRecipe recipe = hammer.BuildingRecipes?.FirstOrDefault(item =>
+            item != null && item.ResourcePath == recipePath);
+        if (recipe?.BuildingScene == null || recipe.Costs == null || player.Inventory?.Slots == null)
+        {
+            GD.PushWarning("[BuildDebug][Service] Build request rejected: recipe, costs, or inventory is missing.");
+            return;
+        }
+
+        var requiredItems = new Dictionary<Item, int>();
+        foreach (Stack cost in recipe.Costs)
+        {
+            if (cost?.Item == null || cost.ItemCount <= 0) return;
+            Item existingItem = requiredItems.Keys.FirstOrDefault(item => SameItem(item, cost.Item));
+            requiredItems[existingItem ?? cost.Item] =
+                requiredItems.GetValueOrDefault(existingItem ?? cost.Item) + cost.ItemCount;
+        }
+        if (requiredItems.Any(pair => CountItem(player.Inventory, pair.Key) < pair.Value))
+        {
+            GD.PushWarning("[BuildDebug][Service] Build request rejected: player lacks required materials.");
+            return;
+        }
+
+        NetworkManager manager = GetParent() as NetworkManager;
+        if (manager == null || !manager.SpawnBuilding(recipe.BuildingScene, position, rotationY))
+        {
+            GD.PushError($"[BuildDebug][Service] Failed to spawn '{recipe.DisplayName}'; manager={manager != null}.");
+            return;
+        }
+
+        foreach (var cost in requiredItems)
+            RemoveItems(player.Inventory, cost.Key, cost.Value);
+        player.Inventory.NotifyChanged();
+        Publish();
+        GD.Print($"[BuildDebug][Service] built '{recipe.DisplayName}' and spent materials; inventory published.");
+    }
+
+    private static int CountItem(InventoryComponent inventory, Item item)
+    {
+        int count = 0;
+        if (inventory?.Slots == null) return count;
+        foreach (Stack stack in inventory.Slots)
+            if (stack?.Item != null && SameItem(stack.Item, item)) count += stack.ItemCount;
+        return count;
+    }
+
+    private static void RemoveItems(InventoryComponent inventory, Item item, int count)
+    {
+        for (int i = 0; i < inventory.Slots.Count && count > 0; i++)
+        {
+            Stack stack = inventory.Slots[i];
+            if (stack?.Item == null || !SameItem(stack.Item, item)) continue;
+            int used = System.Math.Min(count, stack.ItemCount);
+            stack.ItemCount -= used;
+            count -= used;
+            if (stack.ItemCount <= 0) inventory.Slots[i] = null;
+        }
+    }
+
+    private static bool SameItem(Item left, Item right) => left == right ||
+        (!string.IsNullOrEmpty(left?.ResourcePath) && left.ResourcePath == right?.ResourcePath);
 
     public void RequestTradeOffer(Player player, TradingStand stand, int id, int price)
     {
@@ -462,10 +562,10 @@ public partial class InventoryService : Node
                 InventoryComponent quickMoveTarget;
                 if (inventory == player.Inventory)
                 {
-                    if (slot.Item is Weapon)
+                    if (slot.Item is HandItem)
                     {
                         if (!player.Equipment.Valid(0) ||
-                            player.Equipment.Slots[0]?.Item is not null and not Weapon ||
+                            player.Equipment.Slots[0]?.Item is not null and not HandItem ||
                             !inventory.Transfer(from, player.Equipment, 0))
                             return;
 
@@ -509,9 +609,9 @@ public partial class InventoryService : Node
                 bool targetIsWeaponSlot = destination == player.Equipment;
                 Item movingItem = slot.Item;
                 Item targetItem = destination.Slots[to]?.Item;
-                if (sourceIsWeaponSlot && movingItem is not Weapon ||
-                    targetIsWeaponSlot && movingItem is not Weapon ||
-                    sourceIsWeaponSlot && targetItem != null && targetItem is not Weapon)
+                if (sourceIsWeaponSlot && movingItem is not HandItem ||
+                    targetIsWeaponSlot && movingItem is not HandItem ||
+                    sourceIsWeaponSlot && targetItem != null && targetItem is not HandItem)
                     return;
                 if (!inventory.Transfer(from, destination, to)) return;
                 break;

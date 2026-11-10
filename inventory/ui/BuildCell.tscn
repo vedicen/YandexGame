@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://inventory/ui/BuildCell.cs" id="1_script"]
+
+[node name="BuildCell" type="Button"]
+custom_minimum_size = Vector2(180, 210)
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+mouse_filter = 2
+
+[node name="PreviewContainer" type="SubViewportContainer" parent="VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(160, 120)
+mouse_filter = 2
+stretch = true
+
+[node name="Preview" type="SubViewport" parent="VBox/PreviewContainer"]
+size = Vector2i(160, 120)
+transparent_bg = true
+render_target_update_mode = 4
+
+[node name="Camera3D" type="Camera3D" parent="VBox/PreviewContainer/Preview"]
+position = Vector3(0, 1.5, 3)
+rotation_degrees = Vector3(25, 0, 0)
+current = true
+
+[node name="Title" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Строение"
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="Cost" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Материалы"
+horizontal_alignment = 1
+mouse_filter = 2

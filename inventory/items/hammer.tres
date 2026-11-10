@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Hammer" format=3 uid="uid://cvnk0rrvui3lj"]
+
+[ext_resource type="PackedScene" uid="uid://xupk3r5bdif1" path="res://animations/hit.fbx" id="1_8wklh"]
+[ext_resource type="Script" uid="uid://dsrst5684ux7j" path="res://inventory/Hammer.cs" id="1_hammer"]
+[ext_resource type="PackedScene" path="res://inventory/models/hammer_model.tscn" id="2_model"]
+[ext_resource type="Resource" uid="uid://cosa52gq2ucnq" path="res://inventory/items/test_building_recipe.tres" id="3_recipe"]
+[ext_resource type="Script" uid="uid://clna3bfjy7y7i" path="res://inventory/BuildingRecipe.cs" id="4_recipe_script"]
+
+[resource]
+script = ExtResource("1_hammer")
+BuildAnimationScene = ExtResource("1_8wklh")
+BuildingRecipes = Array[ExtResource("4_recipe_script")]([ExtResource("3_recipe")])
+HandModel = ExtResource("2_model")
+BuildAnimationScene = ExtResource("1_8wklh")
+BuildingRecipes = Array[ExtResource("4_recipe_script")]([ExtResource("3_recipe")])
+DisplayName = "Молоток строителя"
+Description = "ПКМ открывает меню строительства."
+Model = ExtResource("2_model")
+MaxStackSize = 1
+Weight = 1.0

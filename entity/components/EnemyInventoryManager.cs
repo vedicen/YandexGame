@@ -131,7 +131,7 @@ public partial class EnemyInventoryManager : Node
 
     private bool CanUseWeapon(Weapon weapon)
     {
-        if (weapon?.WeaponModel == null)
+        if (weapon?.Model == null)
             return false;
 
         if (weapon is MeleeWeapon)

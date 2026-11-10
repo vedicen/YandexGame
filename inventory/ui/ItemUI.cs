@@ -99,7 +99,7 @@ public partial class ItemUI : PanelContainer
             ["source"] = Inventory.GetPath().ToString(),
             ["index"] = Index,
             ["revision"] = InventoryService.Instance.Revision,
-            ["is_weapon"] = Inventory.Slots[Index].Item is Weapon
+            ["is_hand_item"] = Inventory.Slots[Index].Item is HandItem
         };
     }
     public override bool _CanDropData(Vector2 position, Variant data)
@@ -110,7 +110,7 @@ public partial class ItemUI : PanelContainer
         if (Inventory == Player?.Equipment)
         {
             var drag = data.AsGodotDictionary();
-            return drag.ContainsKey("is_weapon") && drag["is_weapon"].AsBool();
+            return drag.ContainsKey("is_hand_item") && drag["is_hand_item"].AsBool();
         }
 
         return true;

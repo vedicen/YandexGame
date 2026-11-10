@@ -7,10 +7,9 @@
 [resource]
 script = ExtResource("1_sword")
 TrailShader = ExtResource("2_xrspx")
-WeaponModel = ExtResource("2_model")
 DisplayName = "Железный меч"
 Description = "Простой одноручный меч из железа. Надёжный и недорогой."
 Model = ExtResource("2_model")
 MaxStackSize = 1
 Weight = 2.0
-Rarity = 3
+Rarity = 4

@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://dvpwq51gsbosr"]
+
+[ext_resource type="Script" uid="uid://cjrri5lp2x8u3" path="res://entity/Building.cs" id="1_script"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_building"]
+size = Vector3(1.5, 1.2, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_building"]
+size = Vector3(1.5, 1.2, 1.5)
+
+[sub_resource type="SceneReplicationConfig" id="BuildingReplication"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+
+[node name="TestBuilding" type="CharacterBody3D" unique_id=1852090947]
+script = ExtResource("1_script")
+ApplyGravity = false
+
+[node name="Visual" type="MeshInstance3D" parent="." unique_id=69181248]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("BoxMesh_building")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1294163038]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_building")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1482718061]
+replication_config = SubResource("BuildingReplication")

@@ -7,6 +7,7 @@ public partial class NetworkManager : Node3D
 	[Export] public Node3D PlayersContainer;
 	[Export] public Node3D EnemiesContainer;
 	[Export] public Node3D SpawnPointsContainer;
+	[Export] public Node3D BuildingsContainer;
 
 	private const int Port = 7000;
 	private const string DefaultIp = "127.0.0.1";
@@ -27,6 +28,8 @@ public partial class NetworkManager : Node3D
 
 		if (SpawnPointsContainer == null)
 			SpawnPointsContainer = GetNodeOrNull<Node3D>("SpawnPoints");
+		if (BuildingsContainer == null)
+			BuildingsContainer = GetNodeOrNull<Node3D>("Buildings");
 	}
 
     private void AutoStartNetwork()
@@ -180,5 +183,17 @@ public partial class NetworkManager : Node3D
 		enemy.SetMultiplayerAuthority(1);
 		enemy.Position = position;
 		EnemiesContainer.AddChild(enemy, true);
+	}
+
+	public bool SpawnBuilding(PackedScene scene, Vector3 position, float rotationY)
+	{
+		if (!Multiplayer.IsServer() || scene == null || BuildingsContainer == null)
+			return false;
+		Node3D building = scene.Instantiate<Node3D>();
+		building.Name = $"Building_{BuildingsContainer.GetChildCount() + 1}";
+		building.Position = position;
+		building.Rotation = new Vector3(0, rotationY, 0);
+		BuildingsContainer.AddChild(building, true);
+		return true;
 	}
 }

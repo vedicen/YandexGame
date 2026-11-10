@@ -19,7 +19,6 @@ RequiredProjectile = ExtResource("3_arrow")
 ProjectileScene = ExtResource("4_projectile_scene")
 MinChargeTime = 0.4
 Damage = 20.0
-WeaponModel = ExtResource("2_bow_model")
 EquipRotationDegrees = Vector3(180, 180, 90)
 DisplayName = "Лук"
 Description = "Натягивайте тетиву для более сильного выстрела."

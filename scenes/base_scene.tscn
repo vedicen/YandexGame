@@ -3,7 +3,6 @@
 [ext_resource type="Script" uid="uid://pr8tdsxdyuau" path="res://scenes/NetworkManager.cs" id="1_gf1bn"]
 [ext_resource type="PackedScene" uid="uid://htqvsyysi2k4" path="res://entity/Player/player.tscn" id="2_ha2ph"]
 [ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="3_enemy"]
-[ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="4_osw8o"]
 [ext_resource type="PackedScene" uid="uid://cbelhyrwa5v86" path="res://entity/interact/chest.tscn" id="6_chest"]
 [ext_resource type="PackedScene" uid="uid://dpd70frbgid51" path="res://entity/interact/PickUp_obj.tscn" id="7_pickup"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="7_vjnli"]
@@ -22,23 +21,6 @@ sky_material = SubResource("ProceduralSkyMaterial_qcxwf")
 background_mode = 2
 sky = SubResource("Sky_2puwf")
 glow_enabled = true
-
-[sub_resource type="Resource" id="Resource_ct6y0"]
-script = ExtResource("8_oelfw")
-ItemCount = 18
-Item = ExtResource("7_vjnli")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
-[sub_resource type="Resource" id="Resource_yfdfb"]
-script = ExtResource("8_oelfw")
-Item = ExtResource("9_oelfw")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
-[sub_resource type="Resource" id="Resource_1stcl"]
-script = ExtResource("8_oelfw")
-ItemCount = 35
-Item = ExtResource("7_vjnli")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_oelfw"]
 vertices = PackedVector3Array(1.7353516, 0.25, -2.159668, 3.4853516, 0.25, -2.409668, 3.4853516, 0.25, -37.909668, -34.51465, 0.25, -37.909668, -34.51465, 0.25, -0.90966797, 1.7353516, 0.25, -0.65966797, 4.9853516, 0.25, -2.409668, 5.2353516, 0.25, -0.65966797, 34.48535, 0.25, -0.90966797, 34.48535, 0.25, -37.909668, 2.7353516, 1, -1.409668, 2.7353516, 1, 1.340332, 4.2353516, 1, 1.340332, 4.2353516, 1, -1.409668, -34.51465, 0.25, 0.84033203, 1.7353516, 0.25, 0.59033203, 5.2353516, 0.25, 0.59033203, 34.48535, 0.25, 0.84033203, 3.4853516, 0.25, 37.840332, 3.4853516, 0.25, 2.340332, 1.7353516, 0.25, 2.090332, -34.51465, 0.25, 37.840332, 4.9853516, 0.25, 2.340332, 34.48535, 0.25, 37.840332)
@@ -99,16 +81,15 @@ spawn_path = NodePath("../Enemies")
 
 [node name="Enemies" type="Node3D" parent="." unique_id=1048062421]
 
-[node name="EnemyGolem" parent="Enemies" unique_id=757652966 instance=ExtResource("4_osw8o")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.301863, 1.3076003, -9.85594)
-Skills = Array[int]([1])
-
-[node name="InventoryComponent" parent="Enemies/EnemyGolem" index="9" unique_id=209800001]
-Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_ct6y0"), SubResource("Resource_yfdfb"), SubResource("Resource_1stcl")])
-
 [node name="LootChestSpawner" type="MultiplayerSpawner" parent="." unique_id=153940311]
 _spawnable_scenes = PackedStringArray("uid://cbelhyrwa5v86", "res://entity/interact/DeadChestLoot.tscn")
 spawn_path = NodePath("../LootChests")
+
+[node name="BuildingSpawner" type="MultiplayerSpawner" parent="." unique_id=1478102393]
+_spawnable_scenes = PackedStringArray("res://entity/buildings/test_building.tscn")
+spawn_path = NodePath("../Buildings")
+
+[node name="Buildings" type="Node3D" parent="." unique_id=910838948]
 
 [node name="LootChests" type="Node3D" parent="." unique_id=153940312]
 
@@ -160,5 +141,3 @@ AIGatherable = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1, 5)
 Slot = SubResource("CrystalStack")
 AIGatherable = true
-
-[editable path="Enemies/EnemyGolem"]

@@ -10,11 +10,14 @@
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="9_l12rd"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
+[ext_resource type="PackedScene" path="res://inventory/ui/BuildMenu.tscn" id="12_build_menu"]
+[ext_resource type="Resource" uid="uid://cvnk0rrvui3lj" path="res://inventory/items/hammer.tres" id="13_hammer"]
+[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="14_wood"]
+[ext_resource type="Resource" path="res://inventory/items/stone.tres" id="15_stone"]
 
-[sub_resource type="Resource" id="Resource_vjnli"]
+[sub_resource type="Resource" id="HammerStack"]
 script = ExtResource("7_swhyu")
-Item = ExtResource("9_rt8ta")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
+Item = ExtResource("13_hammer")
 
 [sub_resource type="Resource" id="PotionStack"]
 script = ExtResource("7_swhyu")
@@ -32,9 +35,25 @@ script = ExtResource("7_swhyu")
 Item = ExtResource("9_8uuv0")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
+[sub_resource type="Resource" id="WoodStack"]
+script = ExtResource("7_swhyu")
+ItemCount = 30
+Item = ExtResource("14_wood")
+
+[sub_resource type="Resource" id="StoneStack"]
+script = ExtResource("7_swhyu")
+ItemCount = 30
+Item = ExtResource("15_stone")
+
+[sub_resource type="Resource" id="Resource_8wklh"]
+script = ExtResource("7_swhyu")
+Item = ExtResource("9_rt8ta")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
 [node name="Player" unique_id=1924824913 node_paths=PackedStringArray("playerInputComponent") instance=ExtResource("1_23bt8")]
 script = ExtResource("2_s5jwf")
 InventoryUIScene = ExtResource("11_inventory_ui")
+BuildMenuScene = ExtResource("12_build_menu")
 StartingMoney = 500
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0
@@ -99,11 +118,20 @@ grow_vertical = 2
 mouse_filter = 2
 mouse_behavior_recursive = 1
 
+[node name="tempUI" type="Control" parent="UI" index="2" unique_id=330337718]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
 [node name="EquipmentComponent" parent="." index="4" unique_id=2078828129]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("Resource_vjnli")])
+Slots = Array[ExtResource("7_swhyu")]([SubResource("HammerStack")])
 
 [node name="HealthComponent" parent="." index="7" unique_id=1182051469]
 MaxHealth = 1000.0
 
 [node name="InventoryComponent" parent="." index="9" unique_id=209800001]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb")])
+Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb"), SubResource("WoodStack"), SubResource("StoneStack"), SubResource("Resource_8wklh")])

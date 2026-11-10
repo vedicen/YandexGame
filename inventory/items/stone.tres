@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://inventory/Item.cs" id="1_script"]
+[ext_resource type="PackedScene" path="res://inventory/models/crystal.tscn" id="2_model"]
+
+[resource]
+script = ExtResource("1_script")
+DisplayName = "Камень"
+Description = "Материал для строительства."
+Model = ExtResource("2_model")
+MaxStackSize = 99
+Weight = 0.5
+Rarity = 0

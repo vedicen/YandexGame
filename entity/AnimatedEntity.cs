@@ -66,6 +66,7 @@ public partial class AnimatedEntity : Entity
 	public EquipmentComponent Equipment => _equipmentComponent;
 	public CombatStatsComponent CombatStats => _combatStats;
 	public Weapon EquippedWeapon => _equipmentComponent?.EquippedWeapon;
+	public HandItem EquippedHandItem => _equipmentComponent?.EquippedHandItem;
 	public WeaponScene EquippedWeaponScene => _equipmentComponent?.GetEquippedWeaponScene();
 	private ProgressBar _healthBar;
 
@@ -285,7 +286,7 @@ public partial class AnimatedEntity : Entity
 		blendTree.AddNode("Locomotion", locomotion);
 		var animationNames = new[]
 		{
-			"Idle", "Walk", "Run", "Jumping", "RunWithSword", "CrouchedIdle", "CrouchedWalk"
+			"Idle", "Walk", "Run", "Jumping", "RunWithSword", "CrouchedIdle", "CrouchedWalk", "Building"
 		};
 		var availableAnimations = new System.Collections.Generic.List<string>();
 
@@ -572,6 +573,8 @@ public partial class AnimatedEntity : Entity
 	}
 
 	private string _replicatedAnimation = "Idle";
+	public bool IsBuildingAnimationPlaying { get; private set; }
+	private int _buildingAnimationRunId;
 	private string _replicatedAttack = "";
 	private string _replicatedBowState = "Idle";
 	private AnimationPlayer _animationPlayer;
@@ -691,6 +694,7 @@ public partial class AnimatedEntity : Entity
 			GD.PrintErr("The assigned model does not contain an AnimationPlayer.");
 			return;
 		}
+		_animationPlayer.AnimationFinished += OnAnimationFinished;
 
 		var runtimeLibrary = new AnimationLibrary();
 		_animationPlayer.AddAnimationLibrary(RuntimeLibraryName, runtimeLibrary);
@@ -708,6 +712,8 @@ public partial class AnimatedEntity : Entity
 		AddWeaponAttackAnimation(runtimeLibrary, Attack2AnimationScene, "Attack2",
 			meleeWeapon?.Attack2AnimationScene);
 		AddRangedWeaponAnimations(runtimeLibrary, EquippedWeapon as RangedWeapon);
+		if (EquippedHandItem is Hammer hammer && hammer.BuildAnimationScene != null)
+			AddAnimation(runtimeLibrary, hammer.BuildAnimationScene, "Building");
 		LogBowDebug($"Animation setup: entity={Name}, player={_animationPlayer.GetPath()}, " +
 			$"tree={_animationTree?.GetPath().ToString() ?? "<not-built>"}, " +
 			$"pull={_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "BowPull")}, " +
@@ -728,7 +734,7 @@ public partial class AnimatedEntity : Entity
 			: null;
 		if (weaponStack == null)
 		{
-			if (EquippedWeapon != null)
+			if (EquippedHandItem != null)
 			{
 				EnsureEquipmentComponent().EquipWeapon(null);
 				RefreshWeaponAttackAnimations();
@@ -736,16 +742,18 @@ public partial class AnimatedEntity : Entity
 			return;
 		}
 
-		if (weaponStack.Item is not Weapon weapon)
+		if (weaponStack.Item is not HandItem handItem)
 		{
-			GD.PushError($"AnimatedEntity '{Name}' equipment slot only accepts Weapon items.");
+			GD.PushError($"AnimatedEntity '{Name}' equipment slot only accepts HandItem items.");
 			return;
 		}
 
-		if (IsSameWeaponResource(EquippedWeapon, weapon))
+		if (ReferenceEquals(EquippedHandItem, handItem) ||
+			(!string.IsNullOrEmpty(EquippedHandItem?.ResourcePath) &&
+			 EquippedHandItem.ResourcePath == handItem.ResourcePath))
 			return;
 
-		EnsureEquipmentComponent().EquipWeapon(weapon);
+		EnsureEquipmentComponent().EquipHandItem(handItem);
 		RefreshWeaponAttackAnimations();
 	}
 
@@ -764,6 +772,10 @@ public partial class AnimatedEntity : Entity
 		ReplaceWeaponAttackAnimation("Attack1", Attack1AnimationScene, meleeWeapon?.Attack1AnimationScene);
 		ReplaceWeaponAttackAnimation("Attack2", Attack2AnimationScene, meleeWeapon?.Attack2AnimationScene);
 		AddRangedWeaponAnimations(_runtimeAnimationLibrary, EquippedWeapon as RangedWeapon);
+		if (_runtimeAnimationLibrary.HasAnimation("Building"))
+			_runtimeAnimationLibrary.RemoveAnimation("Building");
+		if (EquippedHandItem is Hammer hammer && hammer.BuildAnimationScene != null)
+			AddAnimation(_runtimeAnimationLibrary, hammer.BuildAnimationScene, "Building");
 
 		if (_animationTree != null)
 		{
@@ -948,14 +960,21 @@ public partial class AnimatedEntity : Entity
 
 	public bool TryEquipWeaponFromInventory(int inventorySlot)
 	{
+		return Inventory?.Valid(inventorySlot) == true &&
+			Inventory.Slots[inventorySlot]?.Item is Weapon &&
+			TryEquipHandItemFromInventory(inventorySlot);
+	}
+
+	public bool TryEquipHandItemFromInventory(int inventorySlot)
+	{
 		if (Inventory == null || _equipmentComponent?.Valid(0) != true ||
-			!Inventory.Valid(inventorySlot) ||
-			Inventory.Slots[inventorySlot]?.Item is not Weapon weapon)
+			!Inventory.Valid(inventorySlot) || Inventory.Slots[inventorySlot]?.Item is not HandItem handItem)
 			return false;
 
-		if (weapon.WeaponModel == null)
+		PackedScene model = handItem.Model;
+		if (model == null)
 		{
-			GD.PushError($"AnimatedEntity '{Name}' cannot equip weapon '{weapon.DisplayName}' without a model.");
+			GD.PushError($"AnimatedEntity '{Name}' cannot equip hand item '{handItem.DisplayName}' without a model.");
 			return false;
 		}
 
@@ -987,7 +1006,7 @@ public partial class AnimatedEntity : Entity
 		for (int i = 0; i < Inventory.Slots.Count; i++)
 		{
 			if (Inventory.Slots[i]?.Item is not RangedWeapon bow ||
-				bow.WeaponModel == null ||
+				bow.Model == null ||
 				!HasProjectileInInventory(bow.RequiredProjectile) ||
 				(heldWeapon != null && bow.Rarity <= heldWeapon.Rarity))
 				continue;
@@ -1301,6 +1320,40 @@ public partial class AnimatedEntity : Entity
 	public void PlayRun() => SetAnimationState("Run");
 	public void PlayJumping() => SetAnimationState("Jumping");
 	public void PlayRunWithSword() => SetAnimationState("RunWithSword");
+	public void PlayBuildingAnimation()
+	{
+		IsBuildingAnimationPlaying = _animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "Building") == true;
+		if (!IsBuildingAnimationPlaying)
+		{
+			SetAnimationState("Idle");
+			return;
+		}
+
+		int runId = ++_buildingAnimationRunId;
+		SetAnimationState("Building");
+		float duration = (float)_animationPlayer.GetAnimation(RuntimeLibraryPrefix + "Building").Length;
+		GD.Print($"[BuildDebug][Animation] started once for {Name}; length={duration:0.###}s.");
+		ReturnToIdleAfterBuildingAnimation(runId, Math.Max(0.1, duration + 0.1));
+	}
+	private void OnAnimationFinished(StringName animationName)
+	{
+		if (animationName == RuntimeLibraryPrefix + "Building")
+			FinishBuildingAnimation(_buildingAnimationRunId);
+	}
+	private async void ReturnToIdleAfterBuildingAnimation(int runId, double delay)
+	{
+		await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
+		FinishBuildingAnimation(runId);
+	}
+	private void FinishBuildingAnimation(int runId)
+	{
+		if (!GodotObject.IsInstanceValid(this) || runId != _buildingAnimationRunId || !IsInsideTree() || !IsBuildingAnimationPlaying ||
+			ReplicatedAnimation != "Building")
+			return;
+
+		GD.Print($"[BuildDebug][Animation] building animation finished for {Name}; returning to idle.");
+		PlayIdle();
+	}
 	public void PlayRunForEquippedWeapon()
 	{
 		if (EquippedWeapon is MeleeWeapon && _animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "RunWithSword") == true)
@@ -1331,6 +1384,8 @@ public partial class AnimatedEntity : Entity
 
 	private void SetAnimationState(string animationName)
 	{
+		if (animationName != "Building")
+			IsBuildingAnimationPlaying = false;
 		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
 			return;
 
@@ -1398,7 +1453,15 @@ public partial class AnimatedEntity : Entity
 			if (sourceName.ToString().Equals("RESET", System.StringComparison.OrdinalIgnoreCase))
 				continue;
 
-			library.AddAnimation(targetName, sourcePlayer.GetAnimation(sourceName));
+			Animation animation = sourcePlayer.GetAnimation(sourceName);
+			if (targetName == "Building")
+			{
+				animation = animation.Duplicate(true) as Animation;
+				if (animation != null)
+					animation.LoopMode = Animation.LoopModeEnum.None;
+			}
+			if (animation != null)
+				library.AddAnimation(targetName, animation);
 			sourceRoot.Free();
 			return;
 		}

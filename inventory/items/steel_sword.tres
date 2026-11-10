@@ -6,7 +6,6 @@
 [resource]
 script = ExtResource("1_sword")
 Damage = 15.0
-WeaponModel = ExtResource("2_model")
 DisplayName = "Стальной меч"
 Description = "Качественный меч из стали с хорошим балансом."
 Model = ExtResource("2_model")
