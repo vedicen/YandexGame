@@ -286,7 +286,7 @@ public partial class AnimatedEntity : Entity
 		blendTree.AddNode("Locomotion", locomotion);
 		var animationNames = new[]
 		{
-			"Idle", "Walk", "Run", "Jumping", "RunWithSword", "CrouchedIdle", "CrouchedWalk", "Building"
+			"Idle", "Walk", "Run", "Jumping", "RunWithSword", "CrouchedIdle", "CrouchedWalk"
 		};
 		var availableAnimations = new System.Collections.Generic.List<string>();
 
@@ -338,6 +338,24 @@ public partial class AnimatedEntity : Entity
 		AddUpperBodyFilter(_attackNode, "Attack2");
 
 		BuildBowNodes(blendTree);
+		if (_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "Building"))
+		{
+			StringName baseNode = _bowAvailable ? "Bow" : "Attack";
+			blendTree.DisconnectNode("output", 0);
+			blendTree.AddNode("BuildingClip", new AnimationNodeAnimation
+			{
+				Animation = RuntimeLibraryPrefix + "Building"
+			});
+			blendTree.AddNode("BuildingOneShot", new AnimationNodeOneShot
+			{
+				FadeInTime = (float)BlendDuration,
+				FadeOutTime = (float)BlendDuration,
+				BreakLoopAtEnd = true
+			});
+			blendTree.ConnectNode("BuildingOneShot", 0, baseNode);
+			blendTree.ConnectNode("BuildingOneShot", 1, "BuildingClip");
+			blendTree.ConnectNode("output", 0, "BuildingOneShot");
+		}
 
 		_animationTree = new AnimationTree
 		{
@@ -573,8 +591,6 @@ public partial class AnimatedEntity : Entity
 	}
 
 	private string _replicatedAnimation = "Idle";
-	public bool IsBuildingAnimationPlaying { get; private set; }
-	private int _buildingAnimationRunId;
 	private string _replicatedAttack = "";
 	private string _replicatedBowState = "Idle";
 	private AnimationPlayer _animationPlayer;
@@ -1322,37 +1338,40 @@ public partial class AnimatedEntity : Entity
 	public void PlayRunWithSword() => SetAnimationState("RunWithSword");
 	public void PlayBuildingAnimation()
 	{
-		IsBuildingAnimationPlaying = _animationPlayer?.HasAnimation(RuntimeLibraryPrefix + "Building") == true;
-		if (!IsBuildingAnimationPlaying)
+		if (_animationTree == null || !_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "Building"))
 		{
-			SetAnimationState("Idle");
+			GD.PushWarning($"[BuildDebug][Animation] no building animation is configured for {Name}.");
 			return;
 		}
+		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
+			return;
 
-		int runId = ++_buildingAnimationRunId;
-		SetAnimationState("Building");
-		float duration = (float)_animationPlayer.GetAnimation(RuntimeLibraryPrefix + "Building").Length;
-		GD.Print($"[BuildDebug][Animation] started once for {Name}; length={duration:0.###}s.");
-		ReturnToIdleAfterBuildingAnimation(runId, Math.Max(0.1, duration + 0.1));
+		if (Multiplayer.HasMultiplayerPeer())
+			Rpc(nameof(ReceiveBuildingAnimation));
+		else
+			ReceiveBuildingAnimation();
+	}
+	[Rpc(MultiplayerApi.RpcMode.AnyPeer, CallLocal = true,
+		TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+	private void ReceiveBuildingAnimation()
+	{
+		if (Multiplayer.HasMultiplayerPeer() && Multiplayer.GetRemoteSenderId() != 0 &&
+			Multiplayer.GetRemoteSenderId() != GetMultiplayerAuthority())
+		{
+			GD.PushWarning($"[BuildDebug][Animation] rejected building animation from peer {Multiplayer.GetRemoteSenderId()}.");
+			return;
+		}
+		if (_animationTree == null || !_animationPlayer.HasAnimation(RuntimeLibraryPrefix + "Building"))
+			return;
+
+		_animationTree.Set("parameters/BuildingOneShot/request", (int)AnimationNodeOneShot.OneShotRequest.Abort);
+		_animationTree.Set("parameters/BuildingOneShot/request", (int)AnimationNodeOneShot.OneShotRequest.Fire);
+		GD.Print($"[BuildDebug][Animation] one-shot started for {Name}; locomotion continues underneath.");
 	}
 	private void OnAnimationFinished(StringName animationName)
 	{
 		if (animationName == RuntimeLibraryPrefix + "Building")
-			FinishBuildingAnimation(_buildingAnimationRunId);
-	}
-	private async void ReturnToIdleAfterBuildingAnimation(int runId, double delay)
-	{
-		await ToSignal(GetTree().CreateTimer(delay), SceneTreeTimer.SignalName.Timeout);
-		FinishBuildingAnimation(runId);
-	}
-	private void FinishBuildingAnimation(int runId)
-	{
-		if (!GodotObject.IsInstanceValid(this) || runId != _buildingAnimationRunId || !IsInsideTree() || !IsBuildingAnimationPlaying ||
-			ReplicatedAnimation != "Building")
-			return;
-
-		GD.Print($"[BuildDebug][Animation] building animation finished for {Name}; returning to idle.");
-		PlayIdle();
+			GD.Print($"[BuildDebug][Animation] one-shot clip finished for {Name}.");
 	}
 	public void PlayRunForEquippedWeapon()
 	{
@@ -1384,8 +1403,6 @@ public partial class AnimatedEntity : Entity
 
 	private void SetAnimationState(string animationName)
 	{
-		if (animationName != "Building")
-			IsBuildingAnimationPlaying = false;
 		if (Multiplayer.HasMultiplayerPeer() && GetMultiplayerAuthority() != Multiplayer.GetUniqueId())
 			return;
 

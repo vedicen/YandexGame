@@ -57,6 +57,7 @@ public partial class Player : AnimatedEntity
     private BuildingRecipe _selectedBuilding;
     private Node3D _buildingGhost;
     private double _buildInputLogTimer;
+    public bool IsBuildPlacementActive => _selectedBuilding != null;
     
 
     public override void _Ready()
@@ -156,7 +157,7 @@ public partial class Player : AnimatedEntity
 
         UpdateBuildingGhost();
 
-        if (States.Current == PlayerStateMachine.State.Building)
+        if (IsBuildPlacementActive)
         {
             _buildInputLogTimer += delta;
             if (_buildInputLogTimer >= 1.0)
@@ -227,8 +228,7 @@ public partial class Player : AnimatedEntity
         }
         else if (direction == Vector3.Zero)
         {
-            if (!IsBuildingAnimationPlaying)
-                PlayIdle();
+            PlayIdle();
         }
         else if (running)
         {
@@ -684,7 +684,7 @@ public partial class Player : AnimatedEntity
     private void pressed_interact_key()
     {
 
-        if (States.Current != PlayerStateMachine.State.Locomotion ||
+        if (States.Current != PlayerStateMachine.State.Locomotion || IsBuildPlacementActive ||
             !GodotObject.IsInstanceValid(current_interact_obj)) return;
         if (current_interact_obj.disable_input_on_interact &&
             current_interact_obj is not Chest &&
@@ -699,7 +699,7 @@ public partial class Player : AnimatedEntity
 
         if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } &&
             playerInputComponent.IsInputEnabled &&
-            (States.Current is PlayerStateMachine.State.Locomotion or PlayerStateMachine.State.Building) &&
+            States.Current == PlayerStateMachine.State.Locomotion &&
             (EquippedHandItem is Hammer hammer && hammer.BuildingRecipes?.Count > 0))
         {
             GD.Print($"[BuildDebug][Input] RMB opens menu; player={Name}, item={EquippedHandItem?.DisplayName}, " +
@@ -710,7 +710,7 @@ public partial class Player : AnimatedEntity
             return;
         }
         if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } &&
-            States.Current == PlayerStateMachine.State.Building && _selectedBuilding != null)
+            States.Current == PlayerStateMachine.State.Locomotion && _selectedBuilding != null)
         {
             if (_buildingGhost == null || !GodotObject.IsInstanceValid(_buildingGhost) || !_buildingGhost.IsInsideTree())
                 GD.PushWarning("[BuildDebug][Place] Cannot place: building ghost is missing or outside the scene tree.");
@@ -720,6 +720,7 @@ public partial class Player : AnimatedEntity
             {
                 GD.Print($"[BuildDebug][Place] request='{_selectedBuilding.DisplayName}', position={_buildingGhost.GlobalPosition}, " +
                     $"rotationY={_buildingGhost.GlobalRotation.Y}, inventoryService={GodotObject.IsInstanceValid(InventoryService.Instance)}.");
+                PlayBuildingAnimation();
                 InventoryService.Instance?.RequestBuild(this, _selectedBuilding,
                     _buildingGhost.GlobalPosition, _buildingGhost.GlobalRotation.Y);
             }
@@ -749,13 +750,18 @@ public partial class Player : AnimatedEntity
         }
 
         if (ev is not InputEventKey { Pressed: true, Echo: false } key) return;
-        if (key.Keycode == Key.Escape &&
-            States.Current is PlayerStateMachine.State.BuildMenu or PlayerStateMachine.State.Building)
+        if (key.Keycode == Key.Escape && States.Current == PlayerStateMachine.State.BuildMenu)
         {
             _buildMenu?.Hide();
+            States.Transition(PlayerStateMachine.State.Locomotion);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (key.Keycode == Key.Escape && States.Current == PlayerStateMachine.State.Locomotion &&
+            _selectedBuilding != null)
+        {
             ClearBuildingGhost();
             _selectedBuilding = null;
-            States.Transition(PlayerStateMachine.State.Locomotion);
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -784,7 +790,8 @@ public partial class Player : AnimatedEntity
             else CloseInventory();
             GetViewport().SetInputAsHandled();
         }
-        else if (key.PhysicalKeycode == Key.E && States.Current == PlayerStateMachine.State.Locomotion)
+        else if (key.PhysicalKeycode == Key.E && States.Current == PlayerStateMachine.State.Locomotion &&
+            !IsBuildPlacementActive)
         {
             pressed_interact_key();
             GetViewport().SetInputAsHandled();
@@ -814,11 +821,10 @@ public partial class Player : AnimatedEntity
             }
             GD.Print($"[BuildDebug][Select] ghostCreated={GodotObject.IsInstanceValid(_buildingGhost)}, " +
                 $"ghostInsideTree={_buildingGhost?.IsInsideTree()}, currentScene={GetTree().CurrentScene?.GetPath()}");
-            bool transitioned = States.Transition(PlayerStateMachine.State.Building);
+            bool transitioned = States.Transition(PlayerStateMachine.State.Locomotion);
             GD.Print($"[BuildDebug][Select] transitionResult={transitioned}, selected='{recipe.DisplayName}', " +
                 $"state={States.Current}, canMove={States.CanMove}, inputEnabled={playerInputComponent?.IsInputEnabled}, " +
                 $"ghostParent={_buildingGhost?.GetParent()?.GetPath()}.");
-            PlayBuildingAnimation();
             GD.Print("[BuildDebug][Select] step=complete");
         }
         catch (Exception exception)
@@ -954,7 +960,8 @@ public partial class Player : AnimatedEntity
 
     public bool BeginTrading(TradingStand stand)
     {
-        if (stand == null || States.Current != PlayerStateMachine.State.Locomotion || _tradingStand != null)
+        if (stand == null || States.Current != PlayerStateMachine.State.Locomotion ||
+            IsBuildPlacementActive || _tradingStand != null)
             return false;
 
         _tradingStand = stand;
@@ -1027,14 +1034,9 @@ public partial class Player : AnimatedEntity
         _openChest = null;
         if (States.Current is PlayerStateMachine.State.Chest or PlayerStateMachine.State.Inventory)
         {
-            bool resumeBuilding = States.Previous == PlayerStateMachine.State.Building &&
-                _selectedBuilding != null && GodotObject.IsInstanceValid(_buildingGhost) &&
-                _buildingGhost.IsInsideTree();
-            States.Transition(resumeBuilding
-                ? PlayerStateMachine.State.Building
-                : PlayerStateMachine.State.Locomotion);
-            GD.Print($"[BuildDebug][Inventory] closed; resumeBuilding={resumeBuilding}, state={States.Current}, " +
-                $"ghostValid={GodotObject.IsInstanceValid(_buildingGhost)}.");
+            States.Transition(PlayerStateMachine.State.Locomotion);
+            GD.Print($"[BuildDebug][Inventory] closed; state={States.Current}, " +
+                $"placementActive={IsBuildPlacementActive}, ghostValid={GodotObject.IsInstanceValid(_buildingGhost)}.");
         }
         InventoryUI?.Close();
         if (_inputLockSource == previousChest && previousChest != null)
