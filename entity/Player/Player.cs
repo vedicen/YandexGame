@@ -102,6 +102,7 @@ public partial class Player : AnimatedEntity
             InventoryUI = InventoryUIScene.Instantiate<InventoryUI>();
             InventoryUI.Player = this;
             AddChild(InventoryUI);
+            Equipment.Changed += OnBuildEquipmentChanged;
             if (BuildMenuScene != null && _tempUi != null)
             {
                 _buildMenu = BuildMenuScene.Instantiate<BuildMenu>();
@@ -115,6 +116,13 @@ public partial class Player : AnimatedEntity
             SetPhysicsProcess(false);
             GetNode<Control>("UI").Hide();
         }
+    }
+
+    public override void _ExitTree()
+    {
+        if (GodotObject.IsInstanceValid(Equipment))
+            Equipment.Changed -= OnBuildEquipmentChanged;
+        base._ExitTree();
     }
 
     public override void _Process(double delta)
@@ -935,6 +943,16 @@ public partial class Player : AnimatedEntity
     {
         if (GodotObject.IsInstanceValid(_buildingGhost)) _buildingGhost.QueueFree();
         _buildingGhost = null;
+    }
+
+    private void OnBuildEquipmentChanged()
+    {
+        if (!IsBuildPlacementActive || EquippedHandItem is Hammer)
+            return;
+
+        GD.Print("[BuildDebug][Ghost] placement cancelled because the hammer was unequipped.");
+        ClearBuildingGhost();
+        _selectedBuilding = null;
     }
 
     public void SetChest(Chest chest)
