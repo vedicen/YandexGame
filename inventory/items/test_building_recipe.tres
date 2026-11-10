@@ -1,23 +1,16 @@
 [gd_resource type="Resource" script_class="BuildingRecipe" format=3 uid="uid://cosa52gq2ucnq"]
 
 [ext_resource type="Script" uid="uid://clna3bfjy7y7i" path="res://inventory/BuildingRecipe.cs" id="1_recipe"]
-[ext_resource type="PackedScene" path="res://entity/buildings/test_building.tscn" id="2_building"]
+[ext_resource type="PackedScene" uid="uid://dvpwq51gsbosr" path="res://entity/buildings/test_building.tscn" id="2_building"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="3_stack"]
-[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="4_wood"]
 [ext_resource type="Resource" path="res://inventory/items/stone.tres" id="5_stone"]
-
-[sub_resource type="Resource" id="WoodCost"]
-script = ExtResource("3_stack")
-ItemCount = 5
-Item = ExtResource("4_wood")
 
 [sub_resource type="Resource" id="StoneCost"]
 script = ExtResource("3_stack")
-ItemCount = 3
 Item = ExtResource("5_stone")
 
 [resource]
 script = ExtResource("1_recipe")
 DisplayName = "Каменная опора"
 BuildingScene = ExtResource("2_building")
-Costs = Array[ExtResource("3_stack")]([SubResource("WoodCost"), SubResource("StoneCost")])
+Costs = Array[ExtResource("3_stack")]([SubResource("StoneCost")])

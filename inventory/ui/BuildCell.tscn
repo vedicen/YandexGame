@@ -27,11 +27,20 @@ stretch = true
 size = Vector2i(160, 120)
 transparent_bg = true
 render_target_update_mode = 4
+own_world_3d = true
 
 [node name="Camera3D" type="Camera3D" parent="VBox/PreviewContainer/Preview"]
 position = Vector3(0, 1.5, 3)
-rotation_degrees = Vector3(25, 0, 0)
 current = true
+
+[node name="KeyLight" type="DirectionalLight3D" parent="VBox/PreviewContainer/Preview"]
+rotation_degrees = Vector3(-35, -45, 0)
+light_energy = 0.8
+
+[node name="FillLight" type="OmniLight3D" parent="VBox/PreviewContainer/Preview"]
+position = Vector3(1, 1.5, 2)
+omni_range = 6.0
+light_energy = 0.7
 
 [node name="Title" type="Label" parent="VBox"]
 layout_mode = 2

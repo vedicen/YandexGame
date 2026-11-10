@@ -10,9 +10,6 @@
 script = ExtResource("1_hammer")
 BuildAnimationScene = ExtResource("1_8wklh")
 BuildingRecipes = Array[ExtResource("4_recipe_script")]([ExtResource("3_recipe")])
-HandModel = ExtResource("2_model")
-BuildAnimationScene = ExtResource("1_8wklh")
-BuildingRecipes = Array[ExtResource("4_recipe_script")]([ExtResource("3_recipe")])
 DisplayName = "Молоток строителя"
 Description = "ПКМ открывает меню строительства."
 Model = ExtResource("2_model")

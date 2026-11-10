@@ -7,6 +7,7 @@ public partial class BuildCell : Button
     private Label _title;
     private Label _cost;
     private BuildingRecipe _recipe;
+    private Node3D _model;
     public BuildingRecipe Recipe => _recipe;
 
     public override void _Ready()
@@ -27,13 +28,20 @@ public partial class BuildCell : Button
         GD.Print($"[BuildDebug][Cell] bound='{recipe?.DisplayName ?? "<null>"}', available={available}, " +
             $"disabled={Disabled}, costs={_cost.Text.Replace("\n", ", ")}.");
         if (recipe?.BuildingScene == null) return;
-        foreach (Node child in _preview.GetChildren()) child.QueueFree();
+        if (_model != null)
+        {
+            _preview.RemoveChild(_model);
+            _model.QueueFree();
+        }
+
         Node3D model = recipe.BuildingScene.Instantiate<Node3D>();
         model.SetPhysicsProcess(false);
         _preview.AddChild(model);
         model.Position = Vector3.Zero;
         model.Scale = Vector3.One * 0.55f;
+        _model = model;
         Camera3D camera = _preview.GetNode<Camera3D>("Camera3D");
+        camera.LookAt(Vector3.Zero);
         camera.Current = true;
     }
 }
