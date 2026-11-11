@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="8_oelfw"]
 [ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_oelfw"]
 [ext_resource type="Resource" path="res://inventory/items/crystal.tres" id="10_crystal"]
+[ext_resource type="PackedScene" uid="uid://b4ndwt36f464f" path="res://entity/AnimatedEnemy/npc.tscn" id="11_sybwi"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_qcxwf"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -86,7 +87,7 @@ _spawnable_scenes = PackedStringArray("uid://cbelhyrwa5v86", "res://entity/inter
 spawn_path = NodePath("../LootChests")
 
 [node name="BuildingSpawner" type="MultiplayerSpawner" parent="." unique_id=1478102393]
-_spawnable_scenes = PackedStringArray("res://entity/buildings/test_building.tscn")
+_spawnable_scenes = PackedStringArray("uid://dvpwq51gsbosr")
 spawn_path = NodePath("../Buildings")
 
 [node name="Buildings" type="Node3D" parent="." unique_id=910838948]
@@ -141,3 +142,6 @@ AIGatherable = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 1, 5)
 Slot = SubResource("CrystalStack")
 AIGatherable = true
+
+[node name="NPC" parent="." unique_id=158455418 instance=ExtResource("11_sybwi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.173913, 0.8569428, -0.48593903)

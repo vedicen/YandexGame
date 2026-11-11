@@ -2,8 +2,8 @@
 
 [ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="1_23bt8"]
 [ext_resource type="Script" uid="uid://cni4iujhpbe8u" path="res://entity/Player/Player.cs" id="2_s5jwf"]
-[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="3_xqki4"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
+[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="5_vuud8"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="7_swhyu"]
 [ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
 [ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_8uuv0"]
@@ -64,7 +64,7 @@ MinPitch = -80.0
 MaxPitch = 60.0
 Race = 1
 Skills = Array[int]([])
-ModelScene = ExtResource("3_xqki4")
+ModelScene = ExtResource("5_vuud8")
 
 [node name="PlayerInputComponent" parent="." index="1" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
 

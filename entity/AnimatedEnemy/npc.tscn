@@ -2,17 +2,10 @@
 
 [ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="1_enemy"]
 [ext_resource type="Script" uid="uid://dp4b0nedahwn3" path="res://entity/AnimatedEnemy/NPC.cs" id="2_npc"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eg6r0"]
-albedo_color = Color(1, 1, 0, 1)
+[ext_resource type="PackedScene" uid="uid://dm2ykpwvf125e" path="res://entity/AnimatedEnemy/ketIdle.fbx" id="3_24tug"]
 
 [node name="NPC" unique_id=158455418 instance=ExtResource("1_enemy")]
 script = ExtResource("2_npc")
 TradeItemIds = Array[int]([1, 2, 3])
-ModelTurnSpeed = 10.0
-ReplicatedModelFacing = 0.0
-
-[node name="CSGBox3D" type="CSGBox3D" parent="." index="5" unique_id=1332501817]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21948242, 0)
-size = Vector3(1, 1.4389648, 1)
-material = SubResource("StandardMaterial3D_eg6r0")
+ModelScene = ExtResource("3_24tug")
+IdleAnimationScene = ExtResource("3_24tug")

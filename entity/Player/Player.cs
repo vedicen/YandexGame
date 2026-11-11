@@ -728,7 +728,7 @@ public partial class Player : AnimatedEntity
             {
                 GD.Print($"[BuildDebug][Place] request='{_selectedBuilding.DisplayName}', position={_buildingGhost.GlobalPosition}, " +
                     $"rotationY={_buildingGhost.GlobalRotation.Y}, inventoryService={GodotObject.IsInstanceValid(InventoryService.Instance)}.");
-                PlayBuildingAnimation();
+                PlayAttack1();
                 InventoryService.Instance?.RequestBuild(this, _selectedBuilding,
                     _buildingGhost.GlobalPosition, _buildingGhost.GlobalRotation.Y);
             }

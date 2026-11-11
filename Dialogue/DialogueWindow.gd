@@ -33,6 +33,7 @@ func configure(catalog: Array, current_money: int) -> void:
 
 # Загрузка локальной модели.
 func load_model() -> void:
+
 	if not FileAccess.file_exists(MODEL_PATH):
 		push_error("Модель не найдена: " + MODEL_PATH)
 		return
