@@ -230,11 +230,22 @@ public partial class InventoryService : Node
         if (_tradeSessions.TryGetValue(peer, out string standPath) &&
             (stand == null || standPath == stand.GetPath().ToString()))
         {
+            if (GodotObject.IsInstanceValid(stand))
+                ReturnTradeItems(player, stand);
             _tradeSessions.Remove(peer);
             _tradeOffers.Remove(peer);
             if (GodotObject.IsInstanceValid(stand) && GodotObject.IsInstanceValid(stand.npc_owner))
                 stand.npc_owner.EndTrading(stand, player);
+            Publish();
         }
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void ReceiveTradeClosed(int peer, string standPath)
+    {
+        Player player = GetParent().GetNodeOrNull<Player>($"Players/{peer}");
+        TradingStand stand = GetNodeOrNull<TradingStand>(standPath);
+        player?.CloseTradingFromServer(stand);
     }
 
     private void EndTradeForPeer(int peer)
@@ -243,6 +254,9 @@ public partial class InventoryService : Node
             return;
         _tradeSessions.Remove(peer);
         var stand = GetNodeOrNull<TradingStand>(standPath);
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{peer}");
+        if (GodotObject.IsInstanceValid(stand) && GodotObject.IsInstanceValid(player))
+            ReturnTradeItems(player, stand);
         var tradingPlayer = GodotObject.IsInstanceValid(stand?.npc_owner)
             ? stand.npc_owner.TradingPlayer
             : null;
@@ -254,6 +268,100 @@ public partial class InventoryService : Node
     {
         if (IsServer) ProcessTradePurchase(player, stand, id, price, accepted);
         else RpcId(1, nameof(RequestTradePurchaseRpc), stand.GetPath().ToString(), id, price, accepted);
+    }
+
+    public void RequestTradeBuy(Player player, TradingStand stand, int id)
+    {
+        if (IsServer) ProcessTradeBuy(player, stand, id);
+        else RpcId(1, nameof(RequestTradeBuyRpc), stand.GetPath().ToString(), id);
+    }
+
+    public void RequestTradeSale(Player player, TradingStand stand)
+    {
+        if (IsServer) ProcessTradeSale(player, stand);
+        else RpcId(1, nameof(RequestTradeSaleRpc), stand.GetPath().ToString());
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestTradeBuyRpc(string standPath, int id)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        if (player != null) ProcessTradeBuy(player, GetNodeOrNull<TradingStand>(standPath), id);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    private void RequestTradeSaleRpc(string standPath)
+    {
+        if (!IsServer) return;
+        int sender = Multiplayer.GetRemoteSenderId();
+        var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
+        if (player != null) ProcessTradeSale(player, GetNodeOrNull<TradingStand>(standPath));
+    }
+
+    private void ProcessTradeBuy(Player player, TradingStand stand, int id)
+    {
+        if (!CanTrade(player, stand) || !stand.npc_owner.SellsItem(id) ||
+            !TradeItemDatabase.TryGet(id, out TradeItemRecord item)) return;
+
+        int peer = player.GetMultiplayerAuthority();
+        int balance = GetMoney(player);
+        if (balance < item.Price || !player.Inventory.CanAdd(item.Item, 1) ||
+            player.Inventory.Add(item.Item, 1) != 0) return;
+
+        _money[peer] = balance - item.Price;
+        Publish();
+    }
+
+    private void ProcessTradeSale(Player player, TradingStand stand)
+    {
+        if (!CanTrade(player, stand) || stand.SaleStorage?.Slots == null) return;
+        long total = 0;
+        foreach (Stack stack in stand.SaleStorage.Slots)
+        {
+            if (stack == null) continue;
+            if (stack.Item == null || stack.Item.SalePrice <= 0 || stack.ItemCount <= 0) return;
+            total += (long)stack.Item.SalePrice * stack.ItemCount;
+            if (total > int.MaxValue) return;
+        }
+        if (total <= 0) return;
+
+        int peer = player.GetMultiplayerAuthority();
+        int balance = GetMoney(player);
+        if ((long)balance + total > int.MaxValue) return;
+        foreach (int index in System.Linq.Enumerable.Range(0, stand.SaleStorage.Slots.Count))
+            stand.SaleStorage.Slots[index] = null;
+        stand.SaleStorage.NotifyChanged();
+        _money[peer] = balance + (int)total;
+        Publish();
+    }
+
+    private void ReturnTradeItems(Player player, TradingStand stand)
+    {
+        if (stand.SaleStorage?.Slots == null || player?.Inventory?.Slots == null) return;
+        bool changed = false;
+        for (int i = 0; i < stand.SaleStorage.Slots.Count; i++)
+        {
+            Stack stack = stand.SaleStorage.Slots[i];
+            if (stack?.Item == null || stack.ItemCount <= 0) continue;
+            int remaining = player.Inventory.Add(stack.Item, stack.ItemCount);
+            if (remaining == 0)
+            {
+                stand.SaleStorage.Slots[i] = null;
+                changed = true;
+                continue;
+            }
+            stack.ItemCount = remaining;
+            changed = true;
+            var pickup = GD.Load<PackedScene>("res://entity/interact/PickUp_obj.tscn").Instantiate<PickUpObj>();
+            pickup.Name = $"TradeReturn_{++_nextDrop}";
+            pickup.Slot = new Stack { Item = stack.Item, ItemCount = remaining };
+            GetParent().AddChild(pickup);
+            pickup.GlobalPosition = player.GlobalPosition - player.GlobalBasis.Z * 1.2f;
+            stand.SaleStorage.Slots[i] = null;
+        }
+        if (changed) stand.SaleStorage.NotifyChanged();
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -525,6 +633,12 @@ public partial class InventoryService : Node
     {
         if (path == player.Inventory.GetPath().ToString()) return player.Inventory;
         if (path == player.Equipment.GetPath().ToString()) return player.Equipment;
+        if (_tradeSessions.TryGetValue(player.GetMultiplayerAuthority(), out var tradeStandPath))
+        {
+            var stand = GetNodeOrNull<TradingStand>(tradeStandPath);
+            if (stand != null && Near(player, stand) && path == stand.SaleStorage?.GetPath().ToString())
+                return stand.SaleStorage;
+        }
         if (_sessions.TryGetValue(player.GetMultiplayerAuthority(), out var chestPath))
         {
             var chest = GetNodeOrNull<Chest>(chestPath);
@@ -562,7 +676,7 @@ public partial class InventoryService : Node
                 InventoryComponent quickMoveTarget;
                 if (inventory == player.Inventory)
                 {
-                    if (slot.Item is HandItem)
+                    if (slot.Item is HandItem && !_tradeSessions.ContainsKey(peer))
                     {
                         if (!player.Equipment.Valid(0) ||
                             player.Equipment.Slots[0]?.Item is not null and not HandItem ||
@@ -572,14 +686,22 @@ public partial class InventoryService : Node
                         break;
                     }
 
-                    if (!_sessions.TryGetValue(peer, out string openChestPath))
-                        return;
+                    if (_tradeSessions.TryGetValue(peer, out string tradeStandPath))
+                    {
+                        var tradeStand = GetNodeOrNull<TradingStand>(tradeStandPath);
+                        if (!CanTrade(player, tradeStand) || slot.Item.SalePrice <= 0)
+                            return;
+                        quickMoveTarget = tradeStand.SaleStorage;
+                    }
+                    else
+                    {
+                        if (!_sessions.TryGetValue(peer, out string openChestPath)) return;
 
-                    var openChest = GetNodeOrNull<Chest>(openChestPath);
-                    if (openChest == null || !Near(player, openChest))
-                        return;
+                        var openChest = GetNodeOrNull<Chest>(openChestPath);
+                        if (openChest == null || !Near(player, openChest)) return;
 
-                    quickMoveTarget = openChest.Inventory;
+                        quickMoveTarget = openChest.Inventory;
+                    }
                 }
                 else if (inventory == player.Equipment)
                 {
@@ -605,6 +727,12 @@ public partial class InventoryService : Node
             case "move":
                 var destination = Resolve(player, target);
                 if (destination == null || !destination.Valid(to)) return;
+                if (destination.IsTradeSaleStorage &&
+                    (inventory != player.Inventory && inventory != destination ||
+                     inventory != destination && slot.Item.SalePrice <= 0)) return;
+                if (inventory.IsTradeSaleStorage && destination != player.Inventory && destination != inventory) return;
+                if ((destination.IsTradeSaleStorage || inventory.IsTradeSaleStorage) && inventory != destination &&
+                    destination.Slots[to]?.Item != null && destination.Slots[to].Item != slot.Item) return;
                 bool sourceIsWeaponSlot = inventory == player.Equipment;
                 bool targetIsWeaponSlot = destination == player.Equipment;
                 Item movingItem = slot.Item;
@@ -616,7 +744,8 @@ public partial class InventoryService : Node
                 if (!inventory.Transfer(from, destination, to)) return;
                 break;
             case "use":
-                if (inventory != player.Inventory || slot.Item is not UsableItem usable || !usable.Use(player)) return;
+                if (_tradeSessions.ContainsKey(peer) || inventory != player.Inventory ||
+                    slot.Item is not UsableItem usable || !usable.Use(player)) return;
                 if (--slot.ItemCount == 0) inventory.Slots[from] = null;
                 inventory.NotifyChanged();
                 break;
@@ -691,7 +820,17 @@ public partial class InventoryService : Node
             if (player != null && stand != null && Near(player, stand))
                 continue;
             if (player != null)
+            {
+                if (GodotObject.IsInstanceValid(stand))
+                {
+                    int peer = player.GetMultiplayerAuthority();
+                    if (!Multiplayer.HasMultiplayerPeer() || peer == Multiplayer.GetUniqueId())
+                        player.CloseTradingFromServer(stand);
+                    else
+                        RpcId(peer, nameof(ReceiveTradeClosed), peer, stand.GetPath().ToString());
+                }
                 ProcessEndTrade(player, stand);
+            }
             else
                 EndTradeForPeer(entry.Key);
         }

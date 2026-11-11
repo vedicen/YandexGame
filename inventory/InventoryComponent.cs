@@ -6,6 +6,7 @@ public partial class InventoryComponent : Node
 {
     [Export(PropertyHint.Range, "1,100")] public int MaxSlots { get; set; } = 20;
     [Export] public Godot.Collections.Array<Stack> Slots { get; set; } = new();
+    public bool IsTradeSaleStorage { get; set; }
     public event Action Changed;
     public override void _Ready()
     {

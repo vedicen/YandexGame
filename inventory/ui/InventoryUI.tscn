@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://inventory/ui/InventoryGrid.tscn" id="2_grid"]
 [ext_resource type="Script" uid="uid://dqof51s1y14bt" path="res://inventory/ui/DropZone.cs" id="3_drop_zone"]
 [ext_resource type="PackedScene" path="res://inventory/ui/EquipmentSlot.tscn" id="4_equipment_slot"]
+[ext_resource type="PackedScene" path="res://inventory/ui/ItemUI.tscn" id="5_item"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.035, 0.05, 0.08, 0.96)
@@ -12,6 +13,7 @@ bg_color = Color(0.035, 0.05, 0.08, 0.96)
 layer = 10
 script = ExtResource("1_script")
 InventoryGridScene = ExtResource("2_grid")
+ItemScene = ExtResource("5_item")
 
 [node name="Root" type="Control" parent="." unique_id=297071502]
 visible = false
@@ -76,6 +78,34 @@ text = "↓  Перетащите сюда стак из рюкзака, что�
 horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("3_drop_zone")
+
+[node name="TradeGoods" type="VBoxContainer" parent="Root/Panel/Margin/VBox"]
+visible = false
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+
+[node name="TradeGoodsTitle" type="Label" parent="Root/Panel/Margin/VBox/TradeGoods"]
+layout_mode = 2
+text = "Товары торговца • кликните, чтобы купить"
+
+[node name="TradeGoodsGrid" type="GridContainer" parent="Root/Panel/Margin/VBox/TradeGoods"]
+custom_minimum_size = Vector2(0, 126)
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 8
+
+[node name="TradeFooter" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+layout_mode = 2
+
+[node name="SaleTotal" type="Label" parent="Root/Panel/Margin/VBox/TradeFooter"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "К продаже: 0 золотых"
+
+[node name="SellButton" type="Button" parent="Root/Panel/Margin/VBox/TradeFooter"]
+layout_mode = 2
+disabled = true
+text = "Продать"
 
 [node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox" unique_id=1590783734]
 layout_mode = 2

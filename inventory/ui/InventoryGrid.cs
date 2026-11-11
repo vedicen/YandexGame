@@ -7,6 +7,7 @@ public partial class InventoryGrid : VBoxContainer
     public string Title { get; set; }
     public InventoryComponent Inventory { get; set; }
     public Player Player { get; set; }
+    public bool TradeMode { get; set; }
 
     public override void _Ready()
     {
@@ -16,7 +17,7 @@ public partial class InventoryGrid : VBoxContainer
         for (int i = 0; i < Inventory.Slots.Count; i++)
         {
             ItemUI item = ItemScene.Instantiate<ItemUI>();
-            item.Bind(Player, Inventory, i);
+            item.Bind(Player, Inventory, i, TradeMode);
             slots.AddChild(item);
         }
     }

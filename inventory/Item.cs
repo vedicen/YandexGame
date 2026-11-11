@@ -10,6 +10,7 @@ public partial class Item : Resource
     [Export] public PackedScene Model { get; set; }
     [Export(PropertyHint.Range, "1,999")] public int MaxStackSize { get; set; } = 20;
     [Export(PropertyHint.Range, "0,1000,0.1")] public float Weight { get; set; }
+    [Export(PropertyHint.Range, "0,1000000")] public int SalePrice { get; set; } = 0;
     [Export] public Rarity Rarity { get; set; }
     public Color LightColor => Rarity switch {
         Rarity.Rare => new Color("499fff"), Rarity.Epic => new Color("b55cff"),

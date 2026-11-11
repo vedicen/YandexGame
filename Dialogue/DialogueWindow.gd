@@ -4,6 +4,7 @@ extends Control
 signal dialog_closed
 signal request_action(id: int, price: int)
 signal purchase_decided(id: int, price: int, accepted: bool)
+signal model_unavailable
 
 const MODEL_PATH := "res://models/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
 @onready var text_edit: TextEdit = $TextEdit
@@ -34,13 +35,20 @@ func configure(catalog: Array, current_money: int) -> void:
 # Загрузка локальной модели.
 func load_model() -> void:
 
+	if not ClassDB.class_exists("NobodyWhoChat"):
+		model_unavailable.emit()
+		return
+
 	if not FileAccess.file_exists(MODEL_PATH):
+		model_unavailable.emit()
 		push_error("Модель не найдена: " + MODEL_PATH)
 		return
 
 	print("Загружаю модель: ", MODEL_PATH)
 
-	chat = await NobodyWhoChat.create(
+	chat = await ClassDB.class_call_static(
+		"NobodyWhoChat",
+		"create",
 		MODEL_PATH,
 		{
 			"n_ctx": 2048,
@@ -50,6 +58,7 @@ func load_model() -> void:
 	)
 
 	if chat == null:
+		model_unavailable.emit()
 		push_error("Не удалось создать чат с моделью.")
 		return
 

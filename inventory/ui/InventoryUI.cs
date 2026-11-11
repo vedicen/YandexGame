@@ -3,6 +3,7 @@ using Godot;
 public partial class InventoryUI : CanvasLayer
 {
     [Export] public PackedScene InventoryGridScene { get; set; }
+    [Export] public PackedScene ItemScene { get; set; }
 
     public Player Player;
 
@@ -11,8 +12,13 @@ public partial class InventoryUI : CanvasLayer
     private EquipmentSlot _equipmentSlot;
     private DropZone _dropZone;
     private Chest _chest;
+    private TradingStand _tradingStand;
     private bool _dirty;
     private Label _moneyLabel;
+    private Label _saleTotalLabel;
+    private Button _sellButton;
+    private GridContainer _tradeGoodsGrid;
+    private Control _tradeFooter;
 
     public override void _Ready()
     {
@@ -22,38 +28,72 @@ public partial class InventoryUI : CanvasLayer
         _equipmentSlot = GetNode<EquipmentSlot>("Root/Panel/Margin/VBox/Scroll/Content/EquipmentSlot");
         _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
         _dropZone = GetNode<DropZone>("Root/Panel/Margin/VBox/DropZone");
+        _saleTotalLabel = GetNode<Label>("Root/Panel/Margin/VBox/TradeFooter/SaleTotal");
+        _sellButton = GetNode<Button>("Root/Panel/Margin/VBox/TradeFooter/SellButton");
+        _tradeFooter = GetNode<Control>("Root/Panel/Margin/VBox/TradeFooter");
+        _tradeGoodsGrid = GetNode<GridContainer>("Root/Panel/Margin/VBox/TradeGoods/TradeGoodsGrid");
 
         _dropZone.Player = Player;
         _equipmentSlot.Bind(Player);
+        _tradeFooter.Hide();
         _moneyLabel.Text = $"Деньги: {Player.Money}";
         Player.MoneyChanged += UpdateMoney;
         Player.Inventory.Changed += MarkDirty;
         GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Pressed += Player.CloseInventory;
+        _sellButton.Pressed += SellStagedItems;
         _root.Hide();
     }
 
     private void MarkDirty() => _dirty = true;
-    private void UpdateMoney(int amount) => _moneyLabel.Text = $"Деньги: {amount}";
-
-    public void Open(Chest chest)
+    private void UpdateMoney(int amount)
     {
-        if (_chest != null)
-            _chest.Inventory.Changed -= MarkDirty;
+        _moneyLabel.Text = $"Деньги: {amount} золотых";
+        MarkDirty();
+    }
 
-        _chest = chest;
-        if (_chest != null)
-            _chest.Inventory.Changed += MarkDirty;
-
+    public void OpenTrading(TradingStand stand)
+    {
+        UnsubscribeFromOpenInventories();
+        _chest = null;
+        _tradingStand = stand;
+        _tradingStand.SaleStorage.Changed += MarkDirty;
+        _equipmentSlot.Hide();
+        _dropZone.Hide();
+        GetNode<Control>("Root/Panel/Margin/VBox/TradeGoods").Show();
+        _tradeFooter.Show();
+        GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Text = "Закрыть торговлю";
+        GetNode<Label>("Root/Panel/Margin/VBox/TitleLabel").Text = "Торговля • перетащите предметы в сундук для продажи";
         _root.Show();
         MarkDirty();
     }
 
+    public void Open(Chest chest)
+    {
+        UnsubscribeFromOpenInventories();
+        _chest = chest;
+        _tradingStand = null;
+        if (_chest != null) _chest.Inventory.Changed += MarkDirty;
+        _root.Show();
+        _equipmentSlot.Show();
+        _dropZone.Show();
+        GetNode<Control>("Root/Panel/Margin/VBox/TradeGoods").Hide();
+        _tradeFooter.Hide();
+        GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Text = "Закрыть";
+        GetNode<Label>("Root/Panel/Margin/VBox/TitleLabel").Text = "ИНВЕНТАРЬ • ЛКМ: перенос • ПКМ: использовать • Tab / Esc: закрыть";
+        MarkDirty();
+    }
+
+    private void UnsubscribeFromOpenInventories()
+    {
+        if (GodotObject.IsInstanceValid(_chest)) _chest.Inventory.Changed -= MarkDirty;
+        if (GodotObject.IsInstanceValid(_tradingStand?.SaleStorage)) _tradingStand.SaleStorage.Changed -= MarkDirty;
+    }
+
     public void Close()
     {
-        if (_chest != null && GodotObject.IsInstanceValid(_chest))
-            _chest.Inventory.Changed -= MarkDirty;
-
+        UnsubscribeFromOpenInventories();
         _chest = null;
+        _tradingStand = null;
         _root.Hide();
     }
 
@@ -64,34 +104,70 @@ public partial class InventoryUI : CanvasLayer
             Player.Inventory.Changed -= MarkDirty;
             Player.MoneyChanged -= UpdateMoney;
         }
-
-        if (GodotObject.IsInstanceValid(_chest))
-            _chest.Inventory.Changed -= MarkDirty;
+        UnsubscribeFromOpenInventories();
     }
 
     public override void _Process(double delta)
     {
-        if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging())
-            return;
-
+        if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging()) return;
         _dirty = false;
-        foreach (Node child in _grids.GetChildren())
-        {
-            _grids.RemoveChild(child);
-            child.QueueFree();
-        }
+        ClearChildren(_grids);
+        ClearChildren(_tradeGoodsGrid);
 
-        AddGrid("Рюкзак", Player.Inventory);
-        if (_chest != null)
-            AddGrid("Сундук", _chest.Inventory);
+        AddGrid(_tradingStand == null ? "Рюкзак" : "Рюкзак", Player.Inventory, _tradingStand != null);
+        if (_chest != null) AddGrid("Сундук", _chest.Inventory);
+        if (_tradingStand != null && GodotObject.IsInstanceValid(_tradingStand))
+        {
+            AddGrid("Сундук на продажу", _tradingStand.SaleStorage, true);
+            PopulateTradeGoods();
+            UpdateSaleTotal();
+        }
     }
 
-    private void AddGrid(string title, InventoryComponent inventory)
+    private static void ClearChildren(Node parent)
+    {
+        foreach (Node child in parent.GetChildren())
+        {
+            parent.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
+    private void AddGrid(string title, InventoryComponent inventory, bool tradeMode = false)
     {
         InventoryGrid grid = InventoryGridScene.Instantiate<InventoryGrid>();
         grid.Title = title;
         grid.Inventory = inventory;
         grid.Player = Player;
+        grid.TradeMode = tradeMode;
         _grids.AddChild(grid);
+    }
+
+    private void PopulateTradeGoods()
+    {
+        foreach (Godot.Collections.Dictionary offerData in _tradingStand.npc_owner.GetTradeCatalog())
+        {
+            int id = offerData["id"].AsInt32();
+            if (!TradeItemDatabase.TryGet(id, out TradeItemRecord record)) continue;
+            ItemUI offer = ItemScene.Instantiate<ItemUI>();
+            offer.BindTradeOffer(Player, _tradingStand, id, record.Item, record.Price, Player.Money >= record.Price);
+            _tradeGoodsGrid.AddChild(offer);
+        }
+    }
+
+    private void UpdateSaleTotal()
+    {
+        long total = 0;
+        foreach (Stack stack in _tradingStand.SaleStorage.Slots)
+            if (stack?.Item != null && stack.Item.SalePrice > 0)
+                total += (long)stack.Item.SalePrice * stack.ItemCount;
+        _saleTotalLabel.Text = $"К продаже: {total} золотых";
+        _sellButton.Disabled = total <= 0 || total > int.MaxValue;
+    }
+
+    private void SellStagedItems()
+    {
+        if (_tradingStand != null)
+            InventoryService.Instance?.RequestTradeSale(Player, _tradingStand);
     }
 }

@@ -9,6 +9,7 @@ public partial class Player : AnimatedEntity
 
     public PlayerStateMachine States { get; private set; }
     public InventoryUI InventoryUI { get; private set; }
+    public TradingStand ActiveTradingStand => _tradingStand;
     [Export] public PackedScene InventoryUIScene { get; set; }
     [Export] public PackedScene BuildMenuScene { get; set; }
     
@@ -703,7 +704,16 @@ public partial class Player : AnimatedEntity
     public override void _Input(InputEvent ev)
     {
         if (playerInputComponent?.HasInputAuthority != true) return;
-        if (States.Current == PlayerStateMachine.State.Trading) return;
+        if (States.Current == PlayerStateMachine.State.Trading)
+        {
+            if (ev is InputEventKey { Pressed: true, Echo: false } tradeKey &&
+                (tradeKey.PhysicalKeycode == Key.Tab || tradeKey.Keycode == Key.Escape))
+            {
+                CloseInventory();
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
 
         if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right } &&
             playerInputComponent.IsInputEnabled &&
@@ -1045,8 +1055,20 @@ public partial class Player : AnimatedEntity
             States.Transition(PlayerStateMachine.State.Locomotion);
     }
 
+    public void CloseTradingFromServer(TradingStand stand)
+    {
+        if (_tradingStand == stand)
+            stand?.CloseFallbackMenu(this);
+    }
+
     public void CloseInventory()
     {
+        if (States.Current == PlayerStateMachine.State.Trading)
+        {
+            _tradingStand?.CloseFallbackMenu(this);
+            return;
+        }
+
         InventoryService.Instance?.Send("close", this);
         Chest previousChest = _openChest;
         _openChest = null;
