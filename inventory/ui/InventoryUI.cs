@@ -18,24 +18,26 @@ public partial class InventoryUI : CanvasLayer
     private Label _saleTotalLabel;
     private Button _sellButton;
     private GridContainer _tradeGoodsGrid;
-    private Control _tradeFooter;
+    private Control _tradeSidePanel;
+    private VBoxContainer _saleGridContainer;
 
     public override void _Ready()
     {
         Layer = 10;
         _root = GetNode<Control>("Root");
-        _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/Scroll/Content/Grids");
-        _equipmentSlot = GetNode<EquipmentSlot>("Root/Panel/Margin/VBox/Scroll/Content/EquipmentSlot");
+        _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/Grids");
+        _equipmentSlot = GetNode<EquipmentSlot>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentSlot");
         _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
         _dropZone = GetNode<DropZone>("Root/Panel/Margin/VBox/DropZone");
-        _saleTotalLabel = GetNode<Label>("Root/Panel/Margin/VBox/TradeFooter/SaleTotal");
-        _sellButton = GetNode<Button>("Root/Panel/Margin/VBox/TradeFooter/SellButton");
-        _tradeFooter = GetNode<Control>("Root/Panel/Margin/VBox/TradeFooter");
-        _tradeGoodsGrid = GetNode<GridContainer>("Root/Panel/Margin/VBox/TradeGoods/TradeGoodsGrid");
+        _tradeSidePanel = GetNode<Control>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel");
+        _saleGridContainer = GetNode<VBoxContainer>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleGridContainer");
+        _saleTotalLabel = GetNode<Label>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter/SaleTotal");
+        _sellButton = GetNode<Button>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter/SellButton");
+        _tradeGoodsGrid = GetNode<GridContainer>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/TradeGoodsScroll/TradeGoodsGrid");
 
         _dropZone.Player = Player;
         _equipmentSlot.Bind(Player);
-        _tradeFooter.Hide();
+        _tradeSidePanel.Hide();
         _moneyLabel.Text = $"Деньги: {Player.Money}";
         Player.MoneyChanged += UpdateMoney;
         Player.Inventory.Changed += MarkDirty;
@@ -59,8 +61,7 @@ public partial class InventoryUI : CanvasLayer
         _tradingStand.SaleStorage.Changed += MarkDirty;
         _equipmentSlot.Hide();
         _dropZone.Hide();
-        GetNode<Control>("Root/Panel/Margin/VBox/TradeGoods").Show();
-        _tradeFooter.Show();
+        _tradeSidePanel.Show();
         GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Text = "Закрыть торговлю";
         GetNode<Label>("Root/Panel/Margin/VBox/TitleLabel").Text = "Торговля • перетащите предметы в сундук для продажи";
         _root.Show();
@@ -76,8 +77,7 @@ public partial class InventoryUI : CanvasLayer
         _root.Show();
         _equipmentSlot.Show();
         _dropZone.Show();
-        GetNode<Control>("Root/Panel/Margin/VBox/TradeGoods").Hide();
-        _tradeFooter.Hide();
+        _tradeSidePanel.Hide();
         GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Text = "Закрыть";
         GetNode<Label>("Root/Panel/Margin/VBox/TitleLabel").Text = "ИНВЕНТАРЬ • ЛКМ: перенос • ПКМ: использовать • Tab / Esc: закрыть";
         MarkDirty();
@@ -112,9 +112,9 @@ public partial class InventoryUI : CanvasLayer
         if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging()) return;
         _dirty = false;
         ClearChildren(_grids);
+        ClearChildren(_saleGridContainer);
         ClearChildren(_tradeGoodsGrid);
-
-        AddGrid(_tradingStand == null ? "Рюкзак" : "Рюкзак", Player.Inventory, _tradingStand != null);
+        AddGrid("Рюкзак", Player.Inventory, _tradingStand != null);
         if (_chest != null) AddGrid("Сундук", _chest.Inventory);
         if (_tradingStand != null && GodotObject.IsInstanceValid(_tradingStand))
         {
@@ -140,7 +140,11 @@ public partial class InventoryUI : CanvasLayer
         grid.Inventory = inventory;
         grid.Player = Player;
         grid.TradeMode = tradeMode;
-        _grids.AddChild(grid);
+        grid.Columns = 4;
+        if (inventory.IsTradeSaleStorage)
+            _saleGridContainer.AddChild(grid);
+        else
+            _grids.AddChild(grid);
     }
 
     private void PopulateTradeGoods()

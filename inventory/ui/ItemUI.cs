@@ -45,10 +45,11 @@ public partial class ItemUI : PanelContainer
     {
         Stack slot = Inventory != null && Inventory.Valid(Index) ? Inventory.Slots[Index] : null;
         Item item = _isTradeOffer ? _displayItem : slot?.Item;
+        bool canSell = !_tradeMode || item?.SalePrice > 0;
         var style = new StyleBoxFlat
         {
-            BgColor = _isTradeOffer && !_canAfford ? new Color("111820") : new Color("182331"),
-            BorderColor = item?.LightColor ?? new Color("344255"),
+            BgColor = (_isTradeOffer && !_canAfford) || !canSell ? new Color("111820") : new Color("182331"),
+            BorderColor = item == null || !canSell ? new Color("344255") : item.LightColor,
             BorderWidthBottom = 2, BorderWidthTop = 2, BorderWidthLeft = 2, BorderWidthRight = 2,
             CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6, CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6
         };
@@ -68,6 +69,7 @@ public partial class ItemUI : PanelContainer
             (item is Weapon weapon ? $"\nУрон: {weapon.Damage:0.#}" : "") +
             $"\n{RarityName(item.Rarity)} • {count}/{item.MaxStackSize}" +
             (_isTradeOffer ? $"\nЦена: {_tradePrice} золотых" :
+                _tradeMode && item.SalePrice <= 0 ? "\nНельзя продать: цена продажи равна 0" :
                 item is UsableItem && !_tradeMode ? "\nПКМ — использовать" : "");
 
         _pivot = GetNode<Node3D>("Content/ModelContainer/ItemViewport/ModelPivot");
@@ -79,7 +81,9 @@ public partial class ItemUI : PanelContainer
         light.LightEnergy = item.LightEnergy;
         GetNode<Label>("Content/NameLabel").Text = item.DisplayName;
         GetNode<Label>("Content/CountLabel").Text = _isTradeOffer ? $"{_tradePrice} золотых" : $"×{count}";
-        Modulate = _isTradeOffer && !_canAfford ? new Color(0.52f, 0.56f, 0.62f, 0.78f) : Colors.White;
+        Modulate = ((_isTradeOffer && !_canAfford) || !canSell)
+            ? new Color(0.52f, 0.56f, 0.62f, 0.78f)
+            : Colors.White;
     }
 
     private void ClearModel()
@@ -101,13 +105,21 @@ public partial class ItemUI : PanelContainer
 
     public override void _GuiInput(InputEvent ev)
     {
-        if (_isTradeOffer && ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right })
+        if (_isTradeOffer && ev is InputEventMouseButton
+            { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true })
         {
             if (_canAfford) InventoryService.Instance?.RequestTradeBuy(Player, _stand, _tradeId);
             AcceptEvent();
             return;
         }
         if (_isTradeOffer) return;
+
+        if (_tradeMode && Inventory?.Valid(Index) == true && Inventory.Slots[Index]?.Item?.SalePrice <= 0 &&
+            ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true })
+        {
+            AcceptEvent();
+            return;
+        }
 
         if (ev is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true } &&
             Inventory != null && Player != null && InventoryService.Instance != null)
@@ -127,7 +139,20 @@ public partial class ItemUI : PanelContainer
 
     public override Variant _GetDragData(Vector2 position)
     {
-        if (_isTradeOffer || Inventory?.Valid(Index) != true || Inventory.Slots[Index] == null) return default;
+        if (_isTradeOffer)
+        {
+            SetDragPreview(new Label { Text = $"{_displayItem.DisplayName} • {_tradePrice} золотых" });
+            return new Godot.Collections.Dictionary
+            {
+                ["trade_offer"] = true,
+                ["id"] = _tradeId,
+                ["stand"] = _stand.GetPath().ToString(),
+                ["can_afford"] = _canAfford
+            };
+        }
+
+        if (_isTradeOffer || Inventory?.Valid(Index) != true || Inventory.Slots[Index] == null ||
+            _tradeMode && Inventory.Slots[Index].Item.SalePrice <= 0) return default;
         SetDragPreview(new Label { Text = Inventory.Slots[Index].Item.DisplayName });
         return new Godot.Collections.Dictionary
         {
@@ -140,7 +165,12 @@ public partial class ItemUI : PanelContainer
 
     public override bool _CanDropData(Vector2 position, Variant data)
     {
-        if (Inventory == null || !IsStackDrag(data)) return false;
+        if (Inventory == null) return false;
+        if (IsTradeOfferDrag(data))
+            return Inventory == Player?.Inventory &&
+                data.AsGodotDictionary()["stand"].AsString() == Player?.ActiveTradingStand?.GetPath().ToString() &&
+                data.AsGodotDictionary()["can_afford"].AsBool();
+        if (!IsStackDrag(data)) return false;
         var drag = data.AsGodotDictionary();
         string sourcePath = drag["source"].AsString();
 
@@ -162,8 +192,19 @@ public partial class ItemUI : PanelContainer
         data.AsGodotDictionary().ContainsKey("source") && data.AsGodotDictionary().ContainsKey("index") &&
         data.AsGodotDictionary().ContainsKey("revision");
 
+    private static bool IsTradeOfferDrag(Variant data) => data.VariantType == Variant.Type.Dictionary &&
+        data.AsGodotDictionary().ContainsKey("trade_offer") && data.AsGodotDictionary()["trade_offer"].AsBool();
+
     public override void _DropData(Vector2 position, Variant data)
     {
+        if (IsTradeOfferDrag(data))
+        {
+            var offer = data.AsGodotDictionary();
+            if (Inventory == Player?.Inventory && offer["can_afford"].AsBool() &&
+                offer["stand"].AsString() == Player?.ActiveTradingStand?.GetPath().ToString())
+                InventoryService.Instance?.RequestTradeBuy(Player, Player.ActiveTradingStand, offer["id"].AsInt32());
+            return;
+        }
         if (Inventory == null || !IsStackDrag(data)) return;
         var drag = data.AsGodotDictionary();
         InventoryService.Instance?.Send("move", Player, drag["source"].AsString(), drag["index"].AsInt32(),

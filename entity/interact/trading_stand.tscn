@@ -19,4 +19,4 @@ material_override = SubResource("StandardMaterial3D_eg6r0")
 
 [node name="TradeSaleStorage" type="Node" parent="." index="3"]
 script = ExtResource("4_inventory")
-MaxSlots = 8
+MaxSlots = 4

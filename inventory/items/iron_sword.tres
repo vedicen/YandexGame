@@ -12,4 +12,5 @@ Description = "Простой одноручный меч из железа. Н�
 Model = ExtResource("2_model")
 MaxStackSize = 1
 Weight = 2.0
+SalePrice = 12
 Rarity = 4

@@ -45,67 +45,92 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="Root/Panel/Margin/VBox" unique_id=1237117483]
 layout_mode = 2
-text = "ИНВЕНТАРЬ    •    ЛКМ: перенос    •    ПКМ: использовать    •    Tab / Esc: закрыть"
+text = "ИНВЕНТАРЬ • ЛКМ: перенос • ПКМ: использовать • Tab / Esc: закрыть"
 
 [node name="MoneyLabel" type="Label" parent="Root/Panel/Margin/VBox" unique_id=517788685]
 layout_mode = 2
 text = "Деньги: 0"
 
-[node name="Scroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox" unique_id=2081671602]
+[node name="MainArea" type="HBoxContainer" parent="Root/Panel/Margin/VBox" unique_id=1579680800]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox/MainArea" unique_id=2081671602]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="Content" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Scroll" unique_id=1989173522]
+[node name="Content" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll" unique_id=1989173522]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
-[node name="EquipmentSlot" parent="Root/Panel/Margin/VBox/Scroll/Content" unique_id=1752905461 instance=ExtResource("4_equipment_slot")]
+[node name="EquipmentSlot" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1752905461 instance=ExtResource("4_equipment_slot")]
 layout_mode = 2
 
-[node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/Scroll/Content" unique_id=1861324895]
+[node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1861324895]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 24
+
+[node name="TradeSidePanel" type="PanelContainer" parent="Root/Panel/Margin/VBox/MainArea" unique_id=1255386590]
+visible = false
+self_modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SideVBox" type="VBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel" unique_id=1666113380]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SaleTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox" unique_id=380871063]
+layout_mode = 2
+text = "Сундук на продажу"
+
+[node name="SaleGridContainer" type="VBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox" unique_id=138020131]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SaleFooter" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox" unique_id=731597181]
+layout_mode = 2
+
+[node name="SaleTotal" type="Label" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter" unique_id=828910833]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "К продаже: 0 золотых"
+
+[node name="SellButton" type="Button" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter" unique_id=2132594213]
+layout_mode = 2
+disabled = true
+text = "Продать"
+
+[node name="TradeGoodsTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox" unique_id=1137457610]
+layout_mode = 2
+text = "Товары торговца • нажмите, чтобы купить"
+
+[node name="TradeGoodsScroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox" unique_id=1202407480]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="TradeGoodsGrid" type="GridContainer" parent="Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/TradeGoodsScroll" unique_id=2039571115]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 4
 
 [node name="DropZone" type="Label" parent="Root/Panel/Margin/VBox" unique_id=82816438]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 mouse_filter = 0
-text = "↓  Перетащите сюда стак из рюкзака, чтобы выбросить"
+text = "↓ Перетащите сюда стак из рюкзака, чтобы выбросить"
 horizontal_alignment = 1
 vertical_alignment = 1
 script = ExtResource("3_drop_zone")
-
-[node name="TradeGoods" type="VBoxContainer" parent="Root/Panel/Margin/VBox"]
-visible = false
-custom_minimum_size = Vector2(0, 150)
-layout_mode = 2
-
-[node name="TradeGoodsTitle" type="Label" parent="Root/Panel/Margin/VBox/TradeGoods"]
-layout_mode = 2
-text = "Товары торговца • кликните, чтобы купить"
-
-[node name="TradeGoodsGrid" type="GridContainer" parent="Root/Panel/Margin/VBox/TradeGoods"]
-custom_minimum_size = Vector2(0, 126)
-layout_mode = 2
-size_flags_horizontal = 3
-columns = 8
-
-[node name="TradeFooter" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
-layout_mode = 2
-
-[node name="SaleTotal" type="Label" parent="Root/Panel/Margin/VBox/TradeFooter"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "К продаже: 0 золотых"
-
-[node name="SellButton" type="Button" parent="Root/Panel/Margin/VBox/TradeFooter"]
-layout_mode = 2
-disabled = true
-text = "Продать"
 
 [node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox" unique_id=1590783734]
 layout_mode = 2

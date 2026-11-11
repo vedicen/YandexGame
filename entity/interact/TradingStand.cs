@@ -16,7 +16,7 @@ public partial class TradingStand : interact_obj
         base._Ready();
         if (SaleStorage != null)
         {
-            SaleStorage.MaxSlots = 8;
+            SaleStorage.MaxSlots = 4;
             SaleStorage.IsTradeSaleStorage = true;
         }
     }
