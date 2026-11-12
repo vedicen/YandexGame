@@ -3,17 +3,17 @@
 [ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="1_23bt8"]
 [ext_resource type="Script" uid="uid://cni4iujhpbe8u" path="res://entity/Player/Player.cs" id="2_s5jwf"]
 [ext_resource type="PackedScene" uid="uid://cfc0li2q20cr0" path="res://entity/components/player_input_component.tscn" id="4_1y8k7"]
-[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="5_vuud8"]
+[ext_resource type="PackedScene" uid="uid://bvgtfnc0qvgqs" path="res://models/enemy models/InventorGirl.fbx" id="5_vuud8"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="7_swhyu"]
-[ext_resource type="Resource" path="res://inventory/items/potion.tres" id="8_xqki4"]
+[ext_resource type="Resource" uid="uid://bw2t6ow6xy27t" path="res://inventory/items/potion.tres" id="8_xqki4"]
 [ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_8uuv0"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="9_l12rd"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
 [ext_resource type="PackedScene" path="res://inventory/ui/BuildMenu.tscn" id="12_build_menu"]
 [ext_resource type="Resource" uid="uid://cvnk0rrvui3lj" path="res://inventory/items/hammer.tres" id="13_hammer"]
-[ext_resource type="Resource" path="res://inventory/items/wood.tres" id="14_wood"]
-[ext_resource type="Resource" path="res://inventory/items/stone.tres" id="15_stone"]
+[ext_resource type="Resource" uid="uid://8sv2s0abe1lg" path="res://inventory/items/wood.tres" id="14_wood"]
+[ext_resource type="Resource" uid="uid://cl7qv65oqp1xq" path="res://inventory/items/stone.tres" id="15_stone"]
 
 [sub_resource type="Resource" id="HammerStack"]
 script = ExtResource("7_swhyu")
@@ -65,6 +65,7 @@ MaxPitch = 60.0
 Race = 1
 Skills = Array[int]([])
 ModelScene = ExtResource("5_vuud8")
+IdleAnimationScene = ExtResource("5_vuud8")
 
 [node name="PlayerInputComponent" parent="." index="1" unique_id=1285831222 instance=ExtResource("4_1y8k7")]
 

@@ -11,6 +11,12 @@
 [ext_resource type="Resource" uid="uid://bqpjb4apnjsu4" path="res://inventory/items/crystal.tres" id="10_crystal"]
 [ext_resource type="PackedScene" uid="uid://c67t3hjqpmc6a" path="res://entity/interact/trading_stand.tscn" id="11_1stcl"]
 [ext_resource type="PackedScene" uid="uid://b4ndwt36f464f" path="res://entity/AnimatedEnemy/npc.tscn" id="11_sybwi"]
+[ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="12_sybwi"]
+[ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="13_de42d"]
+[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/fireslash.gdshader" id="14_ehpj7"]
+[ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="15_tl6ws"]
+[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://models/enemy models/knightmodelide.fbx" id="16_buawx"]
+[ext_resource type="PackedScene" uid="uid://dvhvrdxvhrl7v" path="res://animations/idle.fbx" id="17_xu4rv"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_qcxwf"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
@@ -43,6 +49,17 @@ metadata/_custom_type_script = "uid://bllff2lc6g00k"
 script = ExtResource("8_oelfw")
 Item = ExtResource("10_crystal")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_rxm2p"]
+script = ExtResource("15_tl6ws")
+TrailShader = ExtResource("14_ehpj7")
+DisplayName = "Железный меч"
+Description = "Простой одноручный меч из железа. Надёжный и недорогой."
+Model = ExtResource("13_de42d")
+MaxStackSize = 1
+Weight = 2.0
+SalePrice = 12
+Rarity = 4
 
 [node name="BaseScene" type="Node3D" unique_id=944606836]
 script = ExtResource("1_gf1bn")
@@ -151,3 +168,15 @@ TradeItemIds = Array[int]([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 
 [node name="TradingStand" parent="." unique_id=1533664349 node_paths=PackedStringArray("npc_owner") instance=ExtResource("11_1stcl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5576172, 0.36187744, 8.411316)
 npc_owner = NodePath("../NPC")
+
+[node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("12_sybwi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.1788416, 0.85694325, 1.9096828)
+Skills = Array[int]([1, 3])
+StartingWeapon = SubResource("Resource_rxm2p")
+
+[node name="EnemyGolem2" parent="." unique_id=1263387457 instance=ExtResource("12_sybwi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.1788416, 0.85694325, 1.9096828)
+Skills = Array[int]([1, 2])
+ModelScene = ExtResource("16_buawx")
+StartingWeapon = ExtResource("9_oelfw")
+IdleAnimationScene = ExtResource("17_xu4rv")

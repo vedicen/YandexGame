@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://bhxhwscrx2okw" path="res://entity/animated_entity.tscn" id="0_entity"]
 [ext_resource type="Script" uid="uid://bvtumo44k0d3w" path="res://entity/AnimatedEnemy/AnimatedEnemy.cs" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://animations/enemy models/GolemIdle.fbx" id="3_imrdp"]
+[ext_resource type="PackedScene" uid="uid://brbqq2g3oisy0" path="res://models/enemy models/GolemIdle.fbx" id="3_imrdp"]
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="4_nlck5"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="6_g0di7"]
 [ext_resource type="Script" uid="uid://05ntpk580vvw" path="res://entity/components/EnemyAIComponent.cs" id="8_ai"]

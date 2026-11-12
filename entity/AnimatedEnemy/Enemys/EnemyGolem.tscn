@@ -1,9 +1,8 @@
 [gd_scene format=3 uid="uid://bd7into56gyn0"]
 
 [ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="1_iqr1x"]
-[ext_resource type="PackedScene" uid="uid://bqnqolf5tao44" path="res://animations/enemy models/knightmodelide.fbx" id="2_ct6y0"]
+[ext_resource type="PackedScene" uid="uid://dmdiebb8s8cwa" path="res://models/enemy models/skeletonidle.fbx" id="2_6yg03"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="3_6yg03"]
-[ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/EquipmentComponent.cs" id="3_abdct"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="4_abdct"]
 
 [sub_resource type="Resource" id="Resource_ct6y0"]
@@ -14,13 +13,11 @@ metadata/_custom_type_script = "uid://bllff2lc6g00k"
 [node name="EnemyGolem" unique_id=757652966 instance=ExtResource("1_iqr1x")]
 Race = 3
 Skills = Array[int]([4, 3])
-ModelScene = ExtResource("2_ct6y0")
+ModelScene = ExtResource("2_6yg03")
+IdleAnimationScene = ExtResource("2_6yg03")
 Attack2AnimationScene = null
 CrouchedIdleAnimationScene = null
 CrouchedWalkAnimationScene = null
-
-[node name="EquipmentComponent" parent="." index="2" unique_id=2078828129]
-script = ExtResource("3_abdct")
 
 [node name="InventoryComponent" parent="." index="9" unique_id=209800001]
 Slots = Array[ExtResource("3_6yg03")]([SubResource("Resource_ct6y0")])
