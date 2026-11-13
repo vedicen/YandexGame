@@ -7,6 +7,7 @@ public partial class HotbarSlot : PanelContainer
     private Label _keyLabel;
     private ItemUI _preview;
     [Export] public bool HideWhenEmpty { get; set; }
+    public bool AllowShiftClickClear { get; set; }
 
     public override void _Ready()
     {
@@ -42,6 +43,16 @@ public partial class HotbarSlot : PanelContainer
     {
         if (changedIndex == _index)
             Refresh();
+    }
+
+    public override void _GuiInput(InputEvent ev)
+    {
+        if (AllowShiftClickClear && ev is InputEventMouseButton
+            { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true })
+        {
+            _player?.SetHotbarItem(_index, null);
+            AcceptEvent();
+        }
     }
 
     private void Refresh()

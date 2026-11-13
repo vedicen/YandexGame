@@ -3,8 +3,7 @@
 [ext_resource type="Script" uid="uid://cxxschykywvgb" path="res://inventory/ui/InventoryUI.cs" id="1_script"]
 [ext_resource type="PackedScene" path="res://inventory/ui/InventoryGrid.tscn" id="2_grid"]
 [ext_resource type="Script" uid="uid://dqof51s1y14bt" path="res://inventory/ui/DropZone.cs" id="3_drop_zone"]
-[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="4_equipment_item"]
-[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="5_item"]
+[ext_resource type="PackedScene" uid="uid://ekugp8j2hjkx" path="res://inventory/ui/InventoryUISlot.tscn" id="5_item"]
 [ext_resource type="PackedScene" path="res://inventory/ui/HotbarSlot.tscn" id="6_hotbar_slot"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -18,7 +17,6 @@ ItemScene = ExtResource("5_item")
 HotbarSlotScene = ExtResource("6_hotbar_slot")
 
 [node name="Root" type="Control" parent="." unique_id=297071502]
-visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -34,6 +32,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Root/Panel" unique_id=854553498]
@@ -57,8 +56,8 @@ text = "Деньги: 0"
 [node name="MainArea" type="HBoxContainer" parent="Root/Panel/Margin/VBox" unique_id=1579680800]
 layout_mode = 2
 size_flags_vertical = 3
-alignment = 1
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="Scroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox/MainArea" unique_id=2081671602]
 custom_minimum_size = Vector2(0, 100)
@@ -68,17 +67,17 @@ horizontal_scroll_mode = 0
 
 [node name="Content" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll" unique_id=1989173522]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="EquipmentColumn" type="VBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1752905461]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" unique_id=723440640]
 layout_mode = 2
 text = "Оружие"
 
-[node name="EquipmentItem" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" instance=ExtResource("4_equipment_item")]
+[node name="EquipmentItem" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" unique_id=296386440 instance=ExtResource("5_item")]
 layout_mode = 2
 
 [node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1861324895]
@@ -133,10 +132,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 columns = 4
 
-[node name="Hotbar" type="HBoxContainer" parent="Root/Panel/Margin/VBox"]
+[node name="Hotbar" type="HBoxContainer" parent="Root/Panel/Margin/VBox" unique_id=2141285683]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 8
+alignment = 1
 
 [node name="CloseButton" type="Button" parent="Root/Panel/Margin/VBox" unique_id=1590783734]
 layout_mode = 2

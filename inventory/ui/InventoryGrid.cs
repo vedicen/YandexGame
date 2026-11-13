@@ -10,6 +10,7 @@ public partial class InventoryGrid : VBoxContainer
     public int FirstSlotIndex { get; set; }
     public Player Player { get; set; }
     public bool TradeMode { get; set; }
+    private bool _slotsDirty;
 
     public override void _Ready()
     {
@@ -23,5 +24,23 @@ public partial class InventoryGrid : VBoxContainer
             item.Bind(Player, Inventory, i, TradeMode);
             slots.AddChild(item);
         }
+        Inventory.Changed += OnInventoryChanged;
+    }
+
+    public override void _ExitTree()
+    {
+        if (GodotObject.IsInstanceValid(Inventory))
+            Inventory.Changed -= OnInventoryChanged;
+    }
+
+    private void OnInventoryChanged() => _slotsDirty = true;
+
+    public override void _Process(double delta)
+    {
+        if (!_slotsDirty || GetViewport().GuiIsDragging()) return;
+        _slotsDirty = false;
+        foreach (Node child in GetNode<GridContainer>("Slots").GetChildren())
+            if (child is ItemUI item)
+                item.RefreshDisplay();
     }
 }

@@ -7,6 +7,7 @@ public partial class InventoryUI : CanvasLayer
     [Export] public PackedScene HotbarSlotScene { get; set; }
 
     public Player Player;
+    public bool IsOpen => _root?.Visible == true;
 
     private Control _root;
     private HBoxContainer _grids;
@@ -15,6 +16,7 @@ public partial class InventoryUI : CanvasLayer
     private Chest _chest;
     private TradingStand _tradingStand;
     private bool _dirty;
+    private bool _layoutDirty;
     private Label _moneyLabel;
     private Label _saleTotalLabel;
     private Button _sellButton;
@@ -41,6 +43,7 @@ public partial class InventoryUI : CanvasLayer
         {
             HotbarSlot slot = HotbarSlotScene.Instantiate<HotbarSlot>();
             hotbar.AddChild(slot);
+            slot.AllowShiftClickClear = true;
             slot.Bind(Player, i);
         }
 
@@ -70,6 +73,7 @@ public partial class InventoryUI : CanvasLayer
         _chest = null;
         _tradingStand = stand;
         _tradingStand.SaleStorage.Changed += MarkDirty;
+        _layoutDirty = true;
         _equipmentSlot.Hide();
         _dropZone.Hide();
         _tradeSidePanel.Show();
@@ -84,6 +88,7 @@ public partial class InventoryUI : CanvasLayer
         UnsubscribeFromOpenInventories();
         _chest = chest;
         _tradingStand = null;
+        _layoutDirty = true;
         if (_chest != null) _chest.Inventory.Changed += MarkDirty;
         _root.Show();
         _equipmentSlot.Show();
@@ -123,6 +128,17 @@ public partial class InventoryUI : CanvasLayer
     {
         if (!_dirty || !_root.Visible || GetViewport().GuiIsDragging()) return;
         _dirty = false;
+        if (!_layoutDirty)
+        {
+            if (_tradingStand != null && GodotObject.IsInstanceValid(_tradingStand))
+            {
+                UpdateSaleTotal();
+                ClearChildren(_tradeGoodsGrid);
+                PopulateTradeGoods();
+            }
+            return;
+        }
+        _layoutDirty = false;
         ClearChildren(_grids);
         ClearChildren(_saleGridContainer);
         ClearChildren(_tradeGoodsGrid);

@@ -68,6 +68,8 @@ public partial class Player : AnimatedEntity
     public override void _Ready()
     {
         base._Ready();
+        if (GodotObject.IsInstanceValid(Inventory))
+            Inventory.Changed += ReconcileHotbarItems;
         
         playerInputComponent ??= GetNodeOrNull<PlayerInputComponent>("PlayerInputComponent");
         GD.Print($"[BowDebug] Player ready: player={Name}, inputAuthority={playerInputComponent?.HasInputAuthority}, " +
@@ -131,9 +133,21 @@ public partial class Player : AnimatedEntity
 
     public override void _ExitTree()
     {
+        if (GodotObject.IsInstanceValid(Inventory))
+            Inventory.Changed -= ReconcileHotbarItems;
         if (GodotObject.IsInstanceValid(Equipment))
             Equipment.Changed -= OnBuildEquipmentChanged;
         base._ExitTree();
+    }
+
+    private void ReconcileHotbarItems()
+    {
+        for (int i = 0; i < _hotbarItems.Length; i++)
+        {
+            Item item = _hotbarItems[i];
+            if (item != null && FindInventoryItemSlot(item) < 0 && !SameItem(EquippedHandItem, item))
+                SetHotbarItem(i, null);
+        }
     }
 
     public override void _Process(double delta)
@@ -717,6 +731,26 @@ public partial class Player : AnimatedEntity
     public override void _Input(InputEvent ev)
     {
         if (playerInputComponent?.HasInputAuthority != true) return;
+        if (InventoryUI?.IsOpen == true)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (!ev.IsActionPressed($"hotbar{i + 1}") || ev.IsEcho())
+                    continue;
+
+                Control hovered = GetViewport().GuiGetHoveredControl();
+                while (hovered != null && hovered is not ItemUI)
+                    hovered = hovered.GetParent() as Control;
+                if (hovered is ItemUI itemUI && itemUI.Inventory == Inventory &&
+                    Inventory.Valid(itemUI.Index) &&
+                    IsHotbarItemType(Inventory.Slots[itemUI.Index]?.Item))
+                {
+                    SetHotbarItem(i, Inventory.Slots[itemUI.Index].Item);
+                    GetViewport().SetInputAsHandled();
+                    return;
+                }
+            }
+        }
         if (playerInputComponent.IsInputEnabled && States.CanMove && !IsBuildPlacementActive)
         {
             for (int i = 0; i < 4; i++)

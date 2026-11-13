@@ -12,6 +12,7 @@ public partial class ItemUI : PanelContainer
     private int _tradeId;
     private int _tradePrice;
     private Item _displayItem;
+    private Item _renderedItem;
     private bool _canAfford;
     private bool _hotbarPreview;
 
@@ -52,6 +53,8 @@ public partial class ItemUI : PanelContainer
         Refresh();
     }
 
+    public void RefreshDisplay() => Refresh();
+
     private void Refresh()
     {
         Stack slot = Inventory != null && Inventory.Valid(Index) ? Inventory.Slots[Index] : null;
@@ -69,7 +72,8 @@ public partial class ItemUI : PanelContainer
         if (item == null)
         {
             TooltipText = "";
-            ClearModel();
+            if (_renderedItem != null) ClearModel();
+            _renderedItem = null;
             content.Hide();
             return;
         }
@@ -84,12 +88,16 @@ public partial class ItemUI : PanelContainer
                 item is UsableItem && !_tradeMode ? "\nПКМ — использовать" : "");
 
         _pivot = GetNode<Node3D>("Content/ModelContainer/ItemViewport/ModelPivot");
-        ClearModel();
-        if (item.Model != null) _pivot.AddChild(item.Model.Instantiate<Node3D>());
-        GetNode<Camera3D>("Content/ModelContainer/ItemViewport/ItemCamera").LookAt(Vector3.Zero);
-        OmniLight3D light = GetNode<OmniLight3D>("Content/ModelContainer/ItemViewport/ItemLight");
-        light.LightColor = item.LightColor;
-        light.LightEnergy = item.LightEnergy;
+        if (_renderedItem != item)
+        {
+            ClearModel();
+            if (item.Model != null) _pivot.AddChild(item.Model.Instantiate<Node3D>());
+            GetNode<Camera3D>("Content/ModelContainer/ItemViewport/ItemCamera").LookAt(Vector3.Zero);
+            OmniLight3D light = GetNode<OmniLight3D>("Content/ModelContainer/ItemViewport/ItemLight");
+            light.LightColor = item.LightColor;
+            light.LightEnergy = item.LightEnergy;
+            _renderedItem = item;
+        }
         Label nameLabel = GetNode<Label>("Content/NameLabel");
         nameLabel.Text = item.DisplayName;
         nameLabel.Visible = !_hotbarPreview;
