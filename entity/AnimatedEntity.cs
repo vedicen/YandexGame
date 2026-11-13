@@ -50,6 +50,9 @@ public partial class AnimatedEntity : Entity
 	public HandItem EquippedHandItem => _equipmentComponent?.EquippedHandItem;
 	public WeaponScene EquippedWeaponScene => _equipmentComponent?.GetEquippedWeaponScene();
 
+	/// <summary>Called after a weapon hit has been applied to one of this entity's bone hitboxes.</summary>
+	public virtual void OnBoneHit(string boneName, long attackId, Vector3 knockbackDirection) { }
+
 	[Export]
 	
 	public string ReplicatedAnimation

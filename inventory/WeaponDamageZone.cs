@@ -3,10 +3,12 @@ using Godot;
 
 public partial class WeaponDamageZone : Area3D
 {
+    private static long _nextAttackId;
     private AnimatedEntity _attacker;
     private Weapon _weapon;
     private float _impulse;
     private bool _swingActive;
+    private long _attackId;
 
     public override void _Ready()
     {
@@ -52,6 +54,7 @@ public partial class WeaponDamageZone : Area3D
         }
 
         _swingActive = true;
+        _attackId = ++_nextAttackId;
         SetActive(true);
 
         GD.Print($"[Combat] Swing started: attacker={_attacker.Name}, " +
@@ -93,6 +96,11 @@ public partial class WeaponDamageZone : Area3D
         float damage = _weapon.Damage;
 
         health.TakeDamage(damage);
+        Vector3 knockbackDirection = target.GlobalPosition - _attacker.GlobalPosition;
+        knockbackDirection.Y = 0;
+        if (knockbackDirection.LengthSquared() < 0.0001f)
+            knockbackDirection = target.GlobalBasis.Z;
+        target.OnBoneHit(boneHitbox.BoneName, _attackId, knockbackDirection.Normalized());
 
         _impulse -= target.CombatStats?.Constitution ?? 0;
 

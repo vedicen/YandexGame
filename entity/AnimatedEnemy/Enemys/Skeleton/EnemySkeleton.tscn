@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://cy3gqhpnhp0mf"]
+
+[ext_resource type="PackedScene" uid="uid://b3qj4v0jgak45" path="res://entity/AnimatedEnemy/animated_enemy.tscn" id="1_base"]
+[ext_resource type="Script" uid="uid://da2fo3s2pl8ky" path="res://entity/AnimatedEnemy/Enemys/Skeleton/EnemySkeleton.cs" id="2_script"]
+[ext_resource type="PackedScene" uid="uid://coq0ltvfrm1kj" path="res://models/enemy models/Skeleton/Parts/LArm.fbx" id="3_450lb"]
+[ext_resource type="PackedScene" uid="uid://dmdiebb8s8cwa" path="res://models/enemy models/skeletonidle.fbx" id="3_model"]
+[ext_resource type="PackedScene" uid="uid://b2l8tq8j1we0p" path="res://models/enemy models/Skeleton/Parts/teeth.fbx" id="4_0ph0k"]
+[ext_resource type="PackedScene" uid="uid://cduh8l3datuyr" path="res://models/enemy models/Skeleton/Parts/skull.fbx" id="5_w6ul1"]
+
+[node name="EnemySkeleton" unique_id=1051724412 instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+PartOfBodyArm = ExtResource("3_450lb")
+PartOfBodyJaw = ExtResource("4_0ph0k")
+PartOfBodySkull = ExtResource("5_w6ul1")
+ArmDetachChance = 0.3
+JawDetachChance = 0.0
+SkullDetachChance = 1.0
+HeadBoneKeywords = PackedStringArray("head", "skull", "jaw", "neck")
+DebugLog = true
+ModelScene = ExtResource("3_model")
+IdleAnimationScene = ExtResource("3_model")

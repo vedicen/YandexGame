@@ -22,6 +22,13 @@ public partial class BoneHitbox : Area3D
         AddChild(collision);
     }
 
+    public void DisableHitbox()
+    {
+        SetDeferred("monitorable", false);
+        SetDeferred("collision_layer", 0u);
+        GetNodeOrNull<CollisionShape3D>("CollisionShape3D")?.SetDeferred("disabled", true);
+    }
+
     public static bool ShouldCreateForBone(string boneName)
     {
         string normalized = boneName.Replace("_", "").Replace(".", "")
