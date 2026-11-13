@@ -1,7 +1,7 @@
-[gd_scene format=3 uid="uid://dcgaeh0kyfhv"]
+[gd_scene format=3 uid="uid://b1lmsghyi4yaf"]
 
 [ext_resource type="Script" path="res://inventory/ui/EquipmentSlot.cs" id="1_script"]
-[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="2_item"]
+[ext_resource type="PackedScene" uid="uid://ekugp8j2hjkx" path="res://inventory/ui/InventoryUISlot.tscn" id="2_item"]
 
 [node name="EquipmentSlot" type="VBoxContainer" unique_id=1110446172]
 script = ExtResource("1_script")

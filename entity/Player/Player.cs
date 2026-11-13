@@ -9,6 +9,7 @@ public partial class Player : AnimatedEntity
 
     public PlayerStateMachine States { get; private set; }
     public InventoryUI InventoryUI { get; private set; }
+    [Export] public PackedScene PlayerHUDScene { get; set; }
     public TradingStand ActiveTradingStand => _tradingStand;
     [Export] public PackedScene InventoryUIScene { get; set; }
     [Export] public PackedScene BuildMenuScene { get; set; }
@@ -55,10 +56,13 @@ public partial class Player : AnimatedEntity
     private float _cameraRotationX = 0f;
     private Control _tempUi;
     private BuildMenu _buildMenu;
+    private PlayerHUD _playerHUD;
     private BuildingRecipe _selectedBuilding;
     private Node3D _buildingGhost;
     private double _buildInputLogTimer;
     public bool IsBuildPlacementActive => _selectedBuilding != null;
+    private readonly Item[] _hotbarItems = new Item[4];
+    public event System.Action<int> HotbarChanged;
     
 
     public override void _Ready()
@@ -103,6 +107,12 @@ public partial class Player : AnimatedEntity
             InventoryUI = InventoryUIScene.Instantiate<InventoryUI>();
             InventoryUI.Player = this;
             AddChild(InventoryUI);
+            if (PlayerHUDScene != null)
+            {
+                _playerHUD = PlayerHUDScene.Instantiate<PlayerHUD>();
+                _playerHUD.Player = this;
+                GetNode<Control>("UI").AddChild(_playerHUD);
+            }
             Equipment.Changed += OnBuildEquipmentChanged;
             if (BuildMenuScene != null && _tempUi != null)
             {
@@ -707,6 +717,17 @@ public partial class Player : AnimatedEntity
     public override void _Input(InputEvent ev)
     {
         if (playerInputComponent?.HasInputAuthority != true) return;
+        if (playerInputComponent.IsInputEnabled && States.CanMove && !IsBuildPlacementActive)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (!ev.IsActionPressed($"hotbar{i + 1}") || ev.IsEcho())
+                    continue;
+                ActivateHotbarSlot(i);
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
         if (States.Current == PlayerStateMachine.State.Trading)
         {
             if (ev is InputEventKey { Pressed: true, Echo: false } tradeKey &&
@@ -1084,6 +1105,69 @@ public partial class Player : AnimatedEntity
         InventoryUI?.Close();
         if (_inputLockSource == previousChest && previousChest != null)
             EndInteraction(previousChest);
+    }
+
+    public Item GetHotbarItem(int index) => index >= 0 && index < _hotbarItems.Length ? _hotbarItems[index] : null;
+
+    public bool IsHotbarItemType(Item item) => item is HandItem or UsableItem;
+
+    public void SetHotbarItem(int index, Item item)
+    {
+        if (index < 0 || index >= _hotbarItems.Length || item != null && !IsHotbarItemType(item))
+            return;
+        _hotbarItems[index] = item;
+        HotbarChanged?.Invoke(index);
+    }
+
+    public int CountInInventory(Item item)
+    {
+        if (item == null || Inventory?.Slots == null)
+            return 0;
+        int count = 0;
+        for (int i = 0; i < Inventory.Slots.Count; i++)
+            if (SameItem(Inventory.Slots[i]?.Item, item))
+                count += Inventory.Slots[i].ItemCount;
+        return count;
+    }
+
+    private void ActivateHotbarSlot(int index)
+    {
+        Item item = GetHotbarItem(index);
+        if (item == null || Inventory?.Slots == null || InventoryService.Instance == null)
+            return;
+
+        if (item is HandItem handItem)
+        {
+            if (SameItem(EquippedHandItem, handItem))
+                return;
+            int sourceIndex = FindInventoryItemSlot(item);
+            if (sourceIndex >= Inventory.FirstItemSlot && Equipment.Valid(0))
+                InventoryService.Instance.Send("move", this, Inventory.GetPath().ToString(), sourceIndex,
+                    Equipment.GetPath().ToString(), 0);
+            return;
+        }
+
+        if (item is UsableItem)
+        {
+            int sourceIndex = FindInventoryItemSlot(item);
+            if (sourceIndex >= Inventory.FirstItemSlot)
+                InventoryService.Instance.Send("use", this, Inventory.GetPath().ToString(), sourceIndex);
+        }
+    }
+
+    private int FindInventoryItemSlot(Item item)
+    {
+        for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+            if (SameItem(Inventory.Slots[i]?.Item, item))
+                return i;
+        return -1;
+    }
+
+    public int FindHotbarItemSlot(Item item)
+    {
+        if (SameItem(EquippedHandItem, item))
+            return 0;
+        return FindInventoryItemSlot(item);
     }
 
 

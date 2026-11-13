@@ -13,13 +13,24 @@ public partial class ItemUI : PanelContainer
     private int _tradePrice;
     private Item _displayItem;
     private bool _canAfford;
+    private bool _hotbarPreview;
 
     public void Bind(Player player, InventoryComponent inventory, int index, bool tradeMode = false)
     {
+        _hotbarPreview = false;
         Player = player;
         Inventory = inventory;
         Index = index;
         _tradeMode = tradeMode;
+        if (IsInsideTree()) Refresh();
+    }
+
+    public void BindHotbar(Player player, InventoryComponent inventory, int index)
+    {
+        _hotbarPreview = true;
+        MouseFilter = MouseFilterEnum.Ignore;
+        Bind(player, inventory, index);
+        _hotbarPreview = true;
         if (IsInsideTree()) Refresh();
     }
 
@@ -79,7 +90,9 @@ public partial class ItemUI : PanelContainer
         OmniLight3D light = GetNode<OmniLight3D>("Content/ModelContainer/ItemViewport/ItemLight");
         light.LightColor = item.LightColor;
         light.LightEnergy = item.LightEnergy;
-        GetNode<Label>("Content/NameLabel").Text = item.DisplayName;
+        Label nameLabel = GetNode<Label>("Content/NameLabel");
+        nameLabel.Text = item.DisplayName;
+        nameLabel.Visible = !_hotbarPreview;
         GetNode<Label>("Content/CountLabel").Text = _isTradeOffer ? $"{_tradePrice} золотых" : $"×{count}";
         Modulate = ((_isTradeOffer && !_canAfford) || !canSell)
             ? new Color(0.52f, 0.56f, 0.62f, 0.78f)
@@ -105,6 +118,8 @@ public partial class ItemUI : PanelContainer
 
     public override void _GuiInput(InputEvent ev)
     {
+        if (_hotbarPreview)
+            return;
         if (_isTradeOffer && ev is InputEventMouseButton
             { Pressed: true, ButtonIndex: MouseButton.Left, ShiftPressed: true })
         {
@@ -139,6 +154,8 @@ public partial class ItemUI : PanelContainer
 
     public override Variant _GetDragData(Vector2 position)
     {
+        if (_hotbarPreview)
+            return default;
         if (_isTradeOffer)
         {
             SetDragPreview(new Label { Text = $"{_displayItem.DisplayName} • {_tradePrice} золотых" });

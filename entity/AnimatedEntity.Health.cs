@@ -11,83 +11,19 @@ public partial class AnimatedEntity : Entity
 	[Export(PropertyHint.Range, "0.01,1.0,0.01")]
 	public float DefaultHitboxRadius { get; set; } = 0.169f;
 	private Skeleton3D _skeleton;
-	private ProgressBar _healthBar;
-
 	private void CreateHealthBar()
 	{
 		if (Health == null)
 			return;
-
-		var viewport = new SubViewport
-		{
-			Name = "HealthBarViewport",
-			Size = new Vector2I(180, 22),
-			TransparentBg = true,
-			OwnWorld3D = false,
-			RenderTargetUpdateMode = SubViewport.UpdateMode.Always
-		};
-		AddChild(viewport);
-
-		var background = new ColorRect
-		{
-			Color = new Color(0.08f, 0.08f, 0.08f, 0.85f),
-			Position = Vector2.Zero,
-			Size = new Vector2(180, 22),
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		viewport.AddChild(background);
-
-		_healthBar = new ProgressBar
-		{
-			Position = new Vector2(2, 2),
-			Size = new Vector2(176, 18),
-			MinValue = 0,
-			MaxValue = Health.MaxHealth,
-			ShowPercentage = false,
-			MouseFilter = Control.MouseFilterEnum.Ignore
-		};
-		_healthBar.AddThemeStyleboxOverride("background", new StyleBoxFlat
-		{
-			BgColor = new Color(0.2f, 0.12f, 0.12f),
-			ContentMarginLeft = 0,
-			ContentMarginRight = 0,
-			ContentMarginTop = 0,
-			ContentMarginBottom = 0
-		});
-		_healthBar.AddThemeStyleboxOverride("fill", new StyleBoxFlat
-		{
-			BgColor = new Color(0.82f, 0.12f, 0.14f),
-			ContentMarginLeft = 0,
-			ContentMarginRight = 0,
-			ContentMarginTop = 0,
-			ContentMarginBottom = 0
-		});
-		viewport.AddChild(_healthBar);
-
-		var sprite = new Sprite3D
-		{
-			Name = "HealthBar",
-			Texture = viewport.GetTexture(),
-			Position = new Vector3(0, HealthBarHeight, 0),
-			PixelSize = 0.01f,
-			Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-			Shaded = false,
-			NoDepthTest = true,
-			AlphaCut = SpriteBase3D.AlphaCutMode.OpaquePrepass
-		};
-		AddChild(sprite);
-
-		Health.HealthChanged += UpdateHealthBar;
-		UpdateHealthBar(Health.CurrentHealth, Health.MaxHealth);
-	}
-
-	private void UpdateHealthBar(float currentHealth, float maxHealth)
-	{
-		if (_healthBar == null)
+		if (this is Player player && player.playerInputComponent?.HasInputAuthority == true)
 			return;
 
-		_healthBar.MaxValue = maxHealth;
-		_healthBar.Value = currentHealth;
+		PackedScene scene = GD.Load<PackedScene>("res://entity/components/WorldHealthBar.tscn");
+		WorldHealthBar worldBar = scene?.Instantiate<WorldHealthBar>();
+		if (worldBar == null)
+			return;
+		AddChild(worldBar);
+		worldBar.Bind(Health, HealthBarHeight);
 	}
 
 	private void ReplicateHealth(float currentHealth, float maxHealth)

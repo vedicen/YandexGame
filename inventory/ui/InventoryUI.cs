@@ -4,6 +4,7 @@ public partial class InventoryUI : CanvasLayer
 {
     [Export] public PackedScene InventoryGridScene { get; set; }
     [Export] public PackedScene ItemScene { get; set; }
+    [Export] public PackedScene HotbarSlotScene { get; set; }
 
     public Player Player;
 
@@ -28,12 +29,20 @@ public partial class InventoryUI : CanvasLayer
         _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/Grids");
         _equipmentSlot = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/EquipmentItem");
         _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
-        _dropZone = GetNode<DropZone>("Root/Panel/Margin/VBox/DropZone");
+        _dropZone = GetNode<DropZone>("Root");
         _tradeSidePanel = GetNode<Control>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel");
         _saleGridContainer = GetNode<VBoxContainer>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleGridContainer");
         _saleTotalLabel = GetNode<Label>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter/SaleTotal");
         _sellButton = GetNode<Button>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/SaleFooter/SellButton");
         _tradeGoodsGrid = GetNode<GridContainer>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/TradeGoodsScroll/TradeGoodsGrid");
+
+        HBoxContainer hotbar = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/Hotbar");
+        for (int i = 0; i < 4; i++)
+        {
+            HotbarSlot slot = HotbarSlotScene.Instantiate<HotbarSlot>();
+            hotbar.AddChild(slot);
+            slot.Bind(Player, i);
+        }
 
         _dropZone.Player = Player;
         _equipmentSlot.Bind(Player, Player.Equipment, 0);

@@ -11,6 +11,7 @@
 [ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="9_rt8ta"]
 [ext_resource type="PackedScene" uid="uid://cqddsy6sq22a4" path="res://inventory/ui/InventoryUI.tscn" id="11_inventory_ui"]
 [ext_resource type="PackedScene" path="res://inventory/ui/BuildMenu.tscn" id="12_build_menu"]
+[ext_resource type="PackedScene" path="res://inventory/ui/PlayerHUD.tscn" id="16_player_hud"]
 [ext_resource type="Resource" uid="uid://cvnk0rrvui3lj" path="res://inventory/items/hammer.tres" id="13_hammer"]
 [ext_resource type="Resource" uid="uid://8sv2s0abe1lg" path="res://inventory/items/wood.tres" id="14_wood"]
 [ext_resource type="Resource" uid="uid://cl7qv65oqp1xq" path="res://inventory/items/stone.tres" id="15_stone"]
@@ -54,6 +55,7 @@ metadata/_custom_type_script = "uid://bllff2lc6g00k"
 script = ExtResource("2_s5jwf")
 InventoryUIScene = ExtResource("11_inventory_ui")
 BuildMenuScene = ExtResource("12_build_menu")
+PlayerHUDScene = ExtResource("16_player_hud")
 StartingMoney = 500
 playerInputComponent = NodePath("PlayerInputComponent")
 Speed = 5.0

@@ -1,6 +1,6 @@
 using Godot;
 
-public partial class DropZone : Label
+public partial class DropZone : Control
 {
     public Player Player;
     public override bool _CanDropData(Vector2 position, Variant data) => ItemUI.IsStackDrag(data) &&

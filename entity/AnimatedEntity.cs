@@ -139,7 +139,6 @@ public partial class AnimatedEntity : Entity
 			_equipmentComponent.Changed -= OnEquipmentChanged;
 		if (Health != null)
 		{
-			Health.HealthChanged -= UpdateHealthBar;
 			Health.HealthChanged -= ReplicateHealth;
 		}
 	}
