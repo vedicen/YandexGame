@@ -23,6 +23,16 @@ public partial class AnimatedEntity : Entity
 			return;
 		}
 
+		if (!CanUseHandItem(handItem))
+		{
+			if (EquippedHandItem != null || EquippedWeapon != null)
+			{
+				EnsureEquipmentComponent().EquipWeapon(null);
+				RefreshWeaponAttackAnimations();
+			}
+			return;
+		}
+
 		if (ReferenceEquals(EquippedHandItem, handItem) ||
 			(!string.IsNullOrEmpty(EquippedHandItem?.ResourcePath) &&
 			 EquippedHandItem.ResourcePath == handItem.ResourcePath))
@@ -38,7 +48,7 @@ public partial class AnimatedEntity : Entity
 			!string.IsNullOrEmpty(current.ResourcePath) &&
 			current.ResourcePath == next.ResourcePath);
 
-	private void RefreshWeaponAttackAnimations()
+	protected void RefreshWeaponAttackAnimations()
 	{
 		if (_runtimeAnimationLibrary == null)
 			return;
@@ -65,11 +75,14 @@ public partial class AnimatedEntity : Entity
 		if (requiredProjectile == null || Inventory?.Slots == null)
 			return false;
 
-		foreach (Stack stack in Inventory.Slots)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		{
+			Stack stack = Inventory.Slots[i];
 			if (stack?.Item is WeaponProjectile projectile &&
 				(projectile == requiredProjectile || projectile.ResourcePath == requiredProjectile.ResourcePath) &&
 				stack.ItemCount > 0)
 				return true;
+		}
 
 		return false;
 	}
@@ -79,7 +92,7 @@ public partial class AnimatedEntity : Entity
 		if (requiredProjectile == null || Inventory?.Slots == null)
 			return false;
 
-		for (int i = 0; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
 		{
 			Stack stack = Inventory.Slots[i];
 			if (stack?.Item is not WeaponProjectile projectile ||
@@ -189,17 +202,20 @@ public partial class AnimatedEntity : Entity
 			GD.PushError($"AnimatedEntity '{Name}' failed to spawn replicated projectile '{projectileName}'.");
 	}
 
-	public bool TryEquipWeaponFromInventory(int inventorySlot)
+	public virtual bool TryEquipWeaponFromInventory(int inventorySlot)
 	{
-		return Inventory?.Valid(inventorySlot) == true &&
+		return Inventory?.Valid(inventorySlot) == true && inventorySlot >= Inventory.FirstItemSlot &&
 			Inventory.Slots[inventorySlot]?.Item is Weapon &&
 			TryEquipHandItemFromInventory(inventorySlot);
 	}
 
+	public virtual bool CanUseHandItem(HandItem item) => item != null;
+
 	public bool TryEquipHandItemFromInventory(int inventorySlot)
 	{
 		if (Inventory == null || _equipmentComponent?.Valid(0) != true ||
-			!Inventory.Valid(inventorySlot) || Inventory.Slots[inventorySlot]?.Item is not HandItem handItem)
+			!Inventory.Valid(inventorySlot) || inventorySlot < Inventory.FirstItemSlot ||
+			Inventory.Slots[inventorySlot]?.Item is not HandItem handItem || !CanUseHandItem(handItem))
 			return false;
 
 		PackedScene model = handItem.Model;
@@ -233,18 +249,23 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		Weapon heldWeapon = EquippedWeapon;
+		int bestSlot = -1;
+		Rarity bestRarity = heldWeapon?.Rarity ?? (Rarity)(-1);
 
-		for (int i = 0; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
 		{
 			if (Inventory.Slots[i]?.Item is not RangedWeapon bow ||
 				bow.Model == null ||
 				!HasProjectileInInventory(bow.RequiredProjectile) ||
-				(heldWeapon != null && bow.Rarity <= heldWeapon.Rarity))
+				bow.Rarity <= bestRarity)
 				continue;
 
-			if (TryEquipWeaponFromInventory(i))
-				return;
+			bestSlot = i;
+			bestRarity = bow.Rarity;
 		}
+
+		if (bestSlot >= 0)
+			TryEquipWeaponFromInventory(bestSlot);
 	}
 
 	public bool IsWeaponUpgrade(Weapon weapon) =>

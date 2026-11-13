@@ -19,5 +19,6 @@ Attack2AnimationScene = null
 CrouchedIdleAnimationScene = null
 CrouchedWalkAnimationScene = null
 
-[node name="InventoryComponent" parent="." index="9" unique_id=209800001]
-Slots = Array[ExtResource("3_6yg03")]([SubResource("Resource_ct6y0")])
+[node name="EquipmentComponent" parent="." index="1" unique_id=2078828129]
+MaxSlots = 21
+Slots = Array[ExtResource("3_6yg03")]([null, SubResource("Resource_ct6y0")])

@@ -42,8 +42,12 @@ public partial class BuildMenu : PanelContainer
         Show();
     }
 
-    private static int Count(InventoryComponent inventory, Item item) =>
-        inventory?.Slots?.Where(stack => stack?.Item != null &&
-            (stack.Item == item || stack.Item.ResourcePath == item?.ResourcePath))
-            .Sum(stack => stack.ItemCount) ?? 0;
+    private static int Count(InventoryComponent inventory, Item item)
+    {
+        if (inventory?.Slots == null) return 0;
+        return inventory.Slots.Skip(inventory.FirstItemSlot)
+            .Where(stack => stack?.Item != null &&
+                (stack.Item == item || stack.Item.ResourcePath == item?.ResourcePath))
+            .Sum(stack => stack.ItemCount);
+    }
 }

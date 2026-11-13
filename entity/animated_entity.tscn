@@ -13,7 +13,6 @@
 [ext_resource type="Script" uid="uid://cfa8c7nc85s01" path="res://entity/components/EquipmentComponent.cs" id="10_yrrmq"]
 [ext_resource type="Script" uid="uid://btyu6mcn5yv45" path="res://entity/components/CombatStatsComponent.cs" id="11_combat"]
 [ext_resource type="PackedScene" uid="uid://c6i0vrkllrs4g" path="res://entity/components/health_component.tscn" id="12_2dmw2"]
-[ext_resource type="PackedScene" uid="uid://di4wu1q577jni" path="res://inventory/player_inventory.tscn" id="16_inventory"]
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_animated_entity"]
 properties/0/path = NodePath(".:position")
@@ -43,6 +42,12 @@ properties/7/replication_mode = 2
 
 [node name="AnimatedEntity" unique_id=1252529603 node_paths=PackedStringArray("Health") instance=ExtResource("1_entity")]
 script = ExtResource("2_uiq6r")
+ReplicatedAttack = ""
+BowDebugLogging = false
+BowBodyYawDegrees = -60.0
+BowCrouchBodyPitchDegrees = 20.0
+ReplicatedBowState = "Idle"
+ReplicatedBowAimPitch = 0.0
 Race = 0
 Skills = null
 ModelScene = null
@@ -59,22 +64,17 @@ CrouchedWalkAnimationScene = ExtResource("9_vqaqr")
 RunMultiplier = 1.5
 BlendDuration = 0.2
 ModelTurnSpeed = 10.0
+ReplicatedModelFacing = 0.0
+ReplicatedAnimation = "Idle"
 HealthBarHeight = 2.2
-BowDebugLogging = false
-BowBodyYawDegrees = -60.0
-BowCrouchBodyPitchDegrees = 20.0
 HeadHitboxRadius = 0.208
 FootHitboxRadius = 0.13
 DefaultHitboxRadius = 0.169
-ReplicatedModelFacing = 0.0
-ReplicatedAnimation = "Idle"
-ReplicatedBowState = "Idle"
-ReplicatedBowAimPitch = 0.0
-ReplicatedAttack = ""
 Health = NodePath("HealthComponent")
 
 [node name="EquipmentComponent" type="Node" parent="." index="1" unique_id=2078828129]
 script = ExtResource("10_yrrmq")
+MaxSlots = 21
 
 [node name="Model" type="Node3D" parent="." index="2" unique_id=1872647054]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99512684, 0)
@@ -86,5 +86,3 @@ script = ExtResource("11_combat")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." index="5" unique_id=110891255]
 replication_config = SubResource("SceneReplicationConfig_animated_entity")
-
-[node name="InventoryComponent" parent="." index="6" unique_id=209800001 instance=ExtResource("16_inventory")]

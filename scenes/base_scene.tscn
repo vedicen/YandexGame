@@ -6,12 +6,10 @@
 [ext_resource type="PackedScene" uid="uid://cbelhyrwa5v86" path="res://entity/interact/chest.tscn" id="6_chest"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="7_vjnli"]
 [ext_resource type="Script" uid="uid://bllff2lc6g00k" path="res://inventory/Stack.cs" id="8_oelfw"]
+[ext_resource type="Resource" uid="uid://qbp55nhqb2ln" path="res://inventory/items/steel_sword.tres" id="9_1stcl"]
 [ext_resource type="Resource" uid="uid://dsfneviu7f7nf" path="res://inventory/items/bow.tres" id="9_oelfw"]
+[ext_resource type="Resource" uid="uid://qid0evaa6tng" path="res://inventory/items/iron_sword.tres" id="10_yfdfb"]
 [ext_resource type="PackedScene" uid="uid://c67t3hjqpmc6a" path="res://entity/interact/trading_stand.tscn" id="11_1stcl"]
-[ext_resource type="PackedScene" uid="uid://bd7into56gyn0" path="res://entity/AnimatedEnemy/Enemys/EnemyGolem.tscn" id="12_sybwi"]
-[ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="13_de42d"]
-[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/fireslash.gdshader" id="14_ehpj7"]
-[ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="15_tl6ws"]
 [ext_resource type="PackedScene" uid="uid://cy3gqhpnhp0mf" path="res://entity/AnimatedEnemy/Enemys/Skeleton/EnemySkeleton.tscn" id="16_7hj75"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_qcxwf"]
@@ -30,16 +28,10 @@ glow_enabled = true
 vertices = PackedVector3Array(1.7353516, 0.25, -2.159668, 3.4853516, 0.25, -2.409668, 3.4853516, 0.25, -37.909668, -34.51465, 0.25, -37.909668, -34.51465, 0.25, -0.90966797, 1.7353516, 0.25, -0.65966797, 4.9853516, 0.25, -2.409668, 5.2353516, 0.25, -0.65966797, 34.48535, 0.25, -0.90966797, 34.48535, 0.25, -37.909668, 2.7353516, 1, -1.409668, 2.7353516, 1, 1.340332, 4.2353516, 1, 1.340332, 4.2353516, 1, -1.409668, -34.51465, 0.25, 0.84033203, 1.7353516, 0.25, 0.59033203, 5.2353516, 0.25, 0.59033203, 34.48535, 0.25, 0.84033203, 3.4853516, 0.25, 37.840332, 3.4853516, 0.25, 2.340332, 1.7353516, 0.25, 2.090332, -34.51465, 0.25, 37.840332, 4.9853516, 0.25, 2.340332, 34.48535, 0.25, 37.840332)
 polygons = [PackedInt32Array(1, 0, 2), PackedInt32Array(2, 0, 3), PackedInt32Array(3, 0, 4), PackedInt32Array(0, 5, 4), PackedInt32Array(7, 6, 8), PackedInt32Array(8, 6, 9), PackedInt32Array(9, 6, 2), PackedInt32Array(6, 1, 2), PackedInt32Array(13, 12, 10), PackedInt32Array(10, 12, 11), PackedInt32Array(15, 14, 5), PackedInt32Array(5, 14, 4), PackedInt32Array(7, 8, 16), PackedInt32Array(16, 8, 17), PackedInt32Array(19, 18, 20), PackedInt32Array(20, 18, 21), PackedInt32Array(20, 21, 14), PackedInt32Array(14, 15, 20), PackedInt32Array(16, 17, 22), PackedInt32Array(22, 17, 23), PackedInt32Array(22, 23, 18), PackedInt32Array(18, 19, 22)]
 
-[sub_resource type="Resource" id="Resource_rxm2p"]
-script = ExtResource("15_tl6ws")
-TrailShader = ExtResource("14_ehpj7")
-DisplayName = "Железный меч"
-Description = "Простой одноручный меч из железа. Надёжный и недорогой."
-Model = ExtResource("13_de42d")
-MaxStackSize = 1
-Weight = 2.0
-SalePrice = 12
-Rarity = 4
+[sub_resource type="Resource" id="Resource_ehpj7"]
+script = ExtResource("8_oelfw")
+Item = ExtResource("9_1stcl")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [sub_resource type="Resource" id="Resource_7hj75"]
 script = ExtResource("8_oelfw")
@@ -47,18 +39,19 @@ ItemCount = 48
 Item = ExtResource("7_vjnli")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
-[sub_resource type="Resource" id="Resource_ehpj7"]
-script = ExtResource("8_oelfw")
-Item = ExtResource("9_oelfw")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
-[sub_resource type="Resource" id="Resource_g0di7"]
-script = ExtResource("8_oelfw")
-metadata/_custom_type_script = "uid://bllff2lc6g00k"
-
 [sub_resource type="Resource" id="Resource_de42d"]
 script = ExtResource("8_oelfw")
 Item = ExtResource("9_oelfw")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_yfdfb"]
+script = ExtResource("8_oelfw")
+Item = ExtResource("10_yfdfb")
+metadata/_custom_type_script = "uid://bllff2lc6g00k"
+
+[sub_resource type="Resource" id="Resource_dfysg"]
+script = ExtResource("8_oelfw")
+Item = ExtResource("7_vjnli")
 metadata/_custom_type_script = "uid://bllff2lc6g00k"
 
 [node name="BaseScene" type="Node3D" unique_id=944606836]
@@ -131,27 +124,22 @@ size = Vector3(70.0293, 0.3618164, 76.819336)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.4746094, 0.15734863, 0)
 size = Vector3(2.227539, 0.7902832, 3.4589844)
 
-[node name="TradingStand" parent="." unique_id=1533664349 node_paths=PackedStringArray("npc_owner") instance=ExtResource("11_1stcl")]
+[node name="TradingStand" parent="." unique_id=1533664349 instance=ExtResource("11_1stcl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5576172, 0.36187744, 8.411316)
-npc_owner = NodePath("")
-
-[node name="EnemyGolem" parent="." unique_id=757652966 instance=ExtResource("12_sybwi")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.1788416, 0.85694325, 1.9096828)
-Skills = Array[int]([1, 3])
-StartingWeapon = SubResource("Resource_rxm2p")
 
 [node name="EnemySkeleton" parent="." unique_id=1081595064 instance=ExtResource("16_7hj75")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.65332, 0.86097157, 11.347473)
-ArmDetachChance = 1.0
-JawDetachChance = 1.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.704956, 0.86097157, 11.347473)
+JawDetachChance = 0.41
+SkullDetachChance = 0.48
 Race = 2
 Skills = Array[int]([2, 1])
+StartingWeapon = null
 
 [node name="EquipmentComponent" parent="EnemySkeleton" index="2" unique_id=2078828129]
 EquippedWeapon = ExtResource("9_oelfw")
-Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_7hj75"), SubResource("Resource_ehpj7")])
+Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_ehpj7"), SubResource("Resource_7hj75"), SubResource("Resource_de42d"), SubResource("Resource_yfdfb"), SubResource("Resource_dfysg")])
 
-[node name="InventoryComponent" parent="EnemySkeleton" index="9" unique_id=209800001]
-Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_g0di7"), SubResource("Resource_de42d")])
+[node name="HealthComponent" parent="EnemySkeleton" index="5" unique_id=1182051469]
+MaxHealth = 1000.0
 
 [editable path="EnemySkeleton"]

@@ -24,7 +24,6 @@ public partial class EnemyInventoryManager : Node
             return;
 
         _owner.Inventory.Changed -= QueueReevaluation;
-        _owner.Equipment.Changed -= QueueReevaluation;
     }
 
     private void Initialize()
@@ -36,7 +35,6 @@ public partial class EnemyInventoryManager : Node
         }
 
         _owner.Inventory.Changed += QueueReevaluation;
-        _owner.Equipment.Changed += QueueReevaluation;
         _initialized = true;
         ReevaluateEquipment();
     }
@@ -106,7 +104,7 @@ public partial class EnemyInventoryManager : Node
         int bestSlot = -1;
         Rarity bestRarity = equippedIsUsable ? equipped.Rarity : (Rarity)(-1);
 
-        for (int i = 0; i < _owner.Inventory.Slots.Count; i++)
+        for (int i = _owner.Inventory.FirstItemSlot; i < _owner.Inventory.Slots.Count; i++)
         {
             if (_owner.Inventory.Slots[i]?.Item is not Weapon candidate ||
                 !CanUseWeapon(candidate) ||
@@ -173,7 +171,6 @@ public partial class EnemyInventoryManager : Node
         inventory.Slots[freeSlot] = new Stack { Item = weapon, ItemCount = equipment.Slots[0].ItemCount };
         equipment.Slots[0] = null;
         inventory.NotifyChanged();
-        equipment.NotifyChanged();
         return true;
     }
 
@@ -182,7 +179,7 @@ public partial class EnemyInventoryManager : Node
         if (inventory?.Slots == null)
             return -1;
 
-        for (int i = 0; i < inventory.Slots.Count; i++)
+        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count; i++)
             if (inventory.Slots[i]?.Item == null)
                 return i;
 

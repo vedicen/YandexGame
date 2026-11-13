@@ -44,7 +44,11 @@ public partial class EnemySkeleton : AnimatedEnemy
 				if (!_leftArmDetached && RollChance(ArmDetachChance))
 				{
 					_leftArmDetached = Detach("left_arm", PartOfBodyArm, knockbackDirection, mirror: false);
-					if (_leftArmDetached) DisableArmHitboxes(left: true);
+					if (_leftArmDetached)
+					{
+						DisableArmHitboxes(left: true);
+						NotifyHandAvailabilityChanged();
+					}
 				}
 			}
 			else
@@ -54,7 +58,11 @@ public partial class EnemySkeleton : AnimatedEnemy
 				if (!_rightArmDetached && RollChance(ArmDetachChance))
 				{
 					_rightArmDetached = Detach("right_arm", PartOfBodyArm, knockbackDirection, mirror: true);
-					if (_rightArmDetached) DisableArmHitboxes(left: false);
+					if (_rightArmDetached)
+					{
+						DisableArmHitboxes(left: false);
+						NotifyHandAvailabilityChanged();
+					}
 				}
 			}
 			return;
@@ -73,6 +81,76 @@ public partial class EnemySkeleton : AnimatedEnemy
 					_headStage = HeadStage.SkullDetached;
 				break;
 		}
+	}
+
+	public override bool CanUseHandItem(HandItem item)
+	{
+		if (item == null)
+			return false;
+
+		return item.RequiredHand switch
+		{
+			HandItem.HandRequirement.BothAttachToLeft or HandItem.HandRequirement.BothAttachToRight =>
+				!_leftArmDetached && !_rightArmDetached,
+			HandItem.HandRequirement.Left => !_leftArmDetached,
+			_ => !_rightArmDetached
+		};
+	}
+
+	public override bool TryEquipWeaponFromInventory(int inventorySlot)
+	{
+		if (Inventory?.Slots == null || !Inventory.Valid(inventorySlot) ||
+			inventorySlot < Inventory.FirstItemSlot || Inventory.Slots[inventorySlot]?.Item is not Weapon requestedWeapon)
+			return false;
+
+		bool equippedWeaponIsUsable = CanUseWeaponWithAvailableHands(EquippedWeapon);
+		Rarity bestRarity = equippedWeaponIsUsable ? EquippedWeapon.Rarity : (Rarity)(-1);
+		int bestSlot = -1;
+		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		{
+			if (Inventory.Slots[i]?.Item is not Weapon candidate ||
+				!CanUseWeaponWithAvailableHands(candidate) ||
+				(equippedWeaponIsUsable && candidate.Rarity <= EquippedWeapon.Rarity) ||
+				candidate.Rarity <= bestRarity)
+				continue;
+
+			bestSlot = i;
+			bestRarity = candidate.Rarity;
+		}
+
+		if (bestSlot >= 0)
+			return base.TryEquipWeaponFromInventory(bestSlot);
+
+		// EnemyInventoryManager treats a successful equip request as permission to consume a pickup.
+		// Keep a weapon the skeleton cannot hold in its inventory instead of rejecting the pickup.
+		return !CanUseHandItem(requestedWeapon);
+	}
+
+	private bool CanUseWeaponWithAvailableHands(Weapon weapon)
+	{
+		if (weapon?.Model == null || !CanUseHandItem(weapon))
+			return false;
+
+		if (weapon is MeleeWeapon)
+			return Skills?.Contains(TaskData.Skills.MeleeCombat) == true;
+
+		if (weapon is RangedWeapon ranged)
+			return Skills?.Contains(TaskData.Skills.RangedCombat) == true &&
+				HasProjectileInInventory(ranged.RequiredProjectile);
+
+		return false;
+	}
+
+	private void NotifyHandAvailabilityChanged()
+	{
+		if (EquippedHandItem != null && !CanUseHandItem(EquippedHandItem))
+		{
+			Equipment?.EquipWeapon(null);
+			RefreshWeaponAttackAnimations();
+			BroadcastBowAnimationState("Idle");
+		}
+
+		Inventory?.NotifyChanged();
 	}
 
 	private bool RollChance(float chance)

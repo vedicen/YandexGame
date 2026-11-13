@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public partial class EquipmentComponent : InventoryComponent
 {
+    public override int FirstItemSlot => 1;
+
     public enum Slot
     {
         Head,
@@ -285,7 +287,7 @@ public partial class EquipmentComponent : InventoryComponent
 
     private void EquipWeaponNow(Weapon weapon)
     {
-        Slot weaponSlot = weapon is RangedWeapon ? Slot.RangedWeapon : Slot.Weapon;
+        Slot weaponSlot = GetHandSlot(weapon);
         if (!_slots.TryGetValue(weaponSlot, out Node3D slotNode) || slotNode == null)
         {
             GD.PushError($"EquipmentComponent: {weaponSlot} is unavailable; check the corresponding hand bone.");
@@ -348,7 +350,8 @@ public partial class EquipmentComponent : InventoryComponent
 
     private void EquipHandItemNow(HandItem item)
     {
-        if (!_slots.TryGetValue(Slot.Weapon, out Node3D slotNode))
+        Slot handSlot = GetHandSlot(item);
+        if (!_slots.TryGetValue(handSlot, out Node3D slotNode))
             return;
         Unequip(Slot.Weapon);
         Unequip(Slot.RangedWeapon);
@@ -358,14 +361,20 @@ public partial class EquipmentComponent : InventoryComponent
         model.Scale = item.EquipScale;
         slotNode.AddChild(model);
         if (_skeleton != null) BindMeshes(model);
-        _equipped[Slot.Weapon] = model;
+        _equipped[handSlot] = model;
         EquippedHandItem = item;
         EquippedWeapon = null;
     }
 
+    private static Slot GetHandSlot(HandItem item) => item?.RequiredHand switch
+    {
+        HandItem.HandRequirement.BothAttachToLeft or HandItem.HandRequirement.Left => Slot.RangedWeapon,
+        _ => Slot.Weapon
+    };
+
     public WeaponScene GetEquippedWeaponScene()
     {
-        Slot weaponSlot = EquippedWeapon is RangedWeapon ? Slot.RangedWeapon : Slot.Weapon;
+        Slot weaponSlot = GetHandSlot(EquippedHandItem ?? (HandItem)EquippedWeapon);
         if (_equipped.TryGetValue(weaponSlot, out Node equipped) &&
             GodotObject.IsInstanceValid(equipped) &&
             !equipped.IsQueuedForDeletion() &&

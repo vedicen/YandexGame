@@ -129,10 +129,9 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="EquipmentComponent" parent="." index="4" unique_id=2078828129]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("HammerStack")])
+MaxSlots = 21
+Slots = Array[ExtResource("7_swhyu")]([SubResource("HammerStack"), SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb"), SubResource("WoodStack"), SubResource("StoneStack"), SubResource("Resource_8wklh")])
 
 [node name="HealthComponent" parent="." index="7" unique_id=1182051469]
 MaxHealth = 1000.0
 
-[node name="InventoryComponent" parent="." index="9" unique_id=209800001]
-Slots = Array[ExtResource("7_swhyu")]([SubResource("PotionStack"), SubResource("Resource_oelfw"), SubResource("Resource_yfdfb"), SubResource("WoodStack"), SubResource("StoneStack"), SubResource("Resource_8wklh")])

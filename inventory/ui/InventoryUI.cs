@@ -138,6 +138,7 @@ public partial class InventoryUI : CanvasLayer
         InventoryGrid grid = InventoryGridScene.Instantiate<InventoryGrid>();
         grid.Title = title;
         grid.Inventory = inventory;
+        grid.FirstSlotIndex = inventory == Player.Inventory ? inventory.FirstItemSlot : 0;
         grid.Player = Player;
         grid.TradeMode = tradeMode;
         grid.Columns = 4;

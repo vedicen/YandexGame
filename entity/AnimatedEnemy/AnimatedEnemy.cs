@@ -20,9 +20,7 @@ public partial class AnimatedEnemy : AnimatedEntity
     {
         var loot = new List<Stack>();
         AddInventoryLoot(Inventory, loot);
-        AddInventoryLoot(Equipment, loot);
-        GD.Print($"[Loot] Enemy died: {Name}, inventory slots={Inventory?.Slots?.Count ?? 0}, " +
-            $"equipment slots={Equipment?.Slots?.Count ?? 0}, loot stacks={loot.Count}.");
+        GD.Print($"[Loot] Enemy died: {Name}, inventory slots={Inventory?.Slots?.Count ?? 0}, loot stacks={loot.Count}.");
         if (loot.Count == 0)
         {
             GD.PushWarning($"[Loot] No loot to spawn for '{Name}'.");
@@ -92,8 +90,9 @@ public partial class AnimatedEnemy : AnimatedEntity
         if (source?.Slots == null)
             return;
 
-        foreach (Stack stack in source.Slots)
+        for (int i = 0; i < source.Slots.Count; i++)
         {
+            Stack stack = source.Slots[i];
             if (stack?.Item != null && stack.ItemCount > 0)
                 loot.Add(stack.Copy());
         }

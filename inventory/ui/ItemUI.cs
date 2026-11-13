@@ -174,7 +174,7 @@ public partial class ItemUI : PanelContainer
         var drag = data.AsGodotDictionary();
         string sourcePath = drag["source"].AsString();
 
-        if (Inventory == Player?.Equipment)
+        if (Inventory == Player?.Equipment && Index == 0)
             return drag.ContainsKey("is_hand_item") && drag["is_hand_item"].AsBool();
 
         if (Inventory.IsTradeSaleStorage)
@@ -182,7 +182,8 @@ public partial class ItemUI : PanelContainer
             if (sourcePath == Inventory.GetPath().ToString()) return true;
             if (sourcePath != Player?.Inventory?.GetPath().ToString()) return false;
             int index = drag["index"].AsInt32();
-            return Player.Inventory.Valid(index) && Player.Inventory.Slots[index]?.Item?.SalePrice > 0;
+            return index >= Player.Inventory.FirstItemSlot && Player.Inventory.Valid(index) &&
+                Player.Inventory.Slots[index]?.Item?.SalePrice > 0;
         }
 
         return true;

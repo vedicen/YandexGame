@@ -73,10 +73,10 @@ public partial class AnimatedEntity : Entity
 	{
 		base._Ready();
 		_equipmentComponent = GetNodeOrNull<EquipmentComponent>("EquipmentComponent");
-		Inventory = GetNodeOrNull<InventoryComponent>("InventoryComponent");
-		if (Inventory == null || _equipmentComponent == null)
+		Inventory = _equipmentComponent;
+		if (_equipmentComponent == null)
 		{
-			GD.PushError($"AnimatedEntity '{Name}' requires InventoryComponent and EquipmentComponent children.");
+			GD.PushError($"AnimatedEntity '{Name}' requires an EquipmentComponent.");
 			return;
 		}
 

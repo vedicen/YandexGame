@@ -394,9 +394,12 @@ public partial class Player : AnimatedEntity
             return "<inventory unavailable>";
 
         var contents = new List<string>();
-        foreach (Stack stack in Inventory.Slots)
+        for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+        {
+            Stack stack = Inventory.Slots[i];
             if (stack?.Item != null)
                 contents.Add($"{stack.Item.GetType().Name}:{stack.Item.ResourcePath}x{stack.ItemCount}");
+        }
         return contents.Count == 0 ? "<empty>" : string.Join(", ", contents);
     }
 
