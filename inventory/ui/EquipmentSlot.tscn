@@ -1,16 +1,23 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://dcgaeh0kyfhv"]
 
 [ext_resource type="Script" path="res://inventory/ui/EquipmentSlot.cs" id="1_script"]
-[ext_resource type="PackedScene" path="res://inventory/ui/ItemUI.tscn" id="2_item"]
+[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="2_item"]
 
-[node name="EquipmentSlot" type="VBoxContainer"]
+[node name="EquipmentSlot" type="VBoxContainer" unique_id=1110446172]
 script = ExtResource("1_script")
 
-[node name="Title" type="Label" parent="."]
+[node name="Title" type="Label" parent="." unique_id=1715289041]
 layout_mode = 2
 text = "Оружие"
 
-[node name="WeaponItem" parent="." instance=ExtResource("2_item")]
+[node name="WeaponItem" parent="." unique_id=80220397 instance=ExtResource("2_item")]
 layout_mode = 2
+
+[node name="ItemViewport" parent="WeaponItem/Content/ModelContainer" index="0"]
+handle_input_locally = false
+size = Vector2i(96, 72)
+
+[node name="FillLight" parent="WeaponItem/Content/ModelContainer/ItemViewport" index="3"]
+transform = Transform3D(0.8660254, 0.3213938, -0.38302222, 0, 0.76604444, 0.6427876, 0.5, -0.55667037, 0.66341394, 0, 0, 0)
 
 [editable path="WeaponItem"]

@@ -51,7 +51,6 @@ ReplicatedBowAimPitch = 0.0
 Race = 0
 Skills = null
 ModelScene = null
-StartingWeapon = null
 IdleAnimationScene = ExtResource("3_osnle")
 WalkAnimationScene = ExtResource("4_yrrmq")
 RunAnimationScene = ExtResource("5_ian1y")

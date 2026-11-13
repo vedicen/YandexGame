@@ -13,9 +13,6 @@ public partial class AnimatedEntity : Entity
 	[ExportGroup("Model")]
 	[Export] public PackedScene ModelScene { get; set; }
 
-	[ExportGroup("Equipment")]
-	[Export] public Weapon StartingWeapon { get; set; }
-
 	[ExportGroup("Animation Sources")]
 	[Export] public PackedScene IdleAnimationScene { get; set; }
 	[Export] public PackedScene WalkAnimationScene { get; set; }
@@ -95,15 +92,7 @@ public partial class AnimatedEntity : Entity
 			return;
 
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
-		if (_equipmentComponent.Valid(0) && _equipmentComponent.Slots[0] == null && StartingWeapon != null)
-		{
-			_equipmentComponent.Slots[0] = new Stack { Item = StartingWeapon, ItemCount = 1 };
-			_equipmentComponent.NotifyChanged();
-		}
-		else
-		{
-			OnEquipmentChanged();
-		}
+		OnEquipmentChanged();
 		GenerateBoneHitboxes();
 		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);

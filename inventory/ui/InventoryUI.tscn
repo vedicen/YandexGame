@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://cxxschykywvgb" path="res://inventory/ui/InventoryUI.cs" id="1_script"]
 [ext_resource type="PackedScene" path="res://inventory/ui/InventoryGrid.tscn" id="2_grid"]
 [ext_resource type="Script" uid="uid://dqof51s1y14bt" path="res://inventory/ui/DropZone.cs" id="3_drop_zone"]
-[ext_resource type="PackedScene" path="res://inventory/ui/EquipmentSlot.tscn" id="4_equipment_slot"]
-[ext_resource type="PackedScene" path="res://inventory/ui/ItemUI.tscn" id="5_item"]
+[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="4_equipment_slot"]
+[ext_resource type="PackedScene" path="res://inventory/ui/InventoryUISlot.tscn" id="5_item"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.035, 0.05, 0.08, 0.96)
@@ -54,21 +54,28 @@ text = "Деньги: 0"
 [node name="MainArea" type="HBoxContainer" parent="Root/Panel/Margin/VBox" unique_id=1579680800]
 layout_mode = 2
 size_flags_vertical = 3
+alignment = 1
 theme_override_constants/separation = 16
 
 [node name="Scroll" type="ScrollContainer" parent="Root/Panel/Margin/VBox/MainArea" unique_id=2081671602]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
-size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Content" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll" unique_id=1989173522]
 layout_mode = 2
-size_flags_horizontal = 3
+alignment = 1
 theme_override_constants/separation = 16
 
-[node name="EquipmentSlot" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1752905461 instance=ExtResource("4_equipment_slot")]
+[node name="EquipmentColumn" type="VBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1752905461]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+layout_mode = 2
+text = "Оружие"
+
+[node name="EquipmentItem" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" instance=ExtResource("4_equipment_slot")]
 layout_mode = 2
 
 [node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1861324895]

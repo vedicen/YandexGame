@@ -9,7 +9,7 @@ public partial class InventoryUI : CanvasLayer
 
     private Control _root;
     private HBoxContainer _grids;
-    private EquipmentSlot _equipmentSlot;
+    private ItemUI _equipmentSlot;
     private DropZone _dropZone;
     private Chest _chest;
     private TradingStand _tradingStand;
@@ -26,7 +26,7 @@ public partial class InventoryUI : CanvasLayer
         Layer = 10;
         _root = GetNode<Control>("Root");
         _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/Grids");
-        _equipmentSlot = GetNode<EquipmentSlot>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentSlot");
+        _equipmentSlot = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/EquipmentItem");
         _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
         _dropZone = GetNode<DropZone>("Root/Panel/Margin/VBox/DropZone");
         _tradeSidePanel = GetNode<Control>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel");
@@ -36,7 +36,8 @@ public partial class InventoryUI : CanvasLayer
         _tradeGoodsGrid = GetNode<GridContainer>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel/SideVBox/TradeGoodsScroll/TradeGoodsGrid");
 
         _dropZone.Player = Player;
-        _equipmentSlot.Bind(Player);
+        _equipmentSlot.Bind(Player, Player.Equipment, 0);
+        Player.Equipment.Changed += UpdateEquipmentSlot;
         _tradeSidePanel.Hide();
         _moneyLabel.Text = $"Деньги: {Player.Money}";
         Player.MoneyChanged += UpdateMoney;
@@ -47,6 +48,7 @@ public partial class InventoryUI : CanvasLayer
     }
 
     private void MarkDirty() => _dirty = true;
+    private void UpdateEquipmentSlot() => _equipmentSlot.Bind(Player, Player.Equipment, 0);
     private void UpdateMoney(int amount)
     {
         _moneyLabel.Text = $"Деньги: {amount} золотых";
@@ -102,6 +104,7 @@ public partial class InventoryUI : CanvasLayer
         if (Player != null && GodotObject.IsInstanceValid(Player))
         {
             Player.Inventory.Changed -= MarkDirty;
+            Player.Equipment.Changed -= UpdateEquipmentSlot;
             Player.MoneyChanged -= UpdateMoney;
         }
         UnsubscribeFromOpenInventories();
