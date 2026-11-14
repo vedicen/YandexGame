@@ -379,11 +379,11 @@ public partial class Player : AnimatedEntity
             $"state={ReplicatedBowState}.");
         BroadcastBowAnimationState("Shooting");
         Vector3 direction = GetBowShotDirection();
-        WeaponScene bowScene = Equipment?.GetEquippedWeaponScene();
-        if (bowScene == null)
+        Marker3D projectileSpawn = Equipment?.GetEquippedProjectileSpawn();
+        if (projectileSpawn == null)
             GD.PushWarning($"[BowDebug] Bow model node is unavailable for {Name}; using player-based projectile origin.");
-        Vector3 origin = bowScene != null
-            ? bowScene.GlobalPosition + direction * 0.25f
+        Vector3 origin = projectileSpawn != null
+            ? projectileSpawn.GlobalPosition
             : GlobalPosition + Vector3.Up * 1.35f + direction * 0.8f;
         RequestBowShot(chargeTime, origin, direction);
     }

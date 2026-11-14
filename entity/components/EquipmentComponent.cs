@@ -265,12 +265,6 @@ public partial class EquipmentComponent : InventoryComponent
         }
 
         
-        if (weapon.Model == null)
-        {
-			GD.PushError($"EquipmentComponent: Weapon '{weapon.DisplayName}' has no Model.");
-            return;
-        }
-
         EquippedWeapon = weapon;
         EquippedHandItem = weapon;
         _pendingHandItem = null;
@@ -294,24 +288,14 @@ public partial class EquipmentComponent : InventoryComponent
             return;
         }
 
-        PackedScene weaponScene = GD.Load<PackedScene>("res://inventory/weapon_scene.tscn");
-        if (weaponScene == null)
-        {
-            GD.PushError("EquipmentComponent: Could not load res://inventory/weapon_scene.tscn.");
-            return;
-        }
-
-        WeaponScene instance = weaponScene.Instantiate<WeaponScene>();
-		instance.ModelScene = weapon.Model;
-        if (weapon is MeleeWeapon meleeWeapon)
-            instance.TrailShader = meleeWeapon.TrailShader;
-        instance.Position = weapon.EquipPosition;
-        instance.RotationDegrees = weapon.EquipRotationDegrees;
-        instance.Scale = weapon.EquipScale;
-        instance.ConfigureCombat(GetParent() as AnimatedEntity, weapon);
+        Node3D instance = CreateHandItemVisual(weapon);
+        if (instance == null) return;
         Unequip(Slot.Weapon);
         Unequip(Slot.RangedWeapon);
         slotNode.AddChild(instance);
+        if (instance is WeaponScene meleeScene)
+            meleeScene.ConfigureCombat(GetParent() as AnimatedEntity, weapon);
+        if (_skeleton != null) BindMeshes(instance);
         _equipped[weaponSlot] = instance;
         EquippedWeapon = weapon;
         EquippedHandItem = weapon;
@@ -328,11 +312,6 @@ public partial class EquipmentComponent : InventoryComponent
         if (item is Weapon weapon)
         {
             EquipWeapon(weapon);
-            return;
-        }
-        if (item.Model == null)
-        {
-			GD.PushError($"EquipmentComponent: Hand item '{item.DisplayName}' has no Model.");
             return;
         }
         if (!Initialize())
@@ -355,15 +334,43 @@ public partial class EquipmentComponent : InventoryComponent
             return;
         Unequip(Slot.Weapon);
         Unequip(Slot.RangedWeapon);
-        Node3D model = item.Model.Instantiate<Node3D>();
-        model.Position = item.EquipPosition;
-        model.RotationDegrees = item.EquipRotationDegrees;
-        model.Scale = item.EquipScale;
-        slotNode.AddChild(model);
-        if (_skeleton != null) BindMeshes(model);
-        _equipped[handSlot] = model;
+        Node3D instance = CreateHandItemVisual(item);
+        if (instance == null) return;
+        slotNode.AddChild(instance);
+        if (_skeleton != null) BindMeshes(instance);
+        _equipped[handSlot] = instance;
         EquippedHandItem = item;
         EquippedWeapon = null;
+    }
+
+    private static Node3D CreateHandItemVisual(HandItem item)
+    {
+        Node3D visual;
+        if (item.HandItemScene != null)
+        {
+            Node instance = item.HandItemScene.Instantiate();
+            if (instance is not Node3D sceneRoot)
+            {
+                GD.PushError($"Hand item scene '{item.HandItemScene.ResourcePath}' root must be Node3D.");
+                instance?.QueueFree();
+                return null;
+            }
+            visual = sceneRoot;
+        }
+        else if (item.Model != null)
+        {
+            visual = item.Model.Instantiate<Node3D>();
+        }
+        else
+        {
+            GD.PushError($"Hand item '{item.DisplayName}' has neither HandItemScene nor Model.");
+            return null;
+        }
+
+        visual.Position = item.EquipPosition;
+        visual.RotationDegrees = item.EquipRotationDegrees;
+        visual.Scale = item.EquipScale;
+        return visual;
     }
 
     private static Slot GetHandSlot(HandItem item) => item?.RequiredHand switch
@@ -396,6 +403,20 @@ public partial class EquipmentComponent : InventoryComponent
                     return attachedWeapon;
                 }
             }
+        }
+
+        return null;
+    }
+
+    public Marker3D GetEquippedProjectileSpawn()
+    {
+        foreach (Slot slot in new[] { Slot.Weapon, Slot.RangedWeapon })
+        {
+            if (_equipped.TryGetValue(slot, out Node node) &&
+                node is RangedWeaponScene rangedScene &&
+                GodotObject.IsInstanceValid(rangedScene) &&
+                !rangedScene.IsQueuedForDeletion())
+                return rangedScene.ProjectileSpawn;
         }
 
         return null;

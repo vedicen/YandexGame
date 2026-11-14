@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="1_sword"]
 [ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_model"]
-[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/fireslash.gdshader" id="2_xrspx"]
+[ext_resource type="PackedScene" uid="uid://dprq5hhavb8bq" path="res://inventory/weapon_scene_iron_sword.tscn" id="3_iron_sword_scene"]
 
 [resource]
 script = ExtResource("1_sword")
-TrailShader = ExtResource("2_xrspx")
+HandItemScene = ExtResource("3_iron_sword_scene")
 DisplayName = "Железный меч"
 Description = "Простой одноручный меч из железа. Надёжный и недорогой."
 Model = ExtResource("2_model")

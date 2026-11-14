@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public partial class SwordTrail : MeshInstance3D
 {
+    [Export] public Shader TrailShader { get; set; }
     [Export] public float TrailLifetime { get; set; } = 0.3f;
     [Export] public float MinPointDistance { get; set; } = 0.005f;
     [Export] public int MaxPoints { get; set; } = 48;
@@ -38,9 +39,10 @@ public partial class SwordTrail : MeshInstance3D
         _mesh = new ArrayMesh();
         Mesh = _mesh;
 
+        TrailShader ??= GD.Load<Shader>("res://VFX/SlashTrail.gdshader");
         MaterialOverride = new ShaderMaterial
         {
-            Shader = GD.Load<Shader>("res://VFX/SlashTrail.gdshader")
+            Shader = TrailShader
         };
 
 
@@ -53,10 +55,11 @@ public partial class SwordTrail : MeshInstance3D
 
     }
 
-    public void SetTrailShader(Shader shader)
+    public void Configure(float lifetime, float minPointDistance, int maxPoints)
     {
-        if (shader != null && MaterialOverride is ShaderMaterial material)
-            material.Shader = shader;
+        TrailLifetime = Mathf.Max(0.01f, lifetime);
+        MinPointDistance = Mathf.Max(0.001f, minPointDistance);
+        MaxPoints = Mathf.Max(2, maxPoints);
     }
 
     public void BeginTrail()

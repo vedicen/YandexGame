@@ -52,6 +52,8 @@ public partial class AnimatedEntity : Entity
 	{
 		if (_runtimeAnimationLibrary == null)
 			return;
+		bool rangedWeaponStateChanged = _animationTree != null &&
+			_animationTreeHasRangedWeapon != (EquippedWeapon is RangedWeapon);
 
 		MeleeWeapon meleeWeapon = EquippedWeapon as MeleeWeapon;
 		ReplaceWeaponAttackAnimation("Attack1", Attack1AnimationScene, meleeWeapon?.Attack1AnimationScene);
@@ -63,10 +65,13 @@ public partial class AnimatedEntity : Entity
 
 		if (_animationTree != null)
 		{
-			BuildAnimationTree();
-			ApplyAnimation(_replicatedAnimation);
-			if (_replicatedBowState != "Idle")
-				ApplyBowState(_replicatedBowState);
+			if (rangedWeaponStateChanged)
+			{
+				BuildAnimationTree();
+				ApplyAnimation(_replicatedAnimation);
+				if (_replicatedBowState != "Idle")
+					ApplyBowState(_replicatedBowState);
+			}
 		}
 	}
 
@@ -128,9 +133,9 @@ public partial class AnimatedEntity : Entity
 		}
 
 		Vector3 originDirection = (targetPosition - GlobalPosition).Normalized();
-		WeaponScene bowScene = EquippedWeaponScene;
-		Vector3 origin = bowScene != null
-			? bowScene.GlobalPosition + originDirection * 0.25f
+		Marker3D projectileSpawn = _equipmentComponent?.GetEquippedProjectileSpawn();
+		Vector3 origin = projectileSpawn != null
+			? projectileSpawn.GlobalPosition
 			: GlobalPosition + Vector3.Up * 1.35f + originDirection * 0.8f;
 		Vector3 direction = flightDirection ?? targetPosition - origin;
 		if (direction.LengthSquared() <= 0.0001f)

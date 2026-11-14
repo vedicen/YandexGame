@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="5_bow_pull"]
 [ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="6_bow_hold"]
 [ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="7_bow_shoot"]
+[ext_resource type="PackedScene" uid="uid://cmeam3tb10rmm" path="res://inventory/ranged_weapon_scene_bow.tscn" id="8_ranged_scene"]
 
 [resource]
 script = ExtResource("1_bow")
@@ -20,6 +21,7 @@ ProjectileScene = ExtResource("4_projectile_scene")
 MinChargeTime = 0.4
 Damage = 20.0
 RequiredHand = 0
+HandItemScene = ExtResource("8_ranged_scene")
 EquipRotationDegrees = Vector3(180, 180, 90)
 DisplayName = "Лук"
 Description = "Натягивайте тетиву для более сильного выстрела."

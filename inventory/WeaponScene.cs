@@ -3,14 +3,13 @@ using Godot;
 
 public partial class WeaponScene : Node3D
 {
-    [Export] public PackedScene ModelScene { get; set; }
-    public Shader TrailShader { get; set; }
+    [Export] public NodePath TrailPath { get; set; } = new("SlashTrail");
 
     [Export] public NodePath BladeBasePath { get; set; }
-        = new("BladeBase");
+        = new("Model/BladeBase");
 
     [Export] public NodePath BladeTipPath { get; set; }
-        = new("BladeTip");
+        = new("Model/BladeTip");
 
     private WeaponDamageZone _damageZone;
     private SwordTrail _trail;
@@ -18,25 +17,13 @@ public partial class WeaponScene : Node3D
     public override void _Ready()
     {
         _damageZone = GetNodeOrNull<WeaponDamageZone>("DamageZone");
-        _trail = GetNodeOrNull<SwordTrail>("SlashTrail");
+        _trail = GetNodeOrNull<SwordTrail>(TrailPath);
 
-        if (ModelScene == null)
-        {
-            GD.PushError(
-                $"WeaponScene '{Name}' requires a weapon model scene."
-            );
-            return;
-        }
-
-        Node3D model = ModelScene.Instantiate<Node3D>();
-        model.Name = "Model";
-        AddChild(model);
-
-        Node3D bladeBase = model.GetNodeOrNull<Node3D>(
+        Node3D bladeBase = GetNodeOrNull<Node3D>(
             BladeBasePath
         );
 
-        Node3D bladeTip = model.GetNodeOrNull<Node3D>(
+        Node3D bladeTip = GetNodeOrNull<Node3D>(
             BladeTipPath
         );
 
@@ -56,7 +43,6 @@ public partial class WeaponScene : Node3D
             return;
         }
         _trail.Configure(bladeBase, bladeTip);
-        _trail.SetTrailShader(TrailShader);
     }
 
     public void ConfigureCombat(
@@ -68,31 +54,15 @@ public partial class WeaponScene : Node3D
         _damageZone?.Configure(attacker, weapon);
     }
 
-public void BeginSwing()
-{
-    GD.Print("[WeaponScene] 1. BeginSwing");
-
-    GD.Print($"[WeaponScene] 2. Trail null: {_trail == null}");
-
-    if (_trail != null)
+    public void BeginSwing()
     {
-        GD.Print("[WeaponScene] 3. Calling BeginTrail");
-        _trail.BeginTrail();
-        GD.Print("[WeaponScene] 4. BeginTrail returned");
-    }
-    else
-    {
-        GD.PushError("[WeaponScene] Trail is NULL!");
+        _trail?.BeginTrail();
+        _damageZone?.BeginSwing();
     }
 
-    _damageZone?.BeginSwing();
-}
-
-public void EndSwing()
-{
-    GD.Print($"[WeaponScene] EndSwing: {Name}");
-
-    _damageZone?.EndSwing();
-    _trail?.EndTrail();
-}
+    public void EndSwing()
+    {
+        _damageZone?.EndSwing();
+        _trail?.EndTrail();
+    }
 }

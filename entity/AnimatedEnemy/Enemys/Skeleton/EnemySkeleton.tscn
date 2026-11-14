@@ -15,7 +15,9 @@ PartOfBodySkull = ExtResource("5_w6ul1")
 ArmDetachChance = 0.3
 JawDetachChance = 0.0
 SkullDetachChance = 1.0
-HeadBoneKeywords = PackedStringArray("head", "skull", "jaw", "neck")
-DebugLog = true
 ModelScene = ExtResource("3_model")
 IdleAnimationScene = ExtResource("3_model")
+
+[node name="EnemyCombatAIComponent" parent="." index="10" unique_id=491662571]
+MeleeAttackRange = 1.15
+BowMinRange = 7.0

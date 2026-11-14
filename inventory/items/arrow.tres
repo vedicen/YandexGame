@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bjh74qk7jgyiv" path="res://inventory/WeaponProjectile.cs" id="1_projectile"]
 [ext_resource type="PackedScene" uid="uid://ba4yvxgoy5n6r" path="res://inventory/models/arrow_model.tscn" id="2_model"]
-[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/fireslash.gdshader" id="2_unf0i"]
+[ext_resource type="Shader" uid="uid://cppoj5bni03qx" path="res://VFX/Trails/FireTrail.gdshader" id="2_unf0i"]
 
 [resource]
 script = ExtResource("1_projectile")

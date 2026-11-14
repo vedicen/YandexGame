@@ -1,12 +1,14 @@
 [gd_resource type="Resource" script_class="Sword" format=3 uid="uid://qbp55nhqb2ln"]
 
 [ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="1_sword"]
+[ext_resource type="PackedScene" uid="uid://dprq5hhavb8bq" path="res://inventory/weapon_scene_iron_sword.tscn" id="2_2w4ee"]
 [ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_model"]
 
 [resource]
 script = ExtResource("1_sword")
 Damage = 15.0
 RequiredHand = 3
+HandItemScene = ExtResource("2_2w4ee")
 DisplayName = "Стальной меч"
 Description = "Качественный меч из стали с хорошим балансом."
 Model = ExtResource("2_model")

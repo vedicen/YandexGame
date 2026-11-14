@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://b581sblfqo5ld"]
+
+[ext_resource type="PackedScene" uid="uid://dh24krq446n4g" path="res://inventory/weapon_scene.tscn" id="1_o1w3o"]
+[ext_resource type="Shader" uid="uid://dwo5ydsh2f01j" path="res://VFX/Trails/OceanSwingTrail.gdshader" id="2_nc74x"]
+[ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_ukr00"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_iron_sword"]
+size = Vector3(0.12, 0.82, 0.1)
+
+[node name="IronSwordScene" unique_id=1440581875 instance=ExtResource("1_o1w3o")]
+
+[node name="CollisionShape3D" parent="DamageZone" parent_id_path=PackedInt32Array(30249733) index="0" unique_id=1720090740]
+shape = SubResource("BoxShape3D_iron_sword")
+
+[node name="SlashTrail" parent="." index="1" unique_id=1512631411]
+TrailShader = ExtResource("2_nc74x")
+
+[node name="Model" parent="." index="2" unique_id=1746411978 instance=ExtResource("2_ukr00")]

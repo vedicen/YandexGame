@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://cmeam3tb10rmm"]
+
+[ext_resource type="PackedScene" path="res://inventory/ranged_weapon_scene.tscn" id="1_base"]
+[ext_resource type="PackedScene" uid="uid://chp3ubiab22fp" path="res://inventory/models/bow_model.tscn" id="2_bow_model"]
+
+[node name="BowScene" unique_id=346524971 instance=ExtResource("1_base")]
+
+[node name="ProjectileSpawn" parent="." index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.005468726)
+
+[node name="Model" parent="." index="1" unique_id=843958573 instance=ExtResource("2_bow_model")]

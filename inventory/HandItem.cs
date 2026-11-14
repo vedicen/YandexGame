@@ -10,10 +10,11 @@ public partial class HandItem : Equipment
         Right,
         Left
     }
-
+    [Export] public PackedScene HandItemScene { get; set; }
     [Export] public HandRequirement RequiredHand { get; set; } = HandRequirement.Right;
 
     [ExportGroup("Action Animation")]
+    
     [Export] public PackedScene ActionAnimationScene { get; set; }
     [Export] public Vector3 EquipPosition { get; set; }
     [Export] public Vector3 EquipRotationDegrees { get; set; }

@@ -101,6 +101,7 @@ public partial class AnimatedEntity : Entity
 
 	private void BuildAnimationTree()
 	{
+		bool replacingAnimationTree = _animationTree != null;
 		if (_animationTree != null)
 		{
 			_animationTree.Active = false;
@@ -112,7 +113,9 @@ public partial class AnimatedEntity : Entity
 		var blendTree = new AnimationNodeBlendTree();
 		var locomotion = new AnimationNodeTransition
 		{
-			XfadeTime = (float)BlendDuration
+			XfadeTime = replacingAnimationTree
+				? Mathf.Max((float)BlendDuration, 0.4f)
+				: (float)BlendDuration
 		};
 		blendTree.AddNode("Locomotion", locomotion);
 		var animationNames = new[]
@@ -177,8 +180,10 @@ public partial class AnimatedEntity : Entity
 		};
 		_modelRoot.AddChild(_animationTree);
 		_animationTree.AnimPlayer = _animationTree.GetPathTo(_animationPlayer);
-		_animationPlayer.Stop();
+		if (!replacingAnimationTree)
+			_animationPlayer.Stop();
 		_animationTree.Active = true;
+		_animationTreeHasRangedWeapon = EquippedWeapon is RangedWeapon;
 	}
 
 	private void AddUpperBodyFilter(AnimationNode filteredNode, string animationName)
@@ -223,6 +228,7 @@ public partial class AnimatedEntity : Entity
 	private Node3D _modelRoot;
 	private AnimationLibrary _runtimeAnimationLibrary;
 	private AnimationNodeOneShot _oneShotNode;
+	private bool _animationTreeHasRangedWeapon;
 	private string[] _availableAnimationNames = System.Array.Empty<string>();
 	private string _replicatedAnimation = "Idle";
 	private string _replicatedAttack = "";

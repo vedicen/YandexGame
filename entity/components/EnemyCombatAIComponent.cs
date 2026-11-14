@@ -196,9 +196,9 @@ public partial class EnemyCombatAIComponent : Node
         }
 
         originDirection = originDirection.Normalized();
-        WeaponScene bowScene = _owner.EquippedWeaponScene;
-        Vector3 origin = bowScene != null
-            ? bowScene.GlobalPosition + originDirection * 0.25f
+        Marker3D projectileSpawn = _owner.Equipment?.GetEquippedProjectileSpawn();
+        Vector3 origin = projectileSpawn != null
+            ? projectileSpawn.GlobalPosition
             : _owner.GlobalPosition + Vector3.Up * 1.35f + originDirection * 0.8f;
 
         Vector3 displacement = targetPosition - origin;
