@@ -19,7 +19,7 @@ public partial class InventoryService : Node
     private sealed class TradeOffer
     {
         public string StandPath { get; set; }
-        public int ItemId { get; set; }
+        public List<int> ItemIds { get; set; } = new();
         public int Price { get; set; }
     }
 
@@ -164,10 +164,10 @@ public partial class InventoryService : Node
     private static bool SameItem(Item left, Item right) => left == right ||
         (!string.IsNullOrEmpty(left?.ResourcePath) && left.ResourcePath == right?.ResourcePath);
 
-    public void RequestTradeOffer(Player player, TradingStand stand, int id, int price)
+    public void RequestTradeOffer(Player player, TradingStand stand, string itemIds, int price)
     {
-        if (IsServer) ProcessTradeOffer(player, stand, id, price);
-        else RpcId(1, nameof(RequestTradeOfferRpc), stand.GetPath().ToString(), id, price);
+        if (IsServer) ProcessTradeOffer(player, stand, itemIds, price);
+        else RpcId(1, nameof(RequestTradeOfferRpc), stand.GetPath().ToString(), itemIds, price);
     }
 
     public void BeginTradeSession(Player player, TradingStand stand)
@@ -267,10 +267,10 @@ public partial class InventoryService : Node
             stand.npc_owner.EndTrading(stand, tradingPlayer);
     }
 
-    public void RequestTradePurchase(Player player, TradingStand stand, int id, int price, bool accepted)
+    public void RequestTradePurchase(Player player, TradingStand stand, string itemIds, int price, bool accepted)
     {
-        if (IsServer) ProcessTradePurchase(player, stand, id, price, accepted);
-        else RpcId(1, nameof(RequestTradePurchaseRpc), stand.GetPath().ToString(), id, price, accepted);
+        if (IsServer) ProcessTradePurchase(player, stand, itemIds, price, accepted);
+        else RpcId(1, nameof(RequestTradePurchaseRpc), stand.GetPath().ToString(), itemIds, price, accepted);
     }
 
     public void RequestTradeBuy(Player player, TradingStand stand, int id)
@@ -368,23 +368,23 @@ public partial class InventoryService : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void RequestTradeOfferRpc(string standPath, int id, int price)
+    private void RequestTradeOfferRpc(string standPath, string itemIds, int price)
     {
         if (!IsServer) return;
         int sender = Multiplayer.GetRemoteSenderId();
         var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
         var stand = GetNodeOrNull<TradingStand>(standPath);
-        if (player != null) ProcessTradeOffer(player, stand, id, price);
+        if (player != null) ProcessTradeOffer(player, stand, itemIds, price);
     }
 
     [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void RequestTradePurchaseRpc(string standPath, int id, int price, bool accepted)
+    private void RequestTradePurchaseRpc(string standPath, string itemIds, int price, bool accepted)
     {
         if (!IsServer) return;
         int sender = Multiplayer.GetRemoteSenderId();
         var player = GetParent().GetNodeOrNull<Player>($"Players/{sender}");
         var stand = GetNodeOrNull<TradingStand>(standPath);
-        if (player != null) ProcessTradePurchase(player, stand, id, price, accepted);
+        if (player != null) ProcessTradePurchase(player, stand, itemIds, price, accepted);
     }
 
     private bool CanTrade(Player player, TradingStand stand)
@@ -400,12 +400,31 @@ public partial class InventoryService : Node
             stand.npc_owner.TradingPlayer == player;
     }
 
-    private void ProcessTradeOffer(Player player, TradingStand stand, int id, int price)
+    private void ProcessTradeOffer(Player player, TradingStand stand, string itemIdsText, int price)
     {
         int peer = player.GetMultiplayerAuthority();
-        if (!CanTrade(player, stand) || !stand.npc_owner.SellsItem(id) ||
-            !TradeItemDatabase.TryGet(id, out TradeItemRecord item) ||
-            (long)price * 10 < (long)item.Price * 3 || price <= 0)
+        List<int> itemIds = ParseTradeItemIds(itemIdsText);
+        if (itemIds.Count == 0 || !CanTrade(player, stand) || price <= 0)
+        {
+            _tradeOffers.Remove(peer);
+            DeliverTradeResult(peer, player, "Предложение не прошло проверку.", false);
+            return;
+        }
+
+        List<TradeItemRecord> items = new();
+        long baseTotal = 0;
+        bool valid = true;
+        foreach (int id in itemIds)
+        {
+            if (!stand.npc_owner.SellsItem(id) || !TradeItemDatabase.TryGet(id, out TradeItemRecord item))
+            {
+                valid = false;
+                break;
+            }
+            items.Add(item);
+            baseTotal += item.Price;
+        }
+        if (!valid || (long)price * 10 < baseTotal * 3)
         {
             _tradeOffers.Remove(peer);
             DeliverTradeResult(peer, player, "Предложение не прошло проверку.", false);
@@ -415,18 +434,20 @@ public partial class InventoryService : Node
         _tradeOffers[peer] = new TradeOffer
         {
             StandPath = stand.GetPath().ToString(),
-            ItemId = id,
+            ItemIds = itemIds,
             Price = price
         };
-        DeliverTradeOffer(peer, player, id, price, item.Item.DisplayName);
+        string itemNames = string.Join(", ", items.Select(item => item.Item.DisplayName));
+        DeliverTradeOffer(peer, player, itemIdsText, price, itemNames);
     }
 
-    private void ProcessTradePurchase(Player player, TradingStand stand, int id, int price, bool accepted)
+    private void ProcessTradePurchase(Player player, TradingStand stand, string itemIdsText, int price, bool accepted)
     {
         int peer = player.GetMultiplayerAuthority();
+        List<int> itemIds = ParseTradeItemIds(itemIdsText);
         if (!_tradeOffers.TryGetValue(peer, out TradeOffer offer) ||
             offer.StandPath != stand?.GetPath().ToString() ||
-            offer.ItemId != id || offer.Price != price)
+            !offer.ItemIds.SequenceEqual(itemIds) || offer.Price != price)
         {
             DeliverTradeResult(peer, player, "Предложение больше недействительно.", false);
             return;
@@ -439,9 +460,7 @@ public partial class InventoryService : Node
             return;
         }
 
-        if (!CanTrade(player, stand) || !stand.npc_owner.SellsItem(id) ||
-            !TradeItemDatabase.TryGet(id, out TradeItemRecord item) ||
-            (long)price * 10 < (long)item.Price * 3 || price <= 0)
+        if (!CanTrade(player, stand) || !TryGetValidTradeItems(stand, itemIds, price, out List<TradeItemRecord> items))
         {
             DeliverTradeResult(peer, player, "Не удалось подтвердить покупку.", false);
             return;
@@ -453,20 +472,65 @@ public partial class InventoryService : Node
             DeliverTradeResult(peer, player, "Недостаточно денег.", false);
             return;
         }
-        if (!player.Inventory.CanAdd(item.Item, 1))
+        if (!CanAddTradeItems(player.Inventory, items))
         {
             DeliverTradeResult(peer, player, "В инвентаре нет места.", false);
             return;
         }
-        if (player.Inventory.Add(item.Item, 1) != 0)
+
+        foreach (IGrouping<string, TradeItemRecord> group in items.GroupBy(item => item.Item.ResourcePath))
         {
-            DeliverTradeResult(peer, player, "Не удалось добавить предмет в инвентарь.", false);
-            return;
+            TradeItemRecord item = group.First();
+            player.Inventory.Add(item.Item, group.Count());
         }
 
         _money[peer] = balance - price;
         Publish();
-        DeliverTradeResult(peer, player, $"Куплено: {item.Item.DisplayName}.", true);
+        DeliverTradeResult(peer, player, $"Куплено: {string.Join(", ", items.Select(item => item.Item.DisplayName))}.", true);
+    }
+
+    private static List<int> ParseTradeItemIds(string value) => (value ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(id => int.TryParse(id, out int parsed) ? parsed : -1)
+        .ToList();
+
+    private static bool TryGetValidTradeItems(TradingStand stand, List<int> ids, int totalPrice, out List<TradeItemRecord> items)
+    {
+        items = new();
+        if (ids.Count == 0 || totalPrice <= 0) return false;
+        long baseTotal = 0;
+        foreach (int id in ids)
+        {
+            if (!stand.npc_owner.SellsItem(id) || !TradeItemDatabase.TryGet(id, out TradeItemRecord item))
+                return false;
+            items.Add(item);
+            baseTotal += item.Price;
+        }
+        return (long)totalPrice * 10 >= baseTotal * 3;
+    }
+
+    private static bool CanAddTradeItems(InventoryComponent inventory, List<TradeItemRecord> items)
+    {
+        if (inventory?.Slots == null) return false;
+        int emptySlots = 0;
+        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count; i++)
+            if (inventory.Slots[i] == null) emptySlots++;
+
+        foreach (IGrouping<string, TradeItemRecord> group in items.GroupBy(item => item.Item.ResourcePath))
+        {
+            TradeItemRecord item = group.First();
+            int remaining = group.Count();
+            for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count && remaining > 0; i++)
+            {
+                Stack stack = inventory.Slots[i];
+                if (stack?.Item == item.Item)
+                    remaining -= Math.Min(remaining, Math.Max(0, item.Item.MaxStackSize - stack.ItemCount));
+            }
+            int neededSlots = (remaining + Math.Max(1, item.Item.MaxStackSize) - 1) / Math.Max(1, item.Item.MaxStackSize);
+            if (neededSlots > emptySlots) return false;
+            emptySlots -= neededSlots;
+        }
+        return true;
     }
 
     private int GetMoney(Player player)
@@ -477,12 +541,12 @@ public partial class InventoryService : Node
         return balance;
     }
 
-    private void DeliverTradeOffer(int peer, Player player, int id, int price, string itemName)
+    private void DeliverTradeOffer(int peer, Player player, string itemIds, int price, string itemNames)
     {
         if (!Multiplayer.HasMultiplayerPeer() || peer == Multiplayer.GetUniqueId())
-            player.ShowTradeOffer(id, price, itemName);
+            player.ShowTradeOffer(itemIds, price, itemNames);
         else
-            RpcId(peer, nameof(ReceiveTradeOffer), peer, id, price, itemName);
+            RpcId(peer, nameof(ReceiveTradeOffer), peer, itemIds, price, itemNames);
     }
 
     private void DeliverTradeResult(int peer, Player player, string message, bool closeOffer)
@@ -494,9 +558,9 @@ public partial class InventoryService : Node
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    private void ReceiveTradeOffer(int peer, int id, int price, string itemName)
+    private void ReceiveTradeOffer(int peer, string itemIds, int price, string itemNames)
     {
-        GetParent().GetNodeOrNull<Player>($"Players/{peer}")?.ShowTradeOffer(id, price, itemName);
+        GetParent().GetNodeOrNull<Player>($"Players/{peer}")?.ShowTradeOffer(itemIds, price, itemNames);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]

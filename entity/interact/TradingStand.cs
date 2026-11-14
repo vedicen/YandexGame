@@ -61,10 +61,10 @@ public partial class TradingStand : interact_obj
         _activeDialog = dialog;
         dialog.Connect("dialog_closed", Callable.From(() => EndTrading(player, npc_owner, dialog)));
         dialog.Connect("model_unavailable", Callable.From(() => SwitchToFallback(player, dialog)));
-        dialog.Connect("request_action", Callable.From<int, int>((id, price) =>
-            InventoryService.Instance?.RequestTradeOffer(player, this, id, price)));
-        dialog.Connect("purchase_decided", Callable.From<int, int, bool>((id, price, accepted) =>
-            InventoryService.Instance?.RequestTradePurchase(player, this, id, price, accepted)));
+        dialog.Connect("request_action", Callable.From<string, int>((itemIds, price) =>
+            InventoryService.Instance?.RequestTradeOffer(player, this, itemIds, price)));
+        dialog.Connect("purchase_decided", Callable.From<string, int, bool>((itemIds, price, accepted) =>
+            InventoryService.Instance?.RequestTradePurchase(player, this, itemIds, price, accepted)));
         _moneyChangedHandler = amount =>
         {
             if (GodotObject.IsInstanceValid(dialog)) dialog.Call("set_money", amount);
@@ -77,7 +77,7 @@ public partial class TradingStand : interact_obj
 
     private static bool CanUseDialogueModel() =>
         ClassDB.ClassExists("NobodyWhoChat") &&
-        FileAccess.FileExists("res://models/Qwen_Qwen3-0.6B-Q4_K_M.gguf");
+        FileAccess.FileExists("res://AImodels/Qwen3.5-4B-Q4_K_M.gguf");
 
     private void OpenFallbackMenu(Player player)
     {

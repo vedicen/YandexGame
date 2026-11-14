@@ -2,26 +2,32 @@
 extends Control
 
 signal dialog_closed
-signal request_action(id: int, price: int)
-signal purchase_decided(id: int, price: int, accepted: bool)
+signal request_action(item_ids: String, total_price: int)
+signal purchase_decided(item_ids: String, total_price: int, accepted: bool)
 signal model_unavailable
 
-const MODEL_PATH := "res://models/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+const MODEL_PATH := "res://AImodels/Qwen3.5-4B-Q4_K_M.gguf"
 @onready var text_edit: TextEdit = $TextEdit
 @onready var offer_panel: PanelContainer = $OfferPanel
 @onready var offer_label: Label = $OfferPanel/OfferVBox/OfferLabel
 @onready var money_label: Label = $MoneyLabel
+@onready var history_scroll: ScrollContainer = $HistoryScroll
+@onready var messages: VBoxContainer = $HistoryScroll/Messages
 
 var chat = null
 var is_ready := false
 var is_generating := false
 var inventory: Array[Dictionary] = []
-var pending_offer_id := -1
+var history: Array[Dictionary] = []
+var pending_offer_ids := ""
 var pending_offer_price := -1
+var pending_offer_names := ""
+var pending_model_context := ""
 
 
 func _ready() -> void:
 	offer_panel.hide()
+	text_edit.gui_input.connect(_on_text_edit_gui_input)
 
 
 func configure(catalog: Array, current_money: int) -> void:
@@ -71,10 +77,9 @@ func get_system_prompt() -> String:
 	var context := """
 Ты — торговец КэтИнЁб в фэнтезийном мире. Общайся на русском.
 
-НЕ ПИШИ ID ВНЕ request
 
 ТОВАРЫ:
-Используй только указанный ассортимент, (Название, БЕЗ ID) . Ничего не выдумывай.
+Используй только указанный ассортимент, ПИШИ ТОЛЬКО НАЗВАНИЕ ПРЕДМЕТА, БЕЗ ID. Ничего не выдумывай.
 
 ТОРГ:
 Не снижай цену без веских аргументов покупателя. Не соглашайся автоматически на предложенную цену. Учитывай аргументы, но не обещай скидку без достаточных оснований.
@@ -90,11 +95,16 @@ func get_system_prompt() -> String:
 
 <request>
 id:1
+id:2
+id:n
 price:100
 </request>
 
+ПИШИ НЕСКОЛЬКО ID ЕСЛИ ПОКУПАТЕЛЬ ХОЧЕТ КУПИТЬ НЕСКОЛЬКО ТОВАРОВ
+
+
 Не утверждай, что предмет уже передан покупателю: сделку завершает игровая система.
-НЕ ПИШИ ФОРМАТНЫЕ ЗВЕЗДОЧКИ И СМАЙЛ** пожалуйста **
+НЕ ПИШИ ФОРМАТНЫЕ ЗВЕЗДОЧКИ ** И СМАЙЛЫ
 Ассортимент может быть пустым. В таком случае не предлагай покупку.
 
 АССОРТИМЕНТ:
@@ -145,10 +155,15 @@ func talk_to_merchant(player_message: String) -> void:
 		return
 
 	is_generating = true
+	_add_history_message("Вы", player_message)
 	print("\nИгрок: ", player_message)
 	print("Торговец думает...")
 
-	var stream = chat.ask(player_message)
+	var model_message := player_message
+	if not pending_model_context.is_empty():
+		model_message = "%s\n\n[Событие игровой системы: %s]" % [player_message, pending_model_context]
+		pending_model_context = ""
+	var stream = chat.ask(model_message)
 	var answer = await stream.completed()
 
 	print("Торговец: ", answer)
@@ -156,25 +171,99 @@ func talk_to_merchant(player_message: String) -> void:
 	var index = answer.find("</think>")
 	var final = answer.substr(index + len("</think>")) if index >= 0 else answer
 	final = remove_smileys(final)
-	var request_regex := RegEx.new()
-	request_regex.compile("(?is)<request>\\s*id\\s*:\\s*(\\d+)\\s*price\\s*:\\s*(\\d+)\\s*</request>")
-	var request_match := request_regex.search(final)
-	var request_id := -1
+	var request_block_regex := RegEx.new()
+	request_block_regex.compile("(?is)<request>(.*?)</request>")
+	var request_match := request_block_regex.search(final)
+	var request_ids: Array[int] = []
 	var request_price := -1
 	if request_match:
-		request_id = request_match.get_string(1).to_int()
-		request_price = request_match.get_string(2).to_int()
-		final = request_regex.sub(final, "", true)
-	$Label.text = final.strip_edges()
+		var request_body := request_match.get_string(1)
+		var id_regex := RegEx.new()
+		id_regex.compile("(?i)\\bid\\s*:\\s*(\\d+)")
+		for id_match in id_regex.search_all(request_body):
+			request_ids.append(id_match.get_string(1).to_int())
+		var price_regex := RegEx.new()
+		price_regex.compile("(?i)\\bprice\\s*:\\s*(\\d+)")
+		var price_match := price_regex.search(request_body)
+		if price_match:
+			request_price = price_match.get_string(1).to_int()
+		final = request_block_regex.sub(final, "", true)
+	var visible_answer = final.strip_edges()
+	_add_history_message("Торговец", visible_answer)
 	is_generating = false
-	if request_id >= 0:
-		request_action.emit(request_id, request_price)
+	if not request_ids.is_empty() and request_price >= 0:
+		var id_strings := PackedStringArray()
+		for item_id in request_ids:
+			id_strings.append(str(item_id))
+		request_action.emit(",".join(id_strings), request_price)
 
 
-func show_trade_offer(id: int, price: int, item_name: String) -> void:
-	pending_offer_id = id
+func _add_history_message(speaker: String, message: String) -> void:
+	if message.is_empty():
+		return
+	history.append({"speaker": speaker, "message": message})
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 0)
+	var bubble := PanelContainer.new()
+	bubble.custom_minimum_size = Vector2(310.0, 0.0)
+	bubble.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var bubble_color := Color("#243447")
+	var speaker_color := Color("#a9c7e5")
+	if speaker == "Вы":
+		bubble_color = Color("#24483d")
+		speaker_color = Color("#a4e0c3")
+		row.add_child(_make_spacer())
+	elif speaker == "Сделка":
+		bubble_color = Color("#403854")
+		speaker_color = Color("#d5baf2")
+	var style := StyleBoxFlat.new()
+	style.bg_color = bubble_color
+	style.set_corner_radius_all(12)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
+	bubble.add_theme_stylebox_override("panel", style)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	var speaker_label := Label.new()
+	speaker_label.text = speaker
+	speaker_label.add_theme_color_override("font_color", speaker_color)
+	speaker_label.add_theme_font_size_override("font_size", 12)
+	var body := Label.new()
+	body.text = message
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_color_override("font_color", Color("#f1f4f8"))
+	body.add_theme_font_size_override("font_size", 14)
+	content.add_child(speaker_label)
+	content.add_child(body)
+	bubble.add_child(content)
+	row.add_child(bubble)
+	if speaker != "Вы":
+		row.add_child(_make_spacer())
+	messages.add_child(row)
+	call_deferred("_scroll_history_to_bottom")
+
+
+func _make_spacer() -> Control:
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return spacer
+
+
+func _scroll_history_to_bottom() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var scrollbar := history_scroll.get_v_scroll_bar()
+	history_scroll.scroll_vertical = int(scrollbar.max_value)
+
+
+func show_trade_offer(item_ids: String, price: int, item_names: String) -> void:
+	pending_offer_ids = item_ids
 	pending_offer_price = price
-	offer_label.text = "Купить %s за %d золотых?" % [item_name, price]
+	pending_offer_names = item_names
+	offer_label.text = "Купить %s за %d золотых?" % [item_names, price]
 	$OfferPanel/OfferVBox/AcceptButton.disabled = false
 	$OfferPanel/OfferVBox/DeclineButton.disabled = false
 	offer_panel.show()
@@ -185,18 +274,38 @@ func set_money(amount: int) -> void:
 
 
 func show_trade_result(message: String, close_offer: bool) -> void:
-	$Label.text = message
+	_add_history_message("Сделка", message)
 	if close_offer:
+		if message.begins_with("Куплено:"):
+			pending_model_context = "Игрок подтвердил сделку и успешно купил: %s. Общая цена: %d золотых." % [pending_offer_names, pending_offer_price]
+		elif message == "Покупка отклонена.":
+			pending_model_context = "Игрок отказался от предложенной покупки: %s за %d золотых." % [pending_offer_names, pending_offer_price]
 		offer_panel.hide()
-		pending_offer_id = -1
+		pending_offer_ids = ""
 		pending_offer_price = -1
-	elif pending_offer_id >= 0:
+		pending_offer_names = ""
+	elif not pending_offer_ids.is_empty():
 		$OfferPanel/OfferVBox/AcceptButton.disabled = false
 		$OfferPanel/OfferVBox/DeclineButton.disabled = false
 
 
 func _on_button_pressed() -> void:
-	await talk_to_merchant(text_edit.text)
+	if is_generating or not is_ready:
+		return
+	var message := text_edit.text
+	if message.strip_edges().is_empty():
+		return
+	text_edit.clear()
+	await talk_to_merchant(message)
+
+
+func _on_text_edit_gui_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if (key_event.pressed and not key_event.echo and
+			(key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER) and not key_event.shift_pressed):
+			text_edit.accept_event()
+			_on_button_pressed()
 
 
 func interact_end() -> void:
@@ -204,18 +313,18 @@ func interact_end() -> void:
 
 
 func _on_accept_button_pressed() -> void:
-	if pending_offer_id < 0:
+	if pending_offer_ids.is_empty():
 		return
 	$OfferPanel/OfferVBox/AcceptButton.disabled = true
 	$OfferPanel/OfferVBox/DeclineButton.disabled = true
-	purchase_decided.emit(pending_offer_id, pending_offer_price, true)
+	purchase_decided.emit(pending_offer_ids, pending_offer_price, true)
 
 
 func _on_decline_button_pressed() -> void:
-	if pending_offer_id < 0:
+	if pending_offer_ids.is_empty():
 		offer_panel.hide()
 		return
-	purchase_decided.emit(pending_offer_id, pending_offer_price, false)
+	purchase_decided.emit(pending_offer_ids, pending_offer_price, false)
 	offer_panel.hide()
-	pending_offer_id = -1
+	pending_offer_ids = ""
 	pending_offer_price = -1

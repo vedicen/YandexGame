@@ -1090,10 +1090,10 @@ public partial class Player : AnimatedEntity
         _tradeDialog = dialog;
     }
 
-    public void ShowTradeOffer(int id, int price, string itemName)
+    public void ShowTradeOffer(string itemIds, int price, string itemNames)
     {
         if (GodotObject.IsInstanceValid(_tradeDialog))
-            _tradeDialog.Call("show_trade_offer", id, price, itemName);
+            _tradeDialog.Call("show_trade_offer", itemIds, price, itemNames);
     }
 
     public void ShowTradeResult(string message, bool closeOffer)
