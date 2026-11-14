@@ -130,22 +130,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5576172, 0.36187744, 8.4113
 npc_owner = NodePath("../NPC")
 
 [node name="EnemySkeleton" parent="." unique_id=1081595064 instance=ExtResource("16_7hj75")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.704956, 0.86097157, 11.347473)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.043335, 0.86097157, 6.0997925)
 JawDetachChance = 0.41
 SkullDetachChance = 0.48
+SkeletonPartScene = null
 Race = 2
 Skills = Array[int]([2, 1])
-StartingWeapon = null
 
 [node name="EquipmentComponent" parent="EnemySkeleton" index="2" unique_id=2078828129]
 EquippedWeapon = ExtResource("9_oelfw")
 Slots = Array[ExtResource("8_oelfw")]([SubResource("Resource_ehpj7"), SubResource("Resource_7hj75"), SubResource("Resource_de42d"), SubResource("Resource_yfdfb"), SubResource("Resource_dfysg")])
 
-[node name="HealthComponent" parent="EnemySkeleton" index="5" unique_id=1182051469]
-MaxHealth = 1000.0
-
 [node name="NPC" parent="." unique_id=158455418 instance=ExtResource("11_sybwi")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.7910838, 0.85694325, 4.284189)
-StartingWeapon = null
 
 [editable path="EnemySkeleton"]

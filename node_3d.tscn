@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cvrexcnbqpgtq"]
+
+[ext_resource type="PackedScene" uid="uid://cduh8l3datuyr" path="res://models/enemy models/Skeleton/Parts/skull.fbx" id="1_a202f"]
+
+[node name="Node3D" type="Node3D" unique_id=1442898206]
+
+[node name="skull" parent="." unique_id=675811304 instance=ExtResource("1_a202f")]
+
+[editable path="skull"]

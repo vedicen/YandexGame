@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://dmdiebb8s8cwa" path="res://models/enemy models/skeletonidle.fbx" id="3_model"]
 [ext_resource type="PackedScene" uid="uid://b2l8tq8j1we0p" path="res://models/enemy models/Skeleton/Parts/teeth.fbx" id="4_0ph0k"]
 [ext_resource type="PackedScene" uid="uid://cduh8l3datuyr" path="res://models/enemy models/Skeleton/Parts/skull.fbx" id="5_w6ul1"]
+[ext_resource type="PackedScene" path="res://entity/AnimatedEnemy/Enemys/Skeleton/skeleton_part.tscn" id="6_part"]
 
 [node name="EnemySkeleton" unique_id=1051724412 instance=ExtResource("1_base")]
 script = ExtResource("2_script")
@@ -15,8 +16,12 @@ PartOfBodySkull = ExtResource("5_w6ul1")
 ArmDetachChance = 0.3
 JawDetachChance = 0.0
 SkullDetachChance = 1.0
+SkeletonPartScene = ExtResource("6_part")
 ModelScene = ExtResource("3_model")
 IdleAnimationScene = ExtResource("3_model")
+
+[node name="HealthComponent" parent="." index="5" unique_id=1182051469]
+MaxHealth = 1000.0
 
 [node name="EnemyCombatAIComponent" parent="." index="10" unique_id=491662571]
 MeleeAttackRange = 1.15

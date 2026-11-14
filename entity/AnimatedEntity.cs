@@ -131,6 +131,7 @@ public partial class AnimatedEntity : Entity
 		if (!string.IsNullOrEmpty(_replicatedAttack))
 			ApplyOneShot(_replicatedAttack);
 		ApplyBowState(_replicatedBowState);
+		PlayAppearanceDissolve();
 	}
 
 	public override void _ExitTree()

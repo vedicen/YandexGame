@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_hammer")
 BuildingRecipes = Array[ExtResource("4_recipe_script")]([ExtResource("3_recipe")])
-DisplayName = "Молоток строителя"
+DisplayName = "Молоток"
 Description = "ПКМ открывает меню строительства."
 Model = ExtResource("2_model")
 MaxStackSize = 1

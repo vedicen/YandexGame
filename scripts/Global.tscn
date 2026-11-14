@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Global.cs" id="1_script"]
+[ext_resource type="Shader" path="res://entity/AnimatedEnemy/Enemys/Skeleton/skeleton_part_fade.gdshader" id="2_dissolve"]
+
+[node name="Global" type="Node"]
+script = ExtResource("1_script")
+SkeletonDissolveShader = ExtResource("2_dissolve")

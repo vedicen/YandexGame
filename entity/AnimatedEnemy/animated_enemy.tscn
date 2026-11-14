@@ -16,6 +16,7 @@ script = ExtResource("1_script")
 Race = 1
 Skills = Array[int]([])
 ModelScene = ExtResource("3_imrdp")
+DeathDissolveDuration = 1.5
 
 [node name="EnemyAIComponent" type="Node" parent="." index="1" unique_id=1704726324 node_paths=PackedStringArray("DetectionArea")]
 script = ExtResource("8_ai")

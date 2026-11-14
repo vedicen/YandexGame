@@ -22,12 +22,14 @@ public partial class EnemySkeleton : AnimatedEnemy
 	private long _lastLeftArmAttackId = -1;
 	private long _lastRightArmAttackId = -1;
 	private Node3D _modelRoot;
+	[Export] public PackedScene SkeletonPartScene { get; set; }
 	private readonly RandomNumberGenerator _random = new();
 
 	public override void _Ready()
 	{
 		base._Ready();
 		_modelRoot = GetNodeOrNull<Node3D>("Model");
+		SkeletonPartScene ??= GD.Load<PackedScene>("res://entity/AnimatedEnemy/Enemys/Skeleton/skeleton_part.tscn");
 		_random.Randomize();
 	}
 
@@ -178,9 +180,21 @@ public partial class EnemySkeleton : AnimatedEnemy
 		Vector3 spawnPosition = sourceMesh.GlobalPosition;
 		sourceMesh.Visible = false;
 
-		Node3D detachedPart = partScene.Instantiate<Node3D>();
+		if (SkeletonPartScene == null)
+		{
+			GD.PushError("Skeleton part scene could not be loaded.");
+			return false;
+		}
+		Node3D detachedPart = SkeletonPartScene.Instantiate<Node3D>();
 		Node parent = GetTree().CurrentScene ?? GetParent();
 		parent.AddChild(detachedPart);
+		if (detachedPart is not SkeletonPart skeletonPart)
+		{
+			GD.PushError("SkeletonPartScene root must have the SkeletonPart script attached.");
+			detachedPart.QueueFree();
+			return false;
+		}
+		skeletonPart.SetModel(partScene);
 		detachedPart.GlobalPosition = spawnPosition;
 		if (mirror) detachedPart.Scale = new Vector3(-detachedPart.Scale.X, detachedPart.Scale.Y, detachedPart.Scale.Z);
 
@@ -189,6 +203,8 @@ public partial class EnemySkeleton : AnimatedEnemy
 		const float travelDistance = 2.2f;
 		const float arcHeight = 0.9f;
 		const float landingRise = 0.15f;
+		Vector3 landingPosition = spawnPosition + direction * travelDistance + Vector3.Up * landingRise;
+		skeletonPart.SetSettlePosition(landingPosition, 0.75f);
 		Basis initialBasis = detachedPart.GlobalBasis;
 		Vector3 rotationAxis = direction.Cross(Vector3.Up).Normalized();
 		Tween flight = detachedPart.CreateTween();
@@ -197,10 +213,7 @@ public partial class EnemySkeleton : AnimatedEnemy
 			float verticalOffset = arcHeight * Mathf.Sin(Mathf.Pi * progress) + landingRise * progress;
 			float dy = arcHeight * Mathf.Pi * Mathf.Cos(Mathf.Pi * progress) + landingRise;
 			detachedPart.GlobalPosition = spawnPosition + direction * (travelDistance * progress) + Vector3.Up * verticalOffset;
-
-			// Pitch the part to match the trajectory slope: angle = atan(dy / dx).
-			float dx = travelDistance;
-			float angle = Mathf.Atan2(dy, dx);
+			float angle = Mathf.Atan2(dy, travelDistance);
 			detachedPart.GlobalBasis = new Basis(rotationAxis, angle) * initialBasis;
 		}), 0f, 1f, 0.75);
 		return true;

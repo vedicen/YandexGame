@@ -751,12 +751,19 @@ public partial class Player : AnimatedEntity
                 }
             }
         }
-        if (playerInputComponent.IsInputEnabled && States.CanMove && !IsBuildPlacementActive)
+        if (playerInputComponent.IsInputEnabled && States.CanMove)
         {
             for (int i = 0; i < 4; i++)
             {
                 if (!ev.IsActionPressed($"hotbar{i + 1}") || ev.IsEcho())
                     continue;
+                // Changing hotbar item cancels the active placement before the
+                // equipment update arrives, so the ghost cannot linger.
+                if (IsBuildPlacementActive)
+                {
+                    ClearBuildingGhost();
+                    _selectedBuilding = null;
+                }
                 ActivateHotbarSlot(i);
                 GetViewport().SetInputAsHandled();
                 return;

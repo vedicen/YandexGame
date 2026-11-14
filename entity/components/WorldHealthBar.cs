@@ -4,11 +4,14 @@ public partial class WorldHealthBar : Node3D
 {
     private HealthComponent _health;
     private ProgressBar _bar;
+    private Sprite3D _sprite;
 
     public override void _Ready()
     {
         SubViewport viewport = GetNode<SubViewport>("Viewport");
-        GetNode<Sprite3D>("Sprite").Texture = viewport.GetTexture();
+        _sprite = GetNode<Sprite3D>("Sprite");
+        _sprite.Texture = viewport.GetTexture();
+        _sprite.Visible = false;
         _bar = GetNode<ProgressBar>("Viewport/HealthBar");
     }
 
@@ -40,5 +43,7 @@ public partial class WorldHealthBar : Node3D
             return;
         _bar.MaxValue = maximum;
         _bar.Value = current;
+        if (current < maximum)
+            _sprite.Visible = true;
     }
 }

@@ -1,8 +1,0 @@
-[gd_scene format=3]
-
-[sub_resource type="SphereMesh" id="SphereMesh_test_part"]
-	radius = 0.12
-	height = 0.24
-
-[node name="partofbody_test" type="MeshInstance3D"]
-mesh = SubResource("SphereMesh_test_part")
