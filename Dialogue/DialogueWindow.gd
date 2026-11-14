@@ -6,13 +6,17 @@ signal request_action(item_ids: String, total_price: int)
 signal purchase_decided(item_ids: String, total_price: int, accepted: bool)
 signal model_unavailable
 
-const MODEL_PATH := "res://AImodels/Qwen3.5-4B-Q4_K_M.gguf"
-@onready var text_edit: TextEdit = $TextEdit
-@onready var offer_panel: PanelContainer = $OfferPanel
-@onready var offer_label: Label = $OfferPanel/OfferVBox/OfferLabel
-@onready var money_label: Label = $MoneyLabel
-@onready var history_scroll: ScrollContainer = $HistoryScroll
-@onready var messages: VBoxContainer = $HistoryScroll/Messages
+const MODEL_PATH := "res://AImodels/Qwen3.5-9B-Q3_K_M.gguf"
+@onready var text_edit: TextEdit = $OuterMargin/Window/InnerMargin/Layout/Composer/InputRow/TextEdit
+@onready var send_button: Button = $OuterMargin/Window/InnerMargin/Layout/Composer/InputRow/Button
+@onready var status_label: Label = $OuterMargin/Window/InnerMargin/Layout/TopBar/TitleStack/Status
+@onready var offer_panel: PanelContainer = $OuterMargin/Window/InnerMargin/Layout/OfferPanel
+@onready var offer_label: Label = $OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferLabel
+@onready var accept_button: Button = $OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons/AcceptButton
+@onready var decline_button: Button = $OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons/DeclineButton
+@onready var money_label: Label = $OuterMargin/Window/InnerMargin/Layout/TopBar/MoneyPill/MoneyLabel
+@onready var history_scroll: ScrollContainer = $OuterMargin/Window/InnerMargin/Layout/HistoryScroll
+@onready var messages: VBoxContainer = $OuterMargin/Window/InnerMargin/Layout/HistoryScroll/Messages
 
 var chat = null
 var is_ready := false
@@ -27,6 +31,7 @@ var pending_model_context := ""
 
 func _ready() -> void:
 	offer_panel.hide()
+	status_label.text = "Подключаем торговца…"
 	text_edit.gui_input.connect(_on_text_edit_gui_input)
 
 
@@ -69,6 +74,7 @@ func load_model() -> void:
 		return
 
 	is_ready = true
+	status_label.text = "Торговец готов к разговору"
 	print("ИИ-торговец готов!")
 
 
@@ -82,7 +88,7 @@ func get_system_prompt() -> String:
 Используй только указанный ассортимент, ПИШИ ТОЛЬКО НАЗВАНИЕ ПРЕДМЕТА, БЕЗ ID. Ничего не выдумывай.
 
 ТОРГ:
-Не снижай цену без веских аргументов покупателя. Не соглашайся автоматически на предложенную цену. Учитывай аргументы, но не обещай скидку без достаточных оснований.
+Не соглашайся автоматически на предложенную цену. Учитывай аргументы, но не обещай скидку без достаточных оснований.
 
 ПОКУПКА:
 Добавляй блок <request> только когда покупатель и торговец достигли согласия о конкретной покупке и цена определена.
@@ -137,10 +143,7 @@ func remove_smileys(text: String) -> String:
 
 
 func _process(delta: float) -> void:
-	if is_generating:
-		$Button.disabled = true
-	else:
-		$Button.disabled = false
+	send_button.disabled = is_generating or not is_ready
 # Отправка сообщения игрока модели.
 func talk_to_merchant(player_message: String) -> void:
 	if not is_ready:
@@ -155,6 +158,7 @@ func talk_to_merchant(player_message: String) -> void:
 		return
 
 	is_generating = true
+	status_label.text = "Торговец обдумывает ответ…"
 	_add_history_message("Вы", player_message)
 	print("\nИгрок: ", player_message)
 	print("Торговец думает...")
@@ -191,6 +195,7 @@ func talk_to_merchant(player_message: String) -> void:
 	var visible_answer = final.strip_edges()
 	_add_history_message("Торговец", visible_answer)
 	is_generating = false
+	status_label.text = "Торговец готов к разговору"
 	if not request_ids.is_empty() and request_price >= 0:
 		var id_strings := PackedStringArray()
 		for item_id in request_ids:
@@ -206,7 +211,7 @@ func _add_history_message(speaker: String, message: String) -> void:
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 0)
 	var bubble := PanelContainer.new()
-	bubble.custom_minimum_size = Vector2(310.0, 0.0)
+	bubble.custom_minimum_size = Vector2(clampf(history_scroll.size.x * 0.68, 260.0, 620.0), 0.0)
 	bubble.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var bubble_color := Color("#243447")
 	var speaker_color := Color("#a9c7e5")
@@ -260,12 +265,13 @@ func _scroll_history_to_bottom() -> void:
 
 
 func show_trade_offer(item_ids: String, price: int, item_names: String) -> void:
+	status_label.text = "Торговец предлагает сделку"
 	pending_offer_ids = item_ids
 	pending_offer_price = price
 	pending_offer_names = item_names
 	offer_label.text = "Купить %s за %d золотых?" % [item_names, price]
-	$OfferPanel/OfferVBox/AcceptButton.disabled = false
-	$OfferPanel/OfferVBox/DeclineButton.disabled = false
+	accept_button.disabled = false
+	decline_button.disabled = false
 	offer_panel.show()
 
 
@@ -276,6 +282,7 @@ func set_money(amount: int) -> void:
 func show_trade_result(message: String, close_offer: bool) -> void:
 	_add_history_message("Сделка", message)
 	if close_offer:
+		status_label.text = "Торговец готов к разговору"
 		if message.begins_with("Куплено:"):
 			pending_model_context = "Игрок подтвердил сделку и успешно купил: %s. Общая цена: %d золотых." % [pending_offer_names, pending_offer_price]
 		elif message == "Покупка отклонена.":
@@ -285,8 +292,8 @@ func show_trade_result(message: String, close_offer: bool) -> void:
 		pending_offer_price = -1
 		pending_offer_names = ""
 	elif not pending_offer_ids.is_empty():
-		$OfferPanel/OfferVBox/AcceptButton.disabled = false
-		$OfferPanel/OfferVBox/DeclineButton.disabled = false
+		accept_button.disabled = false
+		decline_button.disabled = false
 
 
 func _on_button_pressed() -> void:
@@ -315,8 +322,8 @@ func interact_end() -> void:
 func _on_accept_button_pressed() -> void:
 	if pending_offer_ids.is_empty():
 		return
-	$OfferPanel/OfferVBox/AcceptButton.disabled = true
-	$OfferPanel/OfferVBox/DeclineButton.disabled = true
+	accept_button.disabled = true
+	decline_button.disabled = true
 	purchase_decided.emit(pending_offer_ids, pending_offer_price, true)
 
 

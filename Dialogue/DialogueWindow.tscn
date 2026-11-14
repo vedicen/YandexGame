@@ -1,6 +1,45 @@
 [gd_scene format=3 uid="uid://cmh1d1lnsqkok"]
 
-[ext_resource type="Script" uid="uid://dyq7lhbcpxyml" path="res://Dialogue/DialogueWindow.gd" id="1_h1as6"]
+[ext_resource type="Script" uid="uid://dyq7lhbcpxyml" path="res://Dialogue/DialogueWindow.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="WindowStyle"]
+bg_color = Color(0.055, 0.075, 0.1, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.27, 0.35, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="BalanceStyle"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.12, 0.2, 0.17, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="OfferStyle"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.12, 0.16, 0.21, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.32, 0.4, 0.5, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [node name="DialogueWindow" type="Control" unique_id=371062581]
 layout_mode = 3
@@ -9,78 +48,159 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_h1as6")
+script = ExtResource("1_script")
 
-[node name="TextEdit" type="TextEdit" parent="." unique_id=511264978]
-layout_mode = 0
-offset_left = 102.0
-offset_top = 209.0
-offset_right = 531.0
-offset_bottom = 265.0
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1114629545]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.022, 0.035, 0.76)
 
-[node name="Button" type="Button" parent="." unique_id=265188820]
-layout_mode = 0
-offset_left = 104.0
-offset_top = 273.0
-offset_right = 303.0
-offset_bottom = 313.0
-text = "Отправить"
+[node name="OuterMargin" type="MarginContainer" parent="." unique_id=919661139]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 28.0
+offset_right = -40.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
 
-[node name="ExitButton" type="Button" parent="." unique_id=376400215]
-layout_mode = 0
-offset_left = 318.0
-offset_top = 273.0
-offset_right = 429.0
-offset_bottom = 313.0
-text = "Выйти"
+[node name="Window" type="PanelContainer" parent="OuterMargin" unique_id=1756666402]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("WindowStyle")
 
-[node name="HistoryScroll" type="ScrollContainer" parent="." unique_id=553816177]
-layout_mode = 0
-offset_left = 580.0
-offset_top = 177.0
-offset_right = 1097.0
-offset_bottom = 566.0
+[node name="InnerMargin" type="MarginContainer" parent="OuterMargin/Window" unique_id=425641286]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="Layout" type="VBoxContainer" parent="OuterMargin/Window/InnerMargin" unique_id=264772114]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TopBar" type="HBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout" unique_id=1326519925]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleStack" type="VBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout/TopBar" unique_id=847274721]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="OuterMargin/Window/InnerMargin/Layout/TopBar/TitleStack" unique_id=264878719]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "Торговая лавка"
+
+[node name="Status" type="Label" parent="OuterMargin/Window/InnerMargin/Layout/TopBar/TitleStack" unique_id=96998749]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.57, 0.66, 0.76, 1)
+theme_override_font_sizes/font_size = 13
+text = "Обсудите цену и товары с торговцем"
+
+[node name="MoneyPill" type="PanelContainer" parent="OuterMargin/Window/InnerMargin/Layout/TopBar" unique_id=1911735513]
+layout_mode = 2
+theme_override_styles/panel = SubResource("BalanceStyle")
+
+[node name="MoneyLabel" type="Label" parent="OuterMargin/Window/InnerMargin/Layout/TopBar/MoneyPill" unique_id=2089637054]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.91, 0.76, 1)
+theme_override_font_sizes/font_size = 15
+text = "Деньги: 0 золотых"
+
+[node name="ExitButton" type="Button" parent="OuterMargin/Window/InnerMargin/Layout/TopBar" unique_id=881460540]
+custom_minimum_size = Vector2(112, 42)
+layout_mode = 2
+text = "Закрыть"
+
+[node name="Divider" type="HSeparator" parent="OuterMargin/Window/InnerMargin/Layout" unique_id=1060253780]
+layout_mode = 2
+
+[node name="HistoryScroll" type="ScrollContainer" parent="OuterMargin/Window/InnerMargin/Layout" unique_id=1111246437]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Messages" type="VBoxContainer" parent="HistoryScroll" unique_id=2124768569]
+[node name="Messages" type="VBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout/HistoryScroll" unique_id=1522725371]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="MoneyLabel" type="Label" parent="." unique_id=789302161]
-layout_mode = 0
-offset_left = 104.0
-offset_top = 150.0
-offset_right = 357.0
-offset_bottom = 178.0
-text = "Деньги: 0 золотых"
-
-[node name="OfferPanel" type="PanelContainer" parent="." unique_id=1990187181]
-z_index = 2
-layout_mode = 0
-offset_left = 353.0
-offset_top = 545.0
-offset_right = 747.0
-offset_bottom = 685.0
-
-[node name="OfferVBox" type="VBoxContainer" parent="OfferPanel" unique_id=1145820118]
-propagate_maximum_size = false
+[node name="OfferPanel" type="PanelContainer" parent="OuterMargin/Window/InnerMargin/Layout" unique_id=1871449228]
+visible = false
 layout_mode = 2
+theme_override_styles/panel = SubResource("OfferStyle")
 
-[node name="OfferLabel" type="Label" parent="OfferPanel/OfferVBox" unique_id=105577205]
+[node name="OfferVBox" type="VBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout/OfferPanel" unique_id=1910479243]
 layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="OfferLabel" type="Label" parent="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox" unique_id=467469025]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.95, 0.98, 1)
+theme_override_font_sizes/font_size = 16
 text = "Купить предмет?"
+autowrap_mode = 3
 
-[node name="AcceptButton" type="Button" parent="OfferPanel/OfferVBox" unique_id=1382204512]
+[node name="OfferButtons" type="HBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox" unique_id=530861856]
 layout_mode = 2
-text = "Купить"
+theme_override_constants/separation = 10
+alignment = 2
 
-[node name="DeclineButton" type="Button" parent="OfferPanel/OfferVBox" unique_id=1808581502]
+[node name="DeclineButton" type="Button" parent="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons" unique_id=589479980]
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 text = "Отказаться"
 
-[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
-[connection signal="pressed" from="ExitButton" to="." method="interact_end"]
-[connection signal="pressed" from="OfferPanel/OfferVBox/AcceptButton" to="." method="_on_accept_button_pressed"]
-[connection signal="pressed" from="OfferPanel/OfferVBox/DeclineButton" to="." method="_on_decline_button_pressed"]
+[node name="AcceptButton" type="Button" parent="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons" unique_id=623095861]
+custom_minimum_size = Vector2(145, 40)
+layout_mode = 2
+text = "Купить"
+
+[node name="Composer" type="VBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout" unique_id=456904673]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InputRow" type="HBoxContainer" parent="OuterMargin/Window/InnerMargin/Layout/Composer" unique_id=878381730]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TextEdit" type="TextEdit" parent="OuterMargin/Window/InnerMargin/Layout/Composer/InputRow" unique_id=511264978]
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Напишите сообщение торговцу…"
+wrap_mode = 1
+
+[node name="Button" type="Button" parent="OuterMargin/Window/InnerMargin/Layout/Composer/InputRow" unique_id=265188820]
+custom_minimum_size = Vector2(148, 76)
+layout_mode = 2
+text = "Отправить"
+
+[node name="InputHint" type="Label" parent="OuterMargin/Window/InnerMargin/Layout/Composer" unique_id=1787962089]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.48, 0.56, 0.66, 1)
+theme_override_font_sizes/font_size = 12
+text = "Enter — отправить  ·  Shift+Enter — новая строка"
+
+[connection signal="pressed" from="OuterMargin/Window/InnerMargin/Layout/TopBar/ExitButton" to="." method="interact_end"]
+[connection signal="pressed" from="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons/DeclineButton" to="." method="_on_decline_button_pressed"]
+[connection signal="pressed" from="OuterMargin/Window/InnerMargin/Layout/OfferPanel/OfferVBox/OfferButtons/AcceptButton" to="." method="_on_accept_button_pressed"]
+[connection signal="pressed" from="OuterMargin/Window/InnerMargin/Layout/Composer/InputRow/Button" to="." method="_on_button_pressed"]

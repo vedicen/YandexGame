@@ -8,7 +8,7 @@
 script = ExtResource("1_sword")
 HandItemScene = ExtResource("3_iron_sword_scene")
 DisplayName = "Железный меч"
-Description = "Простой одноручный меч из железа. Надёжный и недорогой."
+Description = "Простой одноручный меч из железа. Надёжный и недорогой. 10 урон"
 Model = ExtResource("2_model")
 MaxStackSize = 1
 Weight = 2.0

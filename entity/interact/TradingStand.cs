@@ -77,7 +77,7 @@ public partial class TradingStand : interact_obj
 
     private static bool CanUseDialogueModel() =>
         ClassDB.ClassExists("NobodyWhoChat") &&
-        FileAccess.FileExists("res://AImodels/Qwen3.5-4B-Q4_K_M.gguf");
+        FileAccess.FileExists("res://AImodels/Qwen3.5-9B-Q3_K_M.gguf");
 
     private void OpenFallbackMenu(Player player)
     {
