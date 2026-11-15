@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="Bow" format=3 uid="uid://dsfneviu7f7nf"]
 
-[ext_resource type="Script" uid="uid://dcqaxgkdrn6lg" path="res://inventory/Bow.cs" id="1_bow"]
+[ext_resource type="Script" uid="uid://dcqaxgkdrn6lg" path="res://inventory/equipment/handitem/weapons/ranged_weapon/Bow.cs" id="1_bow"]
 [ext_resource type="PackedScene" uid="uid://chp3ubiab22fp" path="res://inventory/models/bow_model.tscn" id="2_bow_model"]
 [ext_resource type="Resource" uid="uid://v1wdihyiqcbq" path="res://inventory/items/arrow.tres" id="3_arrow"]
-[ext_resource type="PackedScene" uid="uid://dheqd547wkyuh" path="res://inventory/weapon_projectile.tscn" id="4_projectile_scene"]
+[ext_resource type="PackedScene" uid="uid://dheqd547wkyuh" path="res://inventory/equipment/projectile/weapon_projectile.tscn" id="4_projectile_scene"]
 [ext_resource type="PackedScene" uid="uid://dx7cggptmixwx" path="res://animations/bow/bow_pulling_tight.fbx" id="5_bow_pull"]
 [ext_resource type="PackedScene" uid="uid://d17jckwoljefc" path="res://animations/bow/bow_puled_idle.fbx" id="6_bow_hold"]
 [ext_resource type="PackedScene" uid="uid://dc4elwlbiu4n8" path="res://animations/bow/bow_shooting_arrow.fbx" id="7_bow_shoot"]
-[ext_resource type="PackedScene" uid="uid://cmeam3tb10rmm" path="res://inventory/ranged_weapon_scene_bow.tscn" id="8_ranged_scene"]
+[ext_resource type="PackedScene" uid="uid://cmeam3tb10rmm" path="res://inventory/equipment/handitem/weapons/ranged_weapon/ranged_weapon_scene_bow.tscn" id="8_ranged_scene"]
 
 [resource]
 script = ExtResource("1_bow")

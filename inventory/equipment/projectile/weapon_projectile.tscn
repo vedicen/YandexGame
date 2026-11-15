@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dheqd547wkyuh"]
 
 [ext_resource type="PackedScene" uid="uid://bq7iql7r6fjci" path="res://entity/entity.tscn" id="1_entity"]
-[ext_resource type="Script" uid="uid://dcf1sdpgvvmyi" path="res://inventory/WeaponProjectileScene.cs" id="1_projectile"]
+[ext_resource type="Script" uid="uid://dcf1sdpgvvmyi" path="res://inventory/equipment/projectile/WeaponProjectileScene.cs" id="1_projectile"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8uuv0"]
 radius = 0.07080078

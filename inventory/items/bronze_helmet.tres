@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Helmet" format=3 uid="uid://dxycjnlsx3486"]
+
+[ext_resource type="Script" uid="uid://b11k1sod0k1fv" path="res://inventory/equipment/armor/ArmorAttachment.cs" id="1_w7i7i"]
+[ext_resource type="PackedScene" uid="uid://ceiqmyskb77rc" path="res://models/equipment/armor/helmet.fbx" id="2_48wtl"]
+[ext_resource type="Script" uid="uid://c0c6hpmnvc775" path="res://inventory/equipment/armor/types/Helmet.cs" id="2_bod2f"]
+
+[sub_resource type="Resource" id="Resource_s44ry"]
+script = ExtResource("1_w7i7i")
+Bone = 5
+Scene = ExtResource("2_48wtl")
+EquipPosition = Vector3(0, 0.13, -0.01)
+EquipRotationDegrees = Vector3(0, 180, 0)
+
+[resource]
+script = ExtResource("2_bod2f")
+Attachments = Array[ExtResource("1_w7i7i")]([SubResource("Resource_s44ry")])
+DisplayName = "Бронзовый шлем"
+Model = ExtResource("2_48wtl")
+MaxStackSize = 1
+SalePrice = 10
+metadata/_custom_type_script = "uid://c0c6hpmnvc775"

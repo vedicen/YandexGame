@@ -140,7 +140,7 @@ public partial class InventoryService : Node
     {
         int count = 0;
         if (inventory?.Slots == null) return count;
-        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count; i++)
+        for (int i = inventory.FirstItemSlot; i < inventory.ItemSlotEnd; i++)
         {
             Stack stack = inventory.Slots[i];
             if (stack?.Item != null && SameItem(stack.Item, item)) count += stack.ItemCount;
@@ -150,7 +150,7 @@ public partial class InventoryService : Node
 
     private static void RemoveItems(InventoryComponent inventory, Item item, int count)
     {
-        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count && count > 0; i++)
+        for (int i = inventory.FirstItemSlot; i < inventory.ItemSlotEnd && count > 0; i++)
         {
             Stack stack = inventory.Slots[i];
             if (stack?.Item == null || !SameItem(stack.Item, item)) continue;
@@ -513,14 +513,14 @@ public partial class InventoryService : Node
     {
         if (inventory?.Slots == null) return false;
         int emptySlots = 0;
-        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count; i++)
+        for (int i = inventory.FirstItemSlot; i < inventory.ItemSlotEnd; i++)
             if (inventory.Slots[i] == null) emptySlots++;
 
         foreach (IGrouping<string, TradeItemRecord> group in items.GroupBy(item => item.Item.ResourcePath))
         {
             TradeItemRecord item = group.First();
             int remaining = group.Count();
-            for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count && remaining > 0; i++)
+            for (int i = inventory.FirstItemSlot; i < inventory.ItemSlotEnd && remaining > 0; i++)
             {
                 Stack stack = inventory.Slots[i];
                 if (stack?.Item == item.Item)
@@ -611,7 +611,7 @@ public partial class InventoryService : Node
                     return false;
 
                 int weaponSlot = -1;
-                for (int i = entity.Inventory.FirstItemSlot; i < entity.Inventory.Slots.Count; i++)
+                for (int i = entity.Inventory.FirstItemSlot; i < entity.Inventory.ItemSlotEnd; i++)
                     if (entity.Inventory.Slots[i]?.Item == item)
                     {
                         weaponSlot = i;
@@ -740,8 +740,9 @@ public partial class InventoryService : Node
         {
             case "quick_move":
                 InventoryComponent quickMoveTarget;
-                bool sourceIsEquipmentSlot = inventory == player.Equipment && from == 0;
-                if (sourceIsEquipmentSlot)
+                bool sourceIsHandSlot = inventory == player.Equipment && from == 0;
+                bool sourceIsArmorSlot = inventory == player.Equipment && player.Equipment.IsArmorSlot(from);
+                if (sourceIsHandSlot || sourceIsArmorSlot)
                 {
                     quickMoveTarget = player.Inventory;
                 }
@@ -752,6 +753,17 @@ public partial class InventoryService : Node
                         if (!player.Equipment.Valid(0) ||
                             player.Equipment.Slots[0]?.Item is not null and not HandItem ||
                             !inventory.Transfer(from, player.Equipment, 0))
+                            return;
+
+                        break;
+                    }
+
+                    if (slot.Item is Armor armor && !_tradeSessions.ContainsKey(peer))
+                    {
+                        int armorIndex = player.Equipment.GetArmorSlotIndex(armor.Kind);
+                        if (!player.Equipment.Valid(armorIndex) ||
+                            !player.Equipment.AcceptsItem(armorIndex, armor) ||
+                            !inventory.Transfer(from, player.Equipment, armorIndex))
                             return;
 
                         break;
@@ -795,7 +807,6 @@ public partial class InventoryService : Node
                 var destination = Resolve(player, target);
                 if (destination == null || !destination.Valid(to)) return;
                 bool sourceIsWeaponSlot = inventory == player.Equipment && from == 0;
-                bool targetIsWeaponSlot = destination == player.Equipment && to == 0;
                 if (destination.IsTradeSaleStorage &&
                     (inventory != player.Inventory && inventory != destination ||
                      sourceIsWeaponSlot ||
@@ -805,9 +816,8 @@ public partial class InventoryService : Node
                     destination.Slots[to]?.Item != null && destination.Slots[to].Item != slot.Item) return;
                 Item movingItem = slot.Item;
                 Item targetItem = destination.Slots[to]?.Item;
-                if (sourceIsWeaponSlot && movingItem is not HandItem ||
-                    targetIsWeaponSlot && movingItem is not HandItem ||
-                    sourceIsWeaponSlot && targetItem != null && targetItem is not HandItem)
+                if (inventory == player.Equipment && !player.Equipment.AcceptsItem(from, targetItem) ||
+                    destination == player.Equipment && !player.Equipment.AcceptsItem(to, movingItem))
                     return;
                 if (!inventory.Transfer(from, destination, to)) return;
                 break;

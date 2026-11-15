@@ -14,11 +14,12 @@ public partial class InventoryGrid : VBoxContainer
 
     public override void _Ready()
     {
-        GetNode<Label>("Title").Text = $"{Title} • {Inventory.Slots.Count - FirstSlotIndex} слотов";
+        int slotEnd = Inventory.ItemSlotEnd;
+        GetNode<Label>("Title").Text = $"{Title} • {slotEnd - FirstSlotIndex} слотов";
 
         GridContainer slots = GetNode<GridContainer>("Slots");
         slots.Columns = Columns;
-        for (int i = FirstSlotIndex; i < Inventory.Slots.Count; i++)
+        for (int i = FirstSlotIndex; i < slotEnd; i++)
         {
             ItemUI item = ItemScene.Instantiate<ItemUI>();
             item.Bind(Player, Inventory, i, TradeMode);

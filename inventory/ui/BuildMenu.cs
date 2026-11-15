@@ -45,7 +45,7 @@ public partial class BuildMenu : PanelContainer
     private static int Count(InventoryComponent inventory, Item item)
     {
         if (inventory?.Slots == null) return 0;
-        return inventory.Slots.Skip(inventory.FirstItemSlot)
+        return inventory.Slots.Skip(inventory.FirstItemSlot).Take(inventory.ItemSlotEnd - inventory.FirstItemSlot)
             .Where(stack => stack?.Item != null &&
                 (stack.Item == item || stack.Item.ResourcePath == item?.ResourcePath))
             .Sum(stack => stack.ItemCount);

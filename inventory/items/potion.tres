@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="UsableItem" format=3 uid="uid://bw2t6ow6xy27t"]
 
-[ext_resource type="Script" uid="uid://brkqg1pjdo0ey" path="res://inventory/UsableItem.cs" id="1"]
+[ext_resource type="Script" uid="uid://brkqg1pjdo0ey" path="res://inventory/using item/UsableItem.cs" id="1"]
 [ext_resource type="PackedScene" path="res://inventory/models/potion.tscn" id="2"]
 
 [resource]

@@ -1,9 +1,11 @@
 using Godot;
+using System;
 
 public partial class AnimatedEntity : Entity
 {
 	private void OnEquipmentChanged()
 	{
+		SyncEquippedArmor();
 		Stack weaponStack = _equipmentComponent?.Valid(0) == true
 			? _equipmentComponent.Slots[0]
 			: null;
@@ -80,7 +82,7 @@ public partial class AnimatedEntity : Entity
 		if (requiredProjectile == null || Inventory?.Slots == null)
 			return false;
 
-		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
 		{
 			Stack stack = Inventory.Slots[i];
 			if (stack?.Item is WeaponProjectile projectile &&
@@ -97,7 +99,7 @@ public partial class AnimatedEntity : Entity
 		if (requiredProjectile == null || Inventory?.Slots == null)
 			return false;
 
-		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
 		{
 			Stack stack = Inventory.Slots[i];
 			if (stack?.Item is not WeaponProjectile projectile ||
@@ -220,6 +222,7 @@ public partial class AnimatedEntity : Entity
 	{
 		if (Inventory == null || _equipmentComponent?.Valid(0) != true ||
 			!Inventory.Valid(inventorySlot) || inventorySlot < Inventory.FirstItemSlot ||
+			inventorySlot >= Inventory.ItemSlotEnd ||
 			Inventory.Slots[inventorySlot]?.Item is not HandItem handItem || !CanUseHandItem(handItem))
 			return false;
 
@@ -257,7 +260,7 @@ public partial class AnimatedEntity : Entity
 		int bestSlot = -1;
 		Rarity bestRarity = heldWeapon?.Rarity ?? (Rarity)(-1);
 
-		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
 		{
 			if (Inventory.Slots[i]?.Item is not RangedWeapon bow ||
 				bow.Model == null ||
@@ -304,6 +307,26 @@ public partial class AnimatedEntity : Entity
 
 		GD.Print($"AnimatedEntity: Requesting default footwear for {Name}.");
 		_equipmentComponent.Equip(EquipmentComponent.Slot.Feet, footwearScene);
+	}
+
+	private void SyncEquippedArmor()
+	{
+		EquipmentComponent equipment = EnsureEquipmentComponent();
+		if (equipment.ArmorSlotCount <= 0)
+			return;
+
+		foreach (ArmorSlot slot in Enum.GetValues<ArmorSlot>())
+		{
+			int index = equipment.GetArmorSlotIndex(slot);
+			Armor armor = equipment.Valid(index) ? equipment.Slots[index]?.Item as Armor : null;
+			if (armor == null || armor.Kind != slot)
+			{
+				equipment.ClearArmor(slot);
+				continue;
+			}
+
+			equipment.EquipArmor(armor);
+		}
 	}
 
 }

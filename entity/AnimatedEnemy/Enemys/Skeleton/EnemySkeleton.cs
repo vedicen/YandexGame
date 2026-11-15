@@ -102,13 +102,14 @@ public partial class EnemySkeleton : AnimatedEnemy
 	public override bool TryEquipWeaponFromInventory(int inventorySlot)
 	{
 		if (Inventory?.Slots == null || !Inventory.Valid(inventorySlot) ||
-			inventorySlot < Inventory.FirstItemSlot || Inventory.Slots[inventorySlot]?.Item is not Weapon requestedWeapon)
+			inventorySlot < Inventory.FirstItemSlot || inventorySlot >= Inventory.ItemSlotEnd ||
+			Inventory.Slots[inventorySlot]?.Item is not Weapon requestedWeapon)
 			return false;
 
 		bool equippedWeaponIsUsable = CanUseWeaponWithAvailableHands(EquippedWeapon);
 		Rarity bestRarity = equippedWeaponIsUsable ? EquippedWeapon.Rarity : (Rarity)(-1);
 		int bestSlot = -1;
-		for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+		for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
 		{
 			if (Inventory.Slots[i]?.Item is not Weapon candidate ||
 				!CanUseWeaponWithAvailableHands(candidate) ||

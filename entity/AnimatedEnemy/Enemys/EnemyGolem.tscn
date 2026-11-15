@@ -20,5 +20,6 @@ CrouchedIdleAnimationScene = null
 CrouchedWalkAnimationScene = null
 
 [node name="EquipmentComponent" parent="." index="1" unique_id=2078828129]
-MaxSlots = 21
+MaxSlots = 24
+ArmorSlotCount = 3
 Slots = Array[ExtResource("3_6yg03")]([null, SubResource("Resource_ct6y0")])

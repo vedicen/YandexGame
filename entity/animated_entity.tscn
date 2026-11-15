@@ -73,7 +73,8 @@ Health = NodePath("HealthComponent")
 
 [node name="EquipmentComponent" type="Node" parent="." index="1" unique_id=2078828129]
 script = ExtResource("10_yrrmq")
-MaxSlots = 21
+MaxSlots = 24
+ArmorSlotCount = 3
 
 [node name="Model" type="Node3D" parent="." index="2" unique_id=1872647054]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.99512684, 0)

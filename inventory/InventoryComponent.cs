@@ -7,6 +7,11 @@ public partial class InventoryComponent : Node
     [Export(PropertyHint.Range, "1,100")] public int MaxSlots { get; set; } = 20;
     [Export] public Godot.Collections.Array<Stack> Slots { get; set; } = new();
     public virtual int FirstItemSlot => 0;
+
+    /// <summary>
+    /// Exclusive end of ordinary storage slots. Equipment reserves indices past this for armor.
+    /// </summary>
+    public virtual int ItemSlotEnd => Slots?.Count ?? 0;
     public bool IsTradeSaleStorage { get; set; }
     public event Action Changed;
     public override void _Ready()
@@ -23,7 +28,7 @@ public partial class InventoryComponent : Node
     {
         if (item == null || count <= 0) return false;
         int capacity = 0;
-        for (int i = FirstItemSlot; i < Slots.Count; i++)
+        for (int i = FirstItemSlot; i < ItemSlotEnd; i++)
         {
             var slot = Slots[i];
             capacity += slot == null
@@ -38,7 +43,7 @@ public partial class InventoryComponent : Node
         if (item == null || count <= 0) return count;
         Slots ??= new();
         for (int pass = 0; pass < 2; pass++)
-            for (int i = FirstItemSlot; i < Slots.Count && count > 0; i++)
+            for (int i = FirstItemSlot; i < ItemSlotEnd && count > 0; i++)
             {
                 var slot = Slots[i];
                 if (pass == 0 && slot?.Item != item || pass == 1 && slot != null) continue;

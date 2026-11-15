@@ -104,7 +104,7 @@ public partial class EnemyInventoryManager : Node
         int bestSlot = -1;
         Rarity bestRarity = equippedIsUsable ? equipped.Rarity : (Rarity)(-1);
 
-        for (int i = _owner.Inventory.FirstItemSlot; i < _owner.Inventory.Slots.Count; i++)
+        for (int i = _owner.Inventory.FirstItemSlot; i < _owner.Inventory.ItemSlotEnd; i++)
         {
             if (_owner.Inventory.Slots[i]?.Item is not Weapon candidate ||
                 !CanUseWeapon(candidate) ||
@@ -179,7 +179,7 @@ public partial class EnemyInventoryManager : Node
         if (inventory?.Slots == null)
             return -1;
 
-        for (int i = inventory.FirstItemSlot; i < inventory.Slots.Count; i++)
+        for (int i = inventory.FirstItemSlot; i < inventory.ItemSlotEnd; i++)
             if (inventory.Slots[i]?.Item == null)
                 return i;
 

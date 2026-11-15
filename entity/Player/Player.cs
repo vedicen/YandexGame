@@ -418,7 +418,7 @@ public partial class Player : AnimatedEntity
             return "<inventory unavailable>";
 
         var contents = new List<string>();
-        for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+        for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
         {
             Stack stack = Inventory.Slots[i];
             if (stack?.Item != null)
@@ -1165,7 +1165,7 @@ public partial class Player : AnimatedEntity
         if (item == null || Inventory?.Slots == null)
             return 0;
         int count = 0;
-        for (int i = 0; i < Inventory.Slots.Count; i++)
+        for (int i = 0; i < Inventory.ItemSlotEnd; i++)
             if (SameItem(Inventory.Slots[i]?.Item, item))
                 count += Inventory.Slots[i].ItemCount;
         return count;
@@ -1198,7 +1198,7 @@ public partial class Player : AnimatedEntity
 
     private int FindInventoryItemSlot(Item item)
     {
-        for (int i = Inventory.FirstItemSlot; i < Inventory.Slots.Count; i++)
+        for (int i = Inventory.FirstItemSlot; i < Inventory.ItemSlotEnd; i++)
             if (SameItem(Inventory.Slots[i]?.Item, item))
                 return i;
         return -1;

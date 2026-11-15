@@ -80,6 +80,31 @@ text = "Оружие"
 [node name="EquipmentItem" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" unique_id=296386440 instance=ExtResource("5_item")]
 layout_mode = 2
 
+[node name="ArmorTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+layout_mode = 2
+text = "Броня"
+
+[node name="HelmetTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+layout_mode = 2
+text = "Шлем"
+
+[node name="HelmetSlot" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" instance=ExtResource("5_item")]
+layout_mode = 2
+
+[node name="ChestTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+layout_mode = 2
+text = "Нагрудник"
+
+[node name="ChestSlot" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" instance=ExtResource("5_item")]
+layout_mode = 2
+
+[node name="BootsTitle" type="Label" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn"]
+layout_mode = 2
+text = "Ботинки"
+
+[node name="BootsSlot" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn" instance=ExtResource("5_item")]
+layout_mode = 2
+
 [node name="Grids" type="HBoxContainer" parent="Root/Panel/Margin/VBox/MainArea/Scroll/Content" unique_id=1861324895]
 layout_mode = 2
 size_flags_horizontal = 3

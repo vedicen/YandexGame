@@ -11,7 +11,9 @@ public partial class InventoryUI : CanvasLayer
 
     private Control _root;
     private HBoxContainer _grids;
+    private Control _equipmentColumn;
     private ItemUI _equipmentSlot;
+    private readonly ItemUI[] _armorSlots = new ItemUI[3];
     private DropZone _dropZone;
     private Chest _chest;
     private TradingStand _tradingStand;
@@ -29,7 +31,11 @@ public partial class InventoryUI : CanvasLayer
         Layer = 10;
         _root = GetNode<Control>("Root");
         _grids = GetNode<HBoxContainer>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/Grids");
+        _equipmentColumn = GetNode<Control>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn");
         _equipmentSlot = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/EquipmentItem");
+        _armorSlots[0] = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/HelmetSlot");
+        _armorSlots[1] = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/ChestSlot");
+        _armorSlots[2] = GetNode<ItemUI>("Root/Panel/Margin/VBox/MainArea/Scroll/Content/EquipmentColumn/BootsSlot");
         _moneyLabel = GetNode<Label>("Root/Panel/Margin/VBox/MoneyLabel");
         _dropZone = GetNode<DropZone>("Root");
         _tradeSidePanel = GetNode<Control>("Root/Panel/Margin/VBox/MainArea/TradeSidePanel");
@@ -48,7 +54,7 @@ public partial class InventoryUI : CanvasLayer
         }
 
         _dropZone.Player = Player;
-        _equipmentSlot.Bind(Player, Player.Equipment, 0);
+        BindEquipmentSlots();
         Player.Equipment.Changed += UpdateEquipmentSlot;
         _tradeSidePanel.Hide();
         _moneyLabel.Text = $"Деньги: {Player.Money}";
@@ -60,7 +66,17 @@ public partial class InventoryUI : CanvasLayer
     }
 
     private void MarkDirty() => _dirty = true;
-    private void UpdateEquipmentSlot() => _equipmentSlot.Bind(Player, Player.Equipment, 0);
+    private void UpdateEquipmentSlot() => BindEquipmentSlots();
+
+    private void BindEquipmentSlots()
+    {
+        _equipmentSlot.Bind(Player, Player.Equipment, 0);
+        for (int i = 0; i < _armorSlots.Length; i++)
+        {
+            int index = Player.Equipment.GetArmorSlotIndex((ArmorSlot)i);
+            _armorSlots[i].Bind(Player, Player.Equipment, index);
+        }
+    }
     private void UpdateMoney(int amount)
     {
         _moneyLabel.Text = $"Деньги: {amount} золотых";
@@ -74,7 +90,7 @@ public partial class InventoryUI : CanvasLayer
         _tradingStand = stand;
         _tradingStand.SaleStorage.Changed += MarkDirty;
         _layoutDirty = true;
-        _equipmentSlot.Hide();
+        _equipmentColumn.Hide();
         _dropZone.Hide();
         _tradeSidePanel.Show();
         GetNode<Button>("Root/Panel/Margin/VBox/CloseButton").Text = "Закрыть торговлю";
@@ -91,6 +107,7 @@ public partial class InventoryUI : CanvasLayer
         _layoutDirty = true;
         if (_chest != null) _chest.Inventory.Changed += MarkDirty;
         _root.Show();
+        _equipmentColumn.Show();
         _equipmentSlot.Show();
         _dropZone.Show();
         _tradeSidePanel.Hide();

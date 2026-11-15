@@ -184,7 +184,8 @@ public partial class ItemUI : PanelContainer
             ["source"] = Inventory.GetPath().ToString(),
             ["index"] = Index,
             ["revision"] = InventoryService.Instance?.Revision ?? 0,
-            ["is_hand_item"] = Inventory.Slots[Index].Item is HandItem
+            ["is_hand_item"] = Inventory.Slots[Index].Item is HandItem,
+            ["armor_kind"] = Inventory.Slots[Index].Item is Armor armor ? (int)armor.Kind : -1
         };
     }
 
@@ -199,8 +200,13 @@ public partial class ItemUI : PanelContainer
         var drag = data.AsGodotDictionary();
         string sourcePath = drag["source"].AsString();
 
-        if (Inventory == Player?.Equipment && Index == 0)
-            return drag.ContainsKey("is_hand_item") && drag["is_hand_item"].AsBool();
+        if (Inventory == Player?.Equipment)
+        {
+            if (Index == 0)
+                return drag.ContainsKey("is_hand_item") && drag["is_hand_item"].AsBool();
+            if (Inventory is EquipmentComponent equipment && equipment.TryGetArmorSlot(Index, out ArmorSlot armorSlot))
+                return drag.ContainsKey("armor_kind") && drag["armor_kind"].AsInt32() == (int)armorSlot;
+        }
 
         if (Inventory.IsTradeSaleStorage)
         {

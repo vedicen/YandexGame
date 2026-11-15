@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dprq5hhavb8bq"]
 
-[ext_resource type="PackedScene" uid="uid://dh24krq446n4g" path="res://inventory/weapon_scene.tscn" id="1_base"]
+[ext_resource type="PackedScene" uid="uid://dh24krq446n4g" path="res://inventory/equipment/handitem/weapons/melee_weapon/weapon_scene.tscn" id="1_base"]
 [ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_sword_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_iron_sword"]

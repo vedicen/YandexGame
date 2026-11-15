@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="Sword" format=3 uid="uid://qid0evaa6tng"]
 
-[ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/Sword.cs" id="1_sword"]
+[ext_resource type="Script" uid="uid://cbu6pwcq5bx0b" path="res://inventory/equipment/handitem/weapons/melee_weapon/Sword.cs" id="1_sword"]
 [ext_resource type="PackedScene" uid="uid://dx1w4a5qovc3f" path="res://inventory/models/sword_model.tscn" id="2_model"]
-[ext_resource type="PackedScene" uid="uid://dprq5hhavb8bq" path="res://inventory/weapon_scene_iron_sword.tscn" id="3_iron_sword_scene"]
+[ext_resource type="PackedScene" uid="uid://dprq5hhavb8bq" path="res://inventory/equipment/handitem/weapons/melee_weapon/weapon_scene_iron_sword.tscn" id="3_iron_sword_scene"]
 
 [resource]
 script = ExtResource("1_sword")

@@ -192,6 +192,7 @@ public partial class EquipmentComponent : InventoryComponent
             _pendingHandItem = null;
             EquipHandItemNow(item);
         }
+        ApplyPendingArmor();
     }
 
     private Weapon _pendingWeapon;
