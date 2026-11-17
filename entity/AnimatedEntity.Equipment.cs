@@ -290,24 +290,6 @@ public partial class AnimatedEntity : Entity
 		return _equipmentComponent;
 	}
 
-	private void EquipDefaultFootwear()
-	{
-		if (_equipmentComponent == null)
-		{
-			GD.PushWarning("AnimatedEntity: EquipmentComponent child not found; default footwear was not equipped.");
-			return;
-		}
-
-		PackedScene footwearScene = GD.Load<PackedScene>("res://s.tscn");
-		if (footwearScene == null)
-		{
-			GD.PushError("AnimatedEntity: Could not load footwear scene at res://s.tscn.");
-			return;
-		}
-
-		GD.Print($"AnimatedEntity: Requesting default footwear for {Name}.");
-		_equipmentComponent.Equip(EquipmentComponent.Slot.Feet, footwearScene);
-	}
 
 	private void SyncEquippedArmor()
 	{

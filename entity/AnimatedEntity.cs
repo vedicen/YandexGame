@@ -94,7 +94,6 @@ public partial class AnimatedEntity : Entity
 		_modelRoot.AddChild(ModelScene.Instantiate<Node3D>());
 		OnEquipmentChanged();
 		GenerateBoneHitboxes();
-		EquipDefaultFootwear();
 		_animationPlayer = FindAnimationPlayer(_modelRoot);
 		if (_animationPlayer == null)
 		{

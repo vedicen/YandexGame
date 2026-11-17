@@ -13,7 +13,7 @@ EquipRotationDegrees = Vector3(0, 180, 0)
 
 [resource]
 script = ExtResource("2_bod2f")
-Attachments = Array[ExtResource("1_w7i7i")]([SubResource("Resource_s44ry")])
+Attachments = [SubResource("Resource_s44ry")]
 DisplayName = "Бронзовый шлем"
 Model = ExtResource("2_48wtl")
 MaxStackSize = 1
